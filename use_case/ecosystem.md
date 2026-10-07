@@ -48,7 +48,19 @@ put real hostnames, IPs, or architecture diagrams in this file.
   frequently disagrees with what people believe about their own network.
 -->
 
-<!-- probe output here -->
+### Probe run — 2026-10-07 (WSL2 dev machine)
+
+| host | status | signed by | why it matters |
+| --- | --- | --- | --- |
+| pypi.org | OK | GlobalSign nv-sa | Python packages |
+| files.pythonhosted.org | OK | GlobalSign nv-sa | the actual wheel downloads |
+| api.openai.com | OK | Google Trust Services | the model API |
+| cdn.jsdelivr.net | OK | GlobalSign nv-sa | the CDN the Week 1 frontend uses |
+| huggingface.co | OK | Amazon | open weights, Weeks 2 and 8 |
+| registry-1.docker.io | OK | Amazon | container images |
+| github.com | OK | Sectigo Limited | this repository |
+
+**Verdict:** Open network, public CAs, no proxy. Nothing here will bite you.
 
 **Does this match what you were told in the table above?** Where it doesn't, that
 gap is worth chasing — it usually means a proxy nobody documented.
