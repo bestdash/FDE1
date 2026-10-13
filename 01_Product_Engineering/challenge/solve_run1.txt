@@ -1,0 +1,252 @@
+golden 1: PASS
+   --- your message ---
+Subject: Notice of non-renewal: [Product]
+
+Hello [Vendor contact],
+
+We are writing to inform you that we will not be renewing [Product]. This message serves as our formal notice of non-renewal. We ask that the contract end on its current end date of 15 December 2026 and that it does not renew automatically.
+
+Please confirm in writing that you have received this notice.
+
+Best regards,
+[Owner]
+   --- golden message ---
+Subject: Notice of non-renewal: [Product]
+
+Hello [Vendor contact],
+
+We are writing to let you know that we will not renew our contract for [Product]. Please take this as our notice of non-renewal: the contract should end on its current end date, 15 December 2026, and not renew automatically.
+
+Could you please confirm in writing that you have received this notice?
+
+Best regards,
+[Owner]
+
+golden 2: PASS
+   --- your message ---
+Hello [Owner],
+
+Thank you for confirming that you want to renew [Product].
+
+The contract ends on 15 December 2026 and will renew automatically on its current terms unless notice is given by 15 November 2026. The review must be finished before 15 November 2026.
+
+Before I draft the quote request for the vendor, please check the four items below:
+
+1. Duration: one year or three years?
+2. License model: keep the current model or change it?
+3. Quantity: how many licenses do you need?
+4. Usage: are all licenses in use, and are there features you do not use?
+
+You can answer in either of these two ways:
+
+In Claude: open a review session and I will take you through this contract, together with any other contracts waiting for your review.
+
+By reply: answer the four points above and I will use the answers to draft the quote request for [Vendor contact].
+
+Nothing goes to the vendor until you approve the draft.
+
+Best regards,
+Contract agent
+   --- golden message ---
+Hello [Owner],
+
+Thanks for confirming that you want to renew [Product]. The contract ends on 15 December 2026 and renews automatically on its current terms unless notice is given by 15 November 2026, so the review needs to be finished before that date.
+
+Before I draft the quote request for the vendor, please check:
+1. Duration: one year or three years?
+2. License model: keep the current model or change it?
+3. Quantity: how many licenses do you need?
+4. Usage: are all licenses in use, and are there features you do not use?
+
+You can do this in one of two ways:
+- In Claude: open a review session and I will take you through this contract, together with any other contracts waiting for your review.
+- By reply: answer the four points in your reply, and I will use your answers to draft the quote request.
+
+Nothing goes to the vendor until you approve the draft.
+
+Best regards,
+Contract agent
+
+golden 3: PASS
+   --- your message ---
+Hello [Owner],
+
+You previously asked to terminate [Product].
+
+Unfortunately, the last day to give notice was 15 November 2026, which has now passed. No termination notice has been sent to the vendor. As things stand, the contract will renew on its current terms at its end date of 15 December 2026.
+
+Would you still like to contact the vendor to request an early end to the contract? Please note that since the deadline has passed, this would be a request rather than a formal notice, and the vendor may not have to accept it.
+
+If you reply yes, I will prepare a draft request for you to review before anything is sent. If you reply no, the contract will renew as it is. The decision is yours.
+
+Best regards,
+Contract agent
+   --- golden message ---
+Hello [Owner],
+
+You asked to terminate [Product]. The last day to give notice was 15 November 2026 and it has passed, so the contract will renew on its current terms when it reaches its end date, 15 December 2026.
+
+You have not sent a termination notice to the vendor. Do you still want to ask the vendor to end the contract? After the deadline the vendor may not have to accept, so it would be a request, not a notice. Reply yes and I will prepare a draft request for you to review, or no and the contract renews as it is.
+
+Best regards,
+Contract agent
+
+golden 4: PASS
+   --- your message ---
+Hello [Owner],
+
+You asked me to help with a termination decision for [Product].
+
+The notice deadline of 15 November 2026 is still open and continues to run, so time is important here.
+
+However, I can't find the signed contract, which means I can't check its notice terms. As a result, I have not prepared a draft.
+
+Could you please send me the signed contract, or let me know where it is stored, as soon as you can so I can move forward?
+
+Best regards,
+Contract agent
+   --- golden message ---
+Hello [Owner],
+
+You asked to terminate [Product], and the notice deadline is 15 November 2026. I can't find the signed contract, so I can't check its notice terms, and I have not prepared a termination draft.
+
+Please send me the signed contract, or tell me where it is stored, as soon as you can.
+
+Best regards,
+Contract agent
+
+golden 5: PASS
+   --- your message ---
+Hello Procurement team,
+
+The owner of the [Product] contract with [Vendor contact] has left the company. The decision on record was to terminate this contract, but with no owner in place there is currently nobody to review or approve a draft termination notice, so I have not prepared one.
+
+The contract ends on 15 December 2026 and the notice deadline is 15 November 2026. Could you please assign a new owner who can confirm or change the termination decision before 15 November 2026?
+
+Best regards,
+Contract agent
+   --- golden message ---
+Hello Procurement team,
+
+The owner of the [Product] contract has left the company. A terminate decision is on record, but nobody can now review or approve a termination draft, so I have not prepared one.
+
+The notice deadline is 15 November 2026 (contract end date: 15 December 2026). Please assign a new owner who can confirm or change the decision before that date.
+
+Best regards,
+Contract agent
+
+golden 6: PASS
+   --- your message ---
+Hello Procurement team,
+
+The owner of the [Product] contract with [Vendor contact] has left the company. The decision on record was to terminate this contract, but with no owner in place, there is nobody available to review or approve a draft notice, so I have not prepared one.
+
+The contract end date is 15 December 2026, and the notice deadline is 15 November 2026. Please assign a new owner as soon as possible so they can confirm or change the termination decision before that deadline.
+
+I should also flag that I cannot locate the signed contract file. Without it, I am unable to check the exact notice terms, and the owner may not have to accept the current deadline interpretation. Could you please send the signed contract or let me know where it is stored?
+
+Best regards,
+Contract agent
+   --- golden message ---
+Hello Procurement team,
+
+The owner of the [Product] contract has left the company, and I can't find the signed contract. A terminate decision is on record, but nobody can approve a termination draft and I can't check the notice terms, so I have not prepared one.
+
+The notice deadline is 15 November 2026. Please assign a new owner, and send me the contract or tell me where it is stored, before that date.
+
+Best regards,
+Contract agent
+
+golden 7: PASS
+   --- your message ---
+Subject: [Product]: end of contract on 15 December 2026
+
+Hello [Vendor contact],
+
+We are writing to let you know that our contract for [Product] will reach its end date on 15 December 2026 and we will not be continuing after that point. We wanted to inform you in good time so that you can plan accordingly.
+
+Could you please confirm that all service and billing will stop on 15 December 2026, and let us know whether there is anything you need from us before that date?
+
+Best regards,
+[Owner]
+   --- golden message ---
+Subject: [Product]: end of contract on 15 December 2026
+
+Hello [Vendor contact],
+
+Our contract for [Product] ends on 15 December 2026, and we have decided not to continue after that date. We wanted to let you know in good time so that you can plan for it.
+
+Could you please confirm that the service and billing will stop on 15 December 2026, and let us know if you need anything from us before then?
+
+Best regards,
+[Owner]
+
+golden 8: PASS
+   --- your message ---
+Subject: Notice of non-renewal: [Product]
+
+Hello [Vendor contact],
+
+We are writing to inform you that we will not be renewing [Product]. This message serves as our formal notice of non-renewal. We ask that the contract end on its current end date of 15 December 2026 and that it does not renew automatically.
+
+Please confirm in writing that you have received this notice.
+
+Best regards,
+[Owner]
+   --- golden message ---
+Subject: Notice of non-renewal: [Product]
+
+Hello [Vendor contact],
+
+We are writing to let you know that we will not renew our contract for [Product]. Please take this as our notice of non-renewal: the contract should end on its current end date, 15 December 2026, and not renew automatically.
+
+Could you please confirm in writing that you have received this notice?
+
+Best regards,
+[Owner]
+
+golden 9: PASS
+   --- your message ---
+Hello [Owner],
+
+Thank you for confirming that you want to renew [Product].
+
+The last day to change the terms before the automatic renewal was 15 November 2026, so the contract will renew on its current terms at its end date, 15 December 2026.
+
+A review is still worth doing. Please check the four items below, as they will inform any request we put to the vendor:
+
+1. Duration: one year or three years?
+2. License model: keep the current model or change it?
+3. Quantity: how many licenses do you need?
+4. Usage: are all licenses in use, and are there features you do not use?
+
+If the review shows that fewer licenses or a different model are needed, you can still ask [Vendor contact] to adjust, but the vendor may not have to accept until the next renewal.
+
+There are two ways to work through this:
+
+- In Claude: open a review session and I will take you through this contract, together with any other contracts waiting for your review.
+- By reply: answer the four points above and I will use your answers to draft the request to the vendor.
+
+Best regards,
+Contract agent
+   --- golden message ---
+Hello [Owner],
+
+Thanks for confirming that you want to renew [Product]. The last day to change the terms before the automatic renewal was 15 November 2026 and it has passed, so the contract will renew on its current terms when it reaches its end date, 15 December 2026.
+
+A review is still worth doing. Please check:
+1. Duration: should the next term be one year or three years?
+2. License model: keep the current model or change it?
+3. Quantity: how many licenses do you need?
+4. Usage: are all licenses in use, and are there features you do not use?
+
+If the review shows you need fewer licenses or a different model, you can still ask the vendor to adjust, but they may not have to accept until the next renewal.
+
+You can do this in one of two ways:
+- In Claude: open a review session and I will take you through this contract, together with any other contracts waiting for your review.
+- By reply: answer the four points in your reply, and I will use your answers to draft the request to the vendor.
+
+Best regards,
+Contract agent
+
+9 of 9 passed

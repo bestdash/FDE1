@@ -18,26 +18,38 @@ put real hostnames, IPs, or architecture diagrams in this file.
 
 **Who did you ask?** (role, not name)
 
-<!-- your answer here -->
+The IT cloud engineer who runs our Azure setup, with the Head of IT infrastructure (the sponsor) and the IT security and platform admin in copy (email thread, Oct 1 to Oct 12).
 
 | # | Question | Answer |
 | :---: | --- | --- |
-| 1 | Where do internal apps run? (k8s, ECS, App Service, a VM someone maintains) | <!-- --> |
-| 2 | Which cloud? AWS, Azure, GCP, on-prem, several? | <!-- --> |
-| 3 | Is there an internal container registry? | <!-- --> |
-| 4 | How do users log in? (Okta, Entra ID, Ping, SAML, homegrown) | <!-- --> |
-| 5 | Can the app reach the internet? Egress proxy? Allowlist? | <!-- --> |
-| 6 | Where do secrets come from? (Vault, Secrets Manager, Key Vault) | <!-- --> |
-| 7 | Who approves a deployment, and what review does it need? | <!-- --> |
-| 8 | Is there an approved internal LLM endpoint already? | <!-- --> |
+| 1 | Where do internal apps run? (k8s, ECS, App Service, a VM someone maintains) | Planned: an AKS dev cluster in a dedicated resource group. The cluster could not be created: every subnet in the IT VNet gave the same error. A Linux VM was given instead (Oct 7), admin access through Azure Bastion only. The VM is a temporary step (answer Oct 12): fixing the AKS subnet issue may take more time, so the pilot starts on the VM and moves to AKS later. |
+| 2 | Which cloud? AWS, Azure, GCP, on-prem, several? | Azure, US region. The first VM attempt failed on Azure capacity in the region; another European region was the fallback, but it needs a new resource group and elevated permissions. |
+| 3 | Is there an internal container registry? | No (answer Oct 12): there is no internal registry; IT pulls images directly from Docker Hub. So the image is built on the VM (outbound to the package and image registries), or pushed to a private Docker Hub repository with a company account. Open: which one IT accepts. |
+| 4 | How do users log in? (Okta, Entra ID, Ping, SAML, homegrown) | Entra ID. Pilot users connect from Claude Desktop over the corporate network. |
+| 5 | Can the app reach the internet? Egress proxy? Allowlist? | Deny by default, inbound and outbound. Each port and host is opened by a ticket to the Network team. I sent the list: inbound HTTPS from the corporate network only; outbound HTTPS to the model API and the identity and file services; DNS; the database port to the managed database. IT is opening the ticket and needs the endpoint name for the inbound HTTPS first. |
+| 6 | Where do secrets come from? (Vault, Secrets Manager, Key Vault) | Keeper (VM credentials were shared through it). How secrets reach the running app is not decided yet: IT is checking with the IT SOC team for the way that fits SOC guidelines (Oct 12). |
+| 7 | Who approves a deployment, and what review does it need? | Clean secret, dependency and code scans on the private company repo; registration in the authorized-apps registry; the sponsor's written sign-off. |
+| 8 | Is there an approved internal LLM endpoint already? | No (answer Oct 12): there is no approved internal LLM, no Azure OpenAI instance and no approved Anthropic API. The network can be opened to the model API, but no model provider is approved. This is the main blocker for the pilot: a model route has to be approved first. |
+
 
 **What surprised you?**
 
-<!-- your answer here -->
+The rules did not surprise me: the sponsor (Head of IT infrastructure) set them before the build started: Azure US, deny-by-default network with an allowlist by ticket, Entra ID, Keeper for secrets. What surprised me was the platform. The sponsor asked for a Kubernetes cluster (AKS) with a managed PostgreSQL database, so that failed jobs restart on their own and the database is backed up and patched by Azure. The cluster could not be created: every subnet of the IT VNet gave the same error. The first VM attempt then failed on Azure capacity in the region. The app was never expected to run on a single VM, but that is what is available, so the pilot starts as a proof of concept (POC) on a VM. The VM is confirmed as a temporary step until the cluster works (Oct 12). The second surprise came with the same answer: there is no approved model route at all, so the network can be opened to the model API, but the app still has no approved provider to call.
 
 **What would you have to change about your app to deploy there?**
 
-<!-- your answer here -->
+On the planned cluster: nothing. The Kubernetes manifests are written and rehearsed locally; the daily job runs as a CronJob that restarts on failure, and the app connects to the managed database by configuration only.
+
+On the VM (POC, temporary until the cluster works), the code stays the same but how it runs changes:
+- Daily job: a systemd timer with restart on failure instead of a CronJob, plus an alert when a daily run does not finish (a missed run means a missed deadline alert, the exact failure the app exists to prevent).
+- MCP server: a service with an automatic restart instead of a Kubernetes Deployment.
+- Database: the Azure managed PostgreSQL server (PaaS, confirmed), reached from the VM on the database port. No PostgreSQL on the VM.
+- Secrets: the method the IT SOC team approves (Keeper Secrets Manager, Key Vault or a restricted file), never `--env-file` from a laptop.
+- Image: no internal registry. Built on the VM, or pulled from a private Docker Hub repository (open question).
+- 443: IT provides the internal DNS name and the TLS certificate; I give them the endpoint name (the certificate Common Name).
+- Model: no model route is approved yet. Once one is, it is a configuration change only (`LLM_MODEL`, and `LLM_API_BASE` for a gateway), because the model call is provider-agnostic.
+
+If the cluster becomes available, the app moves back with the same manifests and no code change.
 
 ---
 
@@ -78,7 +90,7 @@ put real hostnames, IPs, or architecture diagrams in this file.
 
 **What the VPN actually changed:**
 
-- **Split tunnel.** The VPN routes the private 10.0.0.0/8 range plus a few hundred
+- **Split tunnel.** The VPN routes the private ranges plus a set of
   specific routes, many of them public addresses. The default route stays on the
   home network. All seven hosts above route over home Wi-Fi, not the VPN.
 - **DNS goes corporate.** The VPN pushes the company's resolvers onto every

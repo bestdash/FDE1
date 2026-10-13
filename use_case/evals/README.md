@@ -37,3 +37,14 @@ wrong thing.
 - Include at least one **edge case** and one where the right answer is *"I don't
   know"* or *"escalate this"*. A system that never declines is not calibrated.
 - Keep them short enough to read in full during review.
+
+### Edge case - Golden 3
+A terminate decision one day after autorenew_date (today 16 Nov, deadline 15 Nov). It tests the strict today > autorenew_date comparison and gives late_notice_to_owner. Golden 8 is its boundary partner: today is the deadline day itself, so it still gives a termination_draft.
+
+### The declines - Goldens 4 and 5
+Neither one produces a vendor draft:
+Golden 4: no contract file, so the result is missing_file_notice and the owner is asked to send the contract or say where it is.
+Golden 5: the owner has left, so the result is escalation_to_procurement and procurement is asked to assign a new owner.
+
+### Unresolved - Golden 6
+The owner has left and the file is missing.

@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contract Agent TC1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Palette: paper 45% · ink 35% · white 10% · orange 10% (accent only) */
+:root{
+  --paper:#F3F1EC; --white:#FFFFFF; --ink:#0E0E0E; --orange:#F04B2A;
+  --stone:#D6D2C9; --gray:#5B5852; --tint:#FBE2DA;
+  --display:"Schibsted Grotesk", "Segoe UI", system-ui, Arial, sans-serif;
+  --body:"Archivo", "Segoe UI", system-ui, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --r:16px; --side:260px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.5}
+a{color:var(--ink); text-decoration:underline; text-decoration-color:var(--orange); text-decoration-thickness:2px; text-underline-offset:3px}
+a:hover{color:var(--orange)}
+code{font-family:var(--mono); font-size:.86em; background:var(--paper); border:1px solid var(--stone); padding:.02em .35em; border-radius:6px; overflow-wrap:anywhere}
+mark{background:var(--tint); color:var(--ink); padding:0 .15em; border-radius:3px}
+
+/* ---------- left sidebar: all points + progress ---------- */
+#side{position:fixed; top:16px; left:16px; bottom:16px; width:var(--side); z-index:10;
+  background:var(--white); border-radius:var(--r); padding:18px 12px 12px; display:flex; flex-direction:column}
+#side .brand{font-family:var(--display); font-weight:800; text-transform:uppercase; font-size:16px; display:flex; align-items:center; gap:8px; padding:0 8px}
+#side .count{display:flex; justify-content:space-between; align-items:baseline; margin:18px 8px 8px;
+  font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray)}
+#side .count b{font-family:var(--display); font-size:20px; letter-spacing:0; color:var(--ink)}
+#prog{height:6px; background:var(--paper); border-radius:3px; overflow:hidden; margin:0 8px 12px}
+#prog i{display:block; height:100%; width:0; background:var(--orange); border-radius:3px; transition:width .25s}
+#nav{flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:2px}
+#nav a{display:grid; grid-template-columns:30px 1fr auto; gap:6px; align-items:center; padding:7px 8px; border-radius:10px;
+  text-decoration:none; color:var(--gray); font-size:14px; line-height:1.2}
+#nav a:hover{background:var(--paper); color:var(--ink)}
+#nav a .n{font-family:var(--display); font-weight:800; font-size:14px; color:var(--stone)}
+#nav a .t{font-family:var(--mono); font-size:11px; color:var(--gray)}
+#nav a .doc{font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--stone); border-radius:999px; padding:1px 6px; color:var(--gray)}
+#nav a.done{color:var(--ink)}
+#nav a.done .n{color:var(--orange)}
+#nav a.on{background:var(--orange); color:var(--ink); font-weight:600}
+#nav a.on .n, #nav a.on .t{color:var(--ink)}
+#nav a.on .doc{border-color:var(--ink); color:var(--ink)}
+#nav a.hide{display:none}
+#mode{font-size:12px; color:var(--gray); line-height:2; margin:10px 8px 0; padding-top:10px; border-top:1px solid var(--stone)}
+#mode b{color:var(--ink)}
+main{margin-left:calc(var(--side) + 32px)}
+
+/* ---------- sections ---------- */
+section{min-height:100vh; padding:44px 24px 64px 0}
+.wrap{max-width:1120px}
+.kicker{display:flex; align-items:baseline; gap:10px; margin:0 0 10px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gray)}
+.kicker .n{font-family:var(--display); font-size:26px; font-weight:800; letter-spacing:0; color:var(--orange); line-height:1}
+h1{font-family:var(--display); font-weight:800; font-size:76px; line-height:.88; letter-spacing:-.01em; text-transform:uppercase; margin:6px 0 22px}
+h2{font-family:var(--display); font-weight:700; font-size:42px; line-height:.98; letter-spacing:-.01em; margin:0 0 20px; max-width:980px}
+h3{font-family:var(--display); font-weight:700; font-size:24px; line-height:1.05; margin:32px 0 12px}
+.lead{font-weight:500; font-size:22px; line-height:1.4; max-width:820px; margin:0 0 8px}
+.req{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink); background:var(--white); border-radius:999px; padding:5px 12px 5px 8px; margin:0 0 16px}
+.req::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--orange)}
+.src{font-size:14px; color:var(--gray); margin-top:16px}
+
+.grid{display:grid; gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--white); border-radius:var(--r); padding:18px 20px; min-width:0; overflow-wrap:anywhere}
+.card h4{font-family:var(--display); font-weight:700; margin:0 0 8px; font-size:19px; line-height:1.1}
+.card.accent{background:var(--orange); color:var(--ink)}
+.card.accent small{color:var(--ink)}
+.card.inkc{background:var(--ink); color:var(--white)}
+.big{font-family:var(--display); font-size:46px; font-weight:800; line-height:.95; letter-spacing:-.01em}
+.big small{display:block; font-family:var(--body); font-size:15px; font-weight:500; letter-spacing:0; color:var(--gray); margin-top:10px; line-height:1.35}
+.card .dash{display:block; width:28px; height:4px; border-radius:2px; background:var(--orange); margin-top:14px}
+
+blockquote.hers{margin:12px 0; padding:16px 20px; background:var(--white); border-radius:var(--r); position:relative; font-size:17px}
+blockquote.hers::before{content:""; position:absolute; left:0; top:18px; bottom:18px; width:4px; border-radius:0 3px 3px 0; background:var(--orange)}
+blockquote.hers p{margin:0 0 10px} blockquote.hers p:last-child{margin:0}
+
+.statement{background:var(--ink); color:var(--white); border-radius:var(--r); padding:26px 28px; margin:14px 0}
+.statement .lab{font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin:0 0 12px}
+.statement p{font-family:var(--display); font-weight:700; font-size:30px; line-height:1.12; margin:0}
+
+table{border-collapse:collapse; width:100%; background:var(--white); font-size:16px}
+th,td{text-align:left; vertical-align:top; padding:11px 14px; border-bottom:1px solid var(--stone); overflow-wrap:anywhere}
+th{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--gray)}
+thead th{border-bottom:1px solid var(--ink)}
+tr:last-child td, tr:last-child th{border-bottom:0}
+.tablewrap{overflow-x:auto; border-radius:var(--r); background:var(--white)}
+.card table{background:transparent}
+.card table td{padding:8px 10px 8px 0}
+/* Request / Response field tables: field name always on one line */
+.fields td{overflow-wrap:normal; vertical-align:baseline}
+.fields td:first-child{white-space:nowrap; width:1%; padding-right:18px}
+.fields code{white-space:nowrap; overflow-wrap:normal}
+.fields .vals{display:block; line-height:1.6}
+
+.tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap}
+.t-base{background:var(--paper); color:var(--ink); border:1px solid var(--stone)}
+.t-edge{background:var(--orange); color:var(--ink)}
+.t-decline{background:var(--ink); color:var(--white)}
+.t-other{background:var(--white); color:var(--gray); border:1px solid var(--stone)}
+
+.flow{display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; margin:10px 0 4px}
+.flow .step{background:var(--white); border-radius:12px; padding:10px 14px; font-size:16px}
+.flow .step small{color:var(--gray)}
+.flow .arrow{align-self:center; color:var(--orange); font-weight:800; font-size:22px}
+
+pre.msg{white-space:pre-wrap; font-family:var(--mono); font-size:14px; background:var(--paper); border-radius:12px; padding:14px 16px; margin:10px 0 0}
+
+details{background:var(--white); border-radius:var(--r); padding:12px 18px; margin-top:12px}
+details summary{cursor:pointer; font-weight:600; font-size:16px}
+details summary::marker{color:var(--orange)}
+details blockquote.hers{background:var(--paper)}
+
+.inputs{width:100%; font-size:16px}
+.inputs td:first-child{color:var(--gray); width:48%}
+.inputs td.changed{font-weight:700; background:var(--tint); border-radius:6px; padding-left:8px}
+.expect{margin:12px 0 0; font-size:15px; padding-top:12px; border-top:1px solid var(--stone)}
+
+/* presenter cues: ink chip, deliberate on camera */
+.cue{display:none; margin:0 0 18px; padding:10px 16px; border-radius:12px; background:var(--ink); color:var(--white); font-size:16px}
+.cue b{color:var(--orange)}
+.cue kbd{color:var(--ink)}
+body.presenter .cue{display:block}
+body.presenter section.doc-only{display:none}
+
+.btn{display:inline-block; text-decoration:none; font-weight:600; background:var(--orange); color:var(--ink); padding:12px 22px; border-radius:999px; margin:6px 8px 0 0}
+.btn:hover{color:var(--ink); filter:brightness(1.05)}
+.btn.ghost{background:var(--white); color:var(--ink)}
+.help{font-size:14px; color:var(--gray)}
+kbd{font-family:var(--mono); font-size:12px; border:1px solid var(--stone); border-bottom-width:2px; border-radius:5px; padding:0 5px; background:var(--white); color:var(--ink)}
+
+/* cover */
+.cover-grid{display:grid; grid-template-columns:1fr auto; gap:24px; align-items:end}
+
+/* story */
+.story-h{font-family:var(--display); font-weight:800; font-size:84px; line-height:.88; letter-spacing:-.015em; margin:8px 0 14px}
+.story-h em{font-style:normal; color:var(--orange)}
+.byline{font-size:15px; color:var(--gray); margin:0 0 28px}
+.beats{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; counter-reset:beat}
+.beat{background:var(--white); border-radius:var(--r); padding:18px 20px 20px; font-size:18px; line-height:1.4; position:relative}
+.beat::before{counter-increment:beat; content:"0" counter(beat); display:block; font-family:var(--display); font-weight:800; font-size:22px; color:var(--orange); margin-bottom:10px}
+.beat.hit{background:var(--orange)}
+.beat.hit::before{color:var(--ink)}
+.beat .amt{display:block; font-family:var(--display); font-weight:800; font-size:44px; line-height:1; margin:4px 0 8px}
+.moral{font-family:var(--display); font-weight:700; font-size:34px; line-height:1.1; margin:30px 0 10px; max-width:900px}
+.moral span{color:var(--orange)}
+.placeholder{outline:2px dashed var(--ink); outline-offset:3px; border-radius:4px}
+/* roadmap: rising staircase of building blocks */
+.stairs{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; align-items:start; margin-top:22px}
+.step{display:flex; flex-direction:column; gap:8px}
+.s0{margin-top:200px} .s1{margin-top:150px} .s2{margin-top:100px} .s3{margin-top:50px} .s4{margin-top:0}
+.lvl{display:flex; align-items:center; gap:10px; border-radius:12px; padding:10px 12px; background:var(--white); border:2px solid var(--ink)}
+.lvl .ln{font-family:var(--display); font-weight:800; font-size:30px; line-height:1; color:var(--orange)}
+.lvl b{display:block; font-family:var(--display); font-size:17px; line-height:1.05}
+.lvl small{display:block; font-size:12px; color:var(--gray); margin-top:2px}
+.s4 .lvl{background:var(--orange); border-color:var(--orange)} .s4 .lvl .ln, .s4 .lvl small{color:var(--ink)}
+.bk .tcn{display:flex; justify-content:space-between; gap:8px; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--orange); margin-bottom:4px}
+.bk .tcn span:last-child{color:var(--gray)}
+.bk.mile{background:var(--ink); color:var(--white)} .bk.mile .tcn{color:var(--orange)} .bk.mile .tcn span:last-child{color:var(--stone)}
+
+/* final product: six-step lifecycle with lanes */
+.flow6{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-top:20px}
+.fstep{background:var(--white); border-radius:var(--r); overflow:hidden; display:flex; flex-direction:column; min-width:0}
+.fh{padding:12px 14px 10px; border-bottom:1px solid var(--stone)}
+.fh .no{font-family:var(--display); font-weight:800; font-size:24px; line-height:1; color:var(--orange)}
+.fh b{display:block; font-family:var(--display); font-size:18px; line-height:1.05; margin-top:4px}
+.fh .tc{display:inline-block; margin-top:8px; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; border:1px solid var(--stone); border-radius:999px; padding:2px 8px; color:var(--gray)}
+.fstep.built{box-shadow:0 0 0 3px var(--orange)}
+.fstep.built .fh{background:var(--orange); border-bottom-color:var(--orange)}
+.fstep.built .fh .no{color:var(--ink)}
+.fstep.built .fh .tc{border-color:var(--ink); color:var(--ink); background:var(--white)}
+.lane{padding:10px 14px; font-size:14px; line-height:1.35; border-bottom:1px solid var(--paper)}
+.lane:last-child{border-bottom:0}
+.lane.agent{min-height:128px} .lane.owner{min-height:88px} .lane.vendor{min-height:60px}
+.lane .who{display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gray); margin-bottom:4px}
+.lane .who::before{content:""; width:8px; height:8px; border-radius:2px}
+.lane.agent .who::before{background:var(--orange)}
+.lane.owner .who::before{background:var(--ink)}
+.lane.vendor .who::before{background:var(--stone)}
+.lane.none{color:var(--stone)}
+.guard{display:flex; flex-wrap:wrap; gap:8px 22px; align-items:center; background:var(--ink); color:var(--white); border-radius:var(--r); padding:14px 20px; margin-top:12px; font-size:15px}
+.guard .lab{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--orange)}
+.runs{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.runs span{background:var(--white); border-radius:999px; padding:5px 12px; font-size:13.5px}
+@media (max-width:1250px){ .flow6{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:700px){ .flow6{grid-template-columns:1fr} .lane{min-height:0!important} }
+.bk{background:var(--white); border-radius:12px; padding:12px 13px; font-size:14.5px; line-height:1.38; display:flex; flex-direction:column}
+.bk h5{font-family:var(--display); font-weight:700; font-size:16px; line-height:1.1; margin:0 0 6px}
+.bk.done{background:transparent; border:1px dashed var(--stone)}
+.bk.done h5::before{content:"✓ "; color:var(--orange)}
+.bk.hot{background:var(--tint)}
+.src-tag{margin-top:8px; font-size:10.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--gray)}
+.summit{display:flex; align-items:center; gap:16px; background:var(--ink); color:var(--white); border-radius:var(--r); padding:18px 22px; margin-top:16px}
+.summit .flag{flex:none; background:var(--orange); color:var(--ink); font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; border-radius:999px; padding:5px 12px}
+.summit p{margin:0; font-family:var(--display); font-weight:700; font-size:22px; line-height:1.2}
+@media (max-width:1250px){ .stairs{grid-template-columns:1fr 1fr} .step{margin-top:0!important} }
+@media (max-width:620px){ .stairs{grid-template-columns:1fr} .summit{flex-direction:column; align-items:flex-start} }
+
+@media (max-width:760px){ .story-h{font-size:48px} .moral{font-size:24px} .beat .amt{font-size:34px} }
+
+/* ---------- narrow screens: sidebar becomes a block at the top ---------- */
+@media (max-width:900px){
+  #side{position:static; width:auto; margin:16px 16px 0}
+  #nav{overflow:visible}
+  main{margin-left:0}
+  section{padding:36px 16px 56px}
+}
+@media (max-width:760px){
+  body{font-size:16px}
+  h1{font-size:44px} h2{font-size:30px} h3{font-size:21px} .lead{font-size:18px}
+  .statement p{font-size:22px} .big{font-size:34px}
+  .cover-grid{grid-template-columns:1fr} .pixels{display:none}
+}
+@media print{
+  #side,.cue{display:none!important}
+  main{margin-left:0}
+  section{min-height:0; page-break-inside:avoid; padding:20px 0}
+  section.doc-only{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<aside id="side">
+  <span class="brand"><svg width="16" height="16" viewBox="0 0 4 4" aria-hidden="true"><rect x="3" y="0" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="0" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/></svg>Contract Agent</span>
+  <div class="count"><span id="modeLabel">Document</span><span><b id="pos">1</b> / <span id="tot">13</span></span></div>
+  <div id="prog"><i></i></div>
+  <nav id="nav"></nav>
+  <div id="mode"><kbd>P</kbd> presenter mode<br><kbd>←</kbd> <kbd>→</kbd> previous / next section<br><kbd>A</kbd> open the app</div>
+</aside>
+
+<main>
+
+<!-- ============ STORY ============ -->
+<section id="story" data-label="The story" data-time="0:00" data-n="→">
+<div class="wrap">
+  <div class="cue"><b>0:00 to 0:30.</b> Tell it slowly, one card at a time. Pause after the amount. End on the last line, then press → .</div>
+  <p class="kicker">A true story, names removed</p>
+  <h1 class="story-h">The dragon<br>never <em>negotiates.</em></h1>
+  <p class="byline">As told by our Head of IT infrastructure.</p>
+  <div class="beats">
+    <div class="beat">One of our software contracts says it clearly: if the purchase order is not in <b>before the end date</b>, the price goes up <b>15%</b>, automatically. The clause was known. It just had no one acting on it.</div>
+    <div class="beat">The vendor is a dragon in negotiation. When the contract says it, they apply it. No discussion, no exceptions.</div>
+    <div class="beat">Last year the purchase order arrived late. The date lived in a shared spreadsheet, checked on a call every two weeks. Nobody saw it coming.</div>
+    <div class="beat hit">The price went up 15%, for the same product.<span class="amt">a penalty</span>lost in one day, for nothing.</div>
+  </div>
+  <p class="moral">The money was not lost in the negotiation.<br>It was lost on <span>a date nobody was watching.</span></p>
+  <p class="lead">This project is about those dates: notice deadlines, end dates, the last day to say no. And this is not one bad day: about 1 in 5 renewals are late or missed.</p>
+</div>
+</section>
+
+<!-- ============ 0. COVER ============ -->
+<section id="cover" data-label="Overview" data-time="0:30">
+<div class="wrap">
+  <div class="cue"><b>0:30 to 0:35.</b> One line: "I am [role] in IT infrastructure; this is my Contract Renewal Agent." Then press → .</div>
+  <p class="kicker"><span class="n">00</span> AI Forward-Deployed Engineer · Technical Challenge 1</p>
+  <div class="cover-grid">
+    <div>
+      <h1>Contract<br>Renewal<br>Agent</h1>
+      <p class="lead">Drafts the next message after a contract owner decides to renew or terminate, so renewal notice deadlines are not missed. The owner approves every draft; the app sends nothing.</p>
+    </div>
+    <svg class="pixels" id="stairs" width="240" height="240" viewBox="0 0 12 12" aria-hidden="true"></svg>
+  </div>
+  <p>
+    <a class="btn" href="https://github.com/bestdash/FDE1/tree/main">Repository</a>
+    <a class="btn" id="loomLink" href="https://drive.google.com/file/d/1o1QLMs9iYfx2VR1H0tSl7ZhJYkiUpxKN/view?usp=sharing" target="_blank" rel="noopener">▶ Watch the video (5 min)</a>
+    <a class="btn ghost" href="http://localhost:7860" target="_blank" rel="noopener">App (local, port 7860)</a>
+  </p>
+
+  <h3>Where each required item is answered</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Required item</th><th>On this page</th><th>Source in the repo</th></tr></thead>
+    <tbody>
+      <tr><td>Video (5 minutes or less)</td><td>Button above</td><td><a href="https://drive.google.com/file/d/1o1QLMs9iYfx2VR1H0tSl7ZhJYkiUpxKN/view?usp=sharing" target="_blank" rel="noopener">Google Drive (Loom upload was not available)</a></td></tr>
+      <tr><td>Problem sentence</td><td><a href="#problem">01 Problem</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">use_case/CHARTER.md</a></td></tr>
+      <tr><td>Schema (Request, Response, solve)</td><td><a href="#contract">02 Contract</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/schema.py">schema.py</a></td></tr>
+      <tr><td>Agent-or-pipeline verdict</td><td><a href="#pipeline">03 Pipeline</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a></td></tr>
+      <tr><td>Which golden is the edge case, which the decline</td><td><a href="#goldens">04 Goldens</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/golden.jsonl">use_case/evals/golden.jsonl</a></td></tr>
+      <tr><td>The four endpoint questions</td><td><a href="#endpoint">05 Endpoint</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md#my-step-8-answers">README: My Step 8 answers</a></td></tr>
+      <tr><td>Live demo</td><td><a href="#demo">06 Demo</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/app.py">app.py</a></td></tr>
+      <tr><td>CDN paragraph (container)</td><td><a href="#container">07 Container</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md?plain=1#L638">README Step 9</a></td></tr>
+      <tr><td>Step 10 answers</td><td><a href="#infra">08 Where it lives</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md?plain=1#L783-L821">README Step 10</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">ecosystem.md</a></td></tr>
+      <tr><td>Vibe check</td><td><a href="#vibe">09 Vibe check</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md?plain=1#L894-L937">README Step 11</a>, <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/vibe_check_pass3.md">vibe_check_pass3.md</a></td></tr>
+      <tr><td>Step 12 answers (real users)</td><td><a href="#users">10 Users</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md#my-demo">README: My demo</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a></td></tr>
+      <tr><td><code>## Bring it to work</code> lines</td><td><a href="#work">11 Bring it to work</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md#bring-it-to-work">README: Bring it to work</a>, <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/cost_comparison.md">cost_comparison.md</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">All data on this page is synthetic. Roles, not names. Press <kbd>P</kbd> for presenter mode (cues on, document-only sections hidden).</p>
+</div>
+</section>
+
+<!-- ============ 1. PROBLEM ============ -->
+<section id="problem" data-label="Problem" data-time="0:35">
+<div class="wrap">
+  <div class="cue"><b>0:35 to 0:55.</b> The story was one case; here is the pattern. Who has it (contract owner, 80 to 100 contracts), how it works today. Read the problem sentence aloud.</div>
+  <p class="kicker"><span class="n">01</span> The problem</p>
+  <span class="req">Problem sentence</span>
+  <h2>Renewal deadlines are missed because tracking is manual</h2>
+  <div class="grid g3">
+    <div class="card accent"><div class="big">1 in 5<small>renewals late or missed</small></div></div>
+    <div class="card"><div class="big">~120 h<small>per year in review meetings</small></div></div>
+    <div class="card"><div class="big">a penalty<small>for renewing one day late</small></div></div>
+  </div>
+  <div class="statement">
+    <p class="lab">The problem in one sentence</p>
+    <p>Contract owners act too late on renewal notice deadlines, with about 1 in 5 renewals late or missed, because tracking is a manual spreadsheet reviewed on a call every two weeks, which costs about 120 person-hours per year across the team.</p>
+  </div>
+  <div class="grid g2">
+    <blockquote class="hers"><p><b>Who:</b> Contract owner. They are multiple within the company (usually head of every department). Particularly here Head of IT Infrastructure that owns today about 80-100 contracts.</p><p><b>Today:</b> A shared spreadsheet, a review call every two weeks, manual emails, and a manual update at the end.</p></blockquote>
+    <blockquote class="hers"><p><b>Success:</b> Alerts 100% in time; renewals on time about 80% to 95% (e.g. no penalties for late renewal); review meetings about 26 to 4 per year.</p></blockquote>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">use_case/CHARTER.md</a></p>
+</div>
+</section>
+
+<!-- ============ 2. CONTRACT ============ -->
+<section id="contract" data-label="Contract" data-time="0:55">
+<div class="wrap">
+  <div class="cue"><b>0:55 to 1:20.</b> Six fields in, three fields out. Code picks message_type and act_by; the model only writes the text. Point at the routing order: owner left beats everything.</div>
+  <p class="kicker"><span class="n">02</span> The contract</p>
+  <span class="req">Schema</span>
+  <h2>Six typed fields in, one typed message out</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Request · in</h4>
+      <table class="fields">
+        <tr><td><code>decision</code></td><td>terminate | renew</td></tr>
+        <tr><td><code>autorenew_date</code></td><td>last day to say no before auto-renewal; None if no clause</td></tr>
+        <tr><td><code>end_date</code></td><td>contract end date</td></tr>
+        <tr><td><code>today</code></td><td>reference date (fixed in goldens)</td></tr>
+        <tr><td><code>owner_status</code></td><td>active | left</td></tr>
+        <tr><td><code>file_exists</code></td><td>signed contract on record</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h4>Response · out</h4>
+      <table class="fields">
+        <tr><td><code>message_type</code></td><td><span class="vals">termination_draft<br>late_notice_to_owner<br>renewal_review_email<br>escalation_to_procurement<br>missing_file_notice</span></td></tr>
+        <tr><td><code>message</code></td><td>the draft or message text</td></tr>
+        <tr><td><code>act_by</code></td><td>autorenew_date while today &le; autorenew_date, else None</td></tr>
+      </table>
+    </div>
+  </div>
+  <h3>solve(): code routes, the model writes</h3>
+  <div class="flow">
+    <span class="step"><code>route_request</code><br><small>message_type + act_by (rules, no model)</small></span><span class="arrow">→</span>
+    <span class="step"><code>build_prompt</code><br><small>MESSAGE_RULES + TYPE_RULES + facts</small></span><span class="arrow">→</span>
+    <span class="step"><code>stream_reply</code><br><small>model writes the text</small></span><span class="arrow">→</span>
+    <span class="step"><code>Response</code></span>
+  </div>
+  <h3>Routing order: first match wins</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>#</th><th>Condition</th><th>message_type</th><th>Why this order</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>owner_status == "left"</code></td><td>escalation_to_procurement</td><td>nobody can approve anything</td></tr>
+      <tr><td>2</td><td><code>not file_exists</code></td><td>missing_file_notice</td><td>nothing can be checked, so nothing drafted</td></tr>
+      <tr><td>3</td><td><code>decision == "renew"</code></td><td>renewal_review_email</td><td>dates change the text, not the type</td></tr>
+      <tr><td>4a</td><td>terminate, no auto-renewal</td><td>termination_draft (courtesy)</td><td>never too late</td></tr>
+      <tr><td>4b</td><td>terminate, <code>today &le; autorenew_date</code></td><td>termination_draft</td><td>last day still counts</td></tr>
+      <tr><td>4c</td><td>terminate, <code>today &gt; autorenew_date</code></td><td>late_notice_to_owner</td><td>deadline passed, contract renews</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/schema.py">schema.py</a> (Request, Response, route_request, solve) · Charter In → Out row: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a></p>
+</div>
+</section>
+
+<!-- ============ 3. PIPELINE ============ -->
+<section id="pipeline" data-label="Pipeline" data-time="1:20">
+<div class="wrap">
+  <div class="cue"><b>1:20 to 1:30.</b> One sentence: 0 of 4 agent questions are true, so it is a function. Then say what would change your mind.</div>
+  <p class="kicker"><span class="n">03</span> Agent or pipeline</p>
+  <span class="req">Agent-or-pipeline verdict</span>
+  <h2>Pipeline: a function, not an agent (0 of 4 questions true)</h2>
+  <blockquote class="hers">
+    <p><b>Q1:</b> No. Every contract goes through the same steps. A different number of review points per contract changes the size of the output, not the steps.</p>
+    <p><b>Q2:</b> closest call: current SaaS terms on the vendor website would need a fetch, but that is one fixed step, not an agent. The rule for which contracts trigger it is written in code.</p>
+    <p><b>Q3:</b> No. Every draft goes to the owner for review before anything is sent, and the failure cases (deadline passed, contract missing, owner left) route to a person instead of retrying.</p>
+    <p><b>Q4:</b> No. The input is always a contract and the owner's decision, from a closed set: terminate or renew.</p>
+  </blockquote>
+  <div class="grid g2">
+    <div class="card"><h4>Rejected</h4>An agent.<span class="dash"></span></div>
+    <div class="card"><h4>Strongest case for the opposite verdict</h4>I would switch to an agent if, over 1 year, owners approve the proposed drafts without edits in at least 90% of cases, and the next step keeps depending on the vendor’s reply. Then the human check adds cost without value, and a fixed pipeline cannot follow the negotiation.<span class="dash"></span></div>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a></p>
+</div>
+</section>
+
+<!-- ============ 4. GOLDENS ============ -->
+<section id="goldens" data-label="Goldens" data-time="1:30">
+<div class="wrap">
+  <div class="cue"><b>1:30 to 1:45.</b> Nine hand-written goldens, all the same contract with one field changed. Name them: 3 is the edge case, 4 and 5 are the declines, 8 is the boundary partner of 3. Then press <kbd>A</kbd> and switch to the app.</div>
+  <p class="kicker"><span class="n">04</span> Golden examples, written by hand</p>
+  <span class="req">Edge case and decline</span>
+  <h2>One contract, one field changed per golden</h2>
+  <p>Base contract: terminate, notice deadline 15 Nov 2026, end 15 Dec 2026, today 12 Oct 2026, owner active, file found.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>#</th><th>Role</th><th>What changes vs golden 1</th><th>Expected message_type</th><th>act_by</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span class="tag t-base">base</span></td><td>none (terminate, deadline open)</td><td>termination_draft</td><td>2026-11-15</td></tr>
+      <tr><td>2</td><td><span class="tag t-base">base</span></td><td>decision = renew</td><td>renewal_review_email</td><td>2026-11-15</td></tr>
+      <tr><td>3</td><td><span class="tag t-edge">Edge</span></td><td>today = 16 Nov (1 day after the deadline)</td><td>late_notice_to_owner</td><td>none</td></tr>
+      <tr><td>4</td><td><span class="tag t-decline">Decline</span></td><td>file_exists = false</td><td>missing_file_notice</td><td>2026-11-15</td></tr>
+      <tr><td>5</td><td><span class="tag t-decline">Decline</span></td><td>owner_status = left</td><td>escalation_to_procurement</td><td>2026-11-15</td></tr>
+      <tr><td>6</td><td><span class="tag t-other">unresolved</span></td><td>owner left and file missing</td><td>escalation_to_procurement</td><td>2026-11-15</td></tr>
+      <tr><td>7</td><td><span class="tag t-other">no auto-renewal</span></td><td>autorenew_date = null</td><td>termination_draft (courtesy)</td><td>none</td></tr>
+      <tr><td>8</td><td><span class="tag t-edge">Boundary</span></td><td>today = 15 Nov (deadline day)</td><td>termination_draft</td><td>2026-11-15</td></tr>
+      <tr><td>9</td><td><span class="tag t-other">renew late</span></td><td>decision = renew, today = 16 Nov</td><td>renewal_review_email</td><td>none</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <h3>Why golden 3 is the edge case and golden 4 the decline</h3>
+  <blockquote class="hers">
+    <p><b>Golden 3, EDGE CASE:</b> today is exactly one day after autorenew_date, so today &gt; autorenew_date is true and the strict comparison is what is being tested. The contract renews, and the message must say so.</p>
+    <p><b>Golden 4, DECLINE:</b> the decision is terminate and the deadline is open, so this looks exactly like golden 1 and the system will be tempted to draft. It must not: without the file it cannot check how notice has to be given, so any draft would rest on terms it has not seen.</p>
+    <p><b>Golden 8, BOUNDARY:</b> This line and golden 3 sit on either side of the deadline: a &lt; instead of &lt;= fails here, and a &lt;= that should be &lt; fails golden 3.</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/golden.jsonl">use_case/evals/golden.jsonl</a> (each line has a <code>why</code> note)</p>
+</div>
+</section>
+
+<!-- ============ 5. ENDPOINT ============ -->
+<section id="endpoint" data-label="Endpoint" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">05</span> The endpoint</p>
+  <span class="req">Four endpoint questions</span>
+  <h2><code style="font-size:.6em">draft_message_for_renew_or_terminate</code></h2>
+  <blockquote class="hers">
+    <p><b>1. What is one thing you do at work this could take over?</b><br>Today: a shared spreadsheet, a review call every two weeks, manual emails, and reminding myself to check where I am with each contract. This endpoint takes over one step only: writing the next message after the owner says renew or terminate. That can be the notice to the vendor, the review email for the current contract, the request for a missing contract file, or the escalation to procurement. Why it matters: about 120 person-hours a year in review meetings, and about 1 in 5 renewals late or missed.</p>
+    <p><b>2. What exactly goes in?</b><br>Six fields, not a file or free text: <code>decision</code>, <code>autorenew_date</code>, <code>end_date</code>, <code>today</code>, <code>owner_status</code>, <code>file_exists</code>. Dates are text in YYYY-MM-DD format; an empty <code>autorenew_date</code> means no auto-renewal clause; <code>file_exists</code> is true or false. The contract file itself is not read: <code>file_exists</code> only says whether it is on record.</p>
+    <p><b>3. What comes back, and who reads it?</b><br>One text with <code>message_type</code>, <code>act_by</code> and <code>message</code>. Who reads it depends on the type: <code>termination_draft</code>: the owner reviews it, then sends it to the vendor. <code>late_notice_to_owner</code>, <code>renewal_review_email</code>, <code>missing_file_notice</code>: the owner. <code>escalation_to_procurement</code>: procurement. <code>act_by</code> gives the reader the last day to act. The app sends nothing.</p>
+    <p><b>4. What did you name it, and why would an agent pick it correctly?</b><br><code>draft_message_for_renew_or_terminate</code>. "draft": it writes and sends nothing, so it is different from a tool that approves or sends. "renew_or_terminate": the draft depends on the owner's decision, renew or terminate, so the name names both and nobody reads it as "only for renew". Not "owner_decision": later owner decisions (price, retained quote) would fit that name too. The name says draft and the docstring says it sends nothing, so an agent will not call it to send a message.</p>
+  </blockquote>
+  <p>Other endpoints in the app: <code>show_prompt_for_renew_or_terminate</code> (shows the prompt, no model call) and <code>chat</code> (raw model, not the agent).</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md#my-step-8-answers">README: My Step 8 answers</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/app.py">app.py</a></p>
+</div>
+</section>
+
+<!-- ============ 6. DEMO ============ -->
+<section id="demo" data-label="Live demo" data-time="1:45">
+<div class="wrap">
+  <div class="cue"><b>1:45 to 3:30, in the app.</b> Run 1, then change one field for 3, then flip it back and change one field for 4. For each: read message_type and act_by first, then one line of the text. Optional: open the prompt box once to show rules + facts. Come back with <kbd>Alt</kbd>+<kbd>Tab</kbd>.</div>
+  <p class="kicker"><span class="n">06</span> Live demo</p>
+  <h2>Same contract, three outcomes</h2>
+  <p><a class="btn" href="http://localhost:7860" target="_blank" rel="noopener">Open the app · localhost:7860</a> <span class="help">Runs in Docker: <code>docker run --rm -p 7860:7860 --env-file ../../.env challenge:tc1</code></span></p>
+  <div class="grid g3" style="margin-top:14px">
+    <div class="card">
+      <h4>Run 1 · golden 1 <span class="tag t-base">base</span></h4>
+      <table class="inputs">
+        <tr><td>Decision</td><td>terminate</td></tr>
+        <tr><td>Owner status</td><td>active</td></tr>
+        <tr><td>Notice deadline</td><td>2026-11-15</td></tr>
+        <tr><td>End date</td><td>2026-12-15</td></tr>
+        <tr><td>Today</td><td>2026-10-12</td></tr>
+        <tr><td>File exists</td><td>yes</td></tr>
+      </table>
+      <p class="expect"><b>Expect:</b> termination_draft · act_by 15 Nov 2026 · signed [Owner], to the vendor</p>
+    </div>
+    <div class="card">
+      <h4>Run 2 · golden 3 <span class="tag t-edge">Edge</span></h4>
+      <table class="inputs">
+        <tr><td>Decision</td><td>terminate</td></tr>
+        <tr><td>Owner status</td><td>active</td></tr>
+        <tr><td>Notice deadline</td><td>2026-11-15</td></tr>
+        <tr><td>End date</td><td>2026-12-15</td></tr>
+        <tr><td>Today</td><td class="changed">2026-11-16</td></tr>
+        <tr><td>File exists</td><td>yes</td></tr>
+      </table>
+      <p class="expect"><b>Expect:</b> late_notice_to_owner · act_by none · says the contract renews, "may not have to accept"</p>
+    </div>
+    <div class="card">
+      <h4>Run 3 · golden 4 <span class="tag t-decline">Decline</span></h4>
+      <table class="inputs">
+        <tr><td>Decision</td><td>terminate</td></tr>
+        <tr><td>Owner status</td><td>active</td></tr>
+        <tr><td>Notice deadline</td><td>2026-11-15</td></tr>
+        <tr><td>End date</td><td>2026-12-15</td></tr>
+        <tr><td>Today</td><td>2026-10-12</td></tr>
+        <tr><td>File exists</td><td class="changed">no</td></tr>
+      </table>
+      <p class="expect"><b>Expect:</b> missing_file_notice · act_by 15 Nov 2026 · no draft, asks for the signed contract</p>
+    </div>
+  </div>
+  <details>
+    <summary>Expected texts (from the goldens), for checking after the run</summary>
+<pre class="msg"><b>Golden 1</b>
+Subject: Notice of non-renewal: [Product]
+
+Hello [Vendor contact],
+
+We are writing to let you know that we will not renew our contract for [Product]. Please take this as our notice of non-renewal: the contract should end on its current end date, 15 December 2026, and not renew automatically.
+
+Could you please confirm in writing that you have received this notice?
+
+Best regards,
+[Owner]</pre>
+<pre class="msg"><b>Golden 3</b>
+Hello [Owner],
+
+You asked to terminate [Product]. The last day to give notice was 15 November 2026 and it has passed, so the contract will renew on its current terms when it reaches its end date, 15 December 2026.
+
+You have not sent a termination notice to the vendor. Do you still want to ask the vendor to end the contract? After the deadline the vendor may not have to accept, so it would be a request, not a notice. Reply yes and I will prepare a draft request for you to review, or no and the contract renews as it is.
+
+Best regards,
+Contract agent</pre>
+<pre class="msg"><b>Golden 4</b>
+Hello [Owner],
+
+You asked to terminate [Product], and the notice deadline is 15 November 2026. I can't find the signed contract, so I can't check its notice terms, and I have not prepared a termination draft.
+
+Please send me the signed contract, or tell me where it is stored, as soon as you can.
+
+Best regards,
+Contract agent</pre>
+  </details>
+  <p class="src">Rule checks without the model: <code>uv run python check_goldens.py rules</code> · Endpoint checks: <code>uv run python check_goldens.py endpoint draft_message_for_renew_or_terminate 1 3 4</code></p>
+</div>
+</section>
+
+<!-- ============ 7. CONTAINER ============ -->
+<section id="container" data-label="Container" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">07</span> Containerized</p>
+  <span class="req">CDN paragraph</span>
+  <h2>Runs in Docker; one silent dependency on a public CDN</h2>
+  <blockquote class="hers">
+    <p>frontend/index.html imports the Gradio client (@gradio/client) from a public CDN, cdn.jsdelivr.net. The browser makes this request, not the container, so what matters is the user’s network. If that network blocks the CDN, the page still loads and shows the date and the model, but the form does nothing and shows no error. My two probe runs (use_case/ecosystem.md) reached jsDelivr, but both ran from my home network, not from the office or the deployment VM. The fix is to vendor the library: download a pinned version at build time, copy it into the image, and serve it from the app. Then the browser never calls the CDN at run time. The URL also has no version, so pinning it fixes the same problem uv.lock fixes for Python packages.</p>
+  </blockquote>
+  <h3>Image vs virtual environment</h3>
+  <blockquote class="hers">
+    <p>A virtual environment holds only the Python packages; the image also holds the operating system, the Python version, the code files, the user it runs as, the port and the start command. So a platform team can run the image with no setup and no guessing: they only add the keys at run time, and if a file is missing (like schema.py was in my first build), it fails the same way for them as for me.</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md?plain=1#L631-L644">README Step 9</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/Dockerfile">Dockerfile</a></p>
+</div>
+</section>
+
+<!-- ============ 8. INFRA ============ -->
+<section id="infra" data-label="Where it lives" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">08</span> Where does this actually live?</p>
+  <span class="req">Step 10 answers</span>
+  <h2>A temporary Linux VM in Azure; no approved model route yet</h2>
+  <div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Who did you ask?</th><td>The IT cloud engineer who runs our Azure setup, with the Head of IT infrastructure (the sponsor) and the IT security and platform admin in copy (email thread, Oct 1 to Oct 12).</td></tr>
+      <tr><th>Where would it run?</th><td>On a Linux VM in Azure, as a proof of concept. The planned AKS cluster could not be created, so the VM is a temporary step (confirmed Oct 12) and the pilot moves to AKS when the subnet issue is fixed. The database is an Azure managed PostgreSQL server (PaaS) connected to the VM.</td></tr>
+      <tr><th>Cloud provider</th><td>Azure, US region.</td></tr>
+      <tr><th>Authentication</th><td>Entra ID. Pilot users connect from Claude Desktop over the corporate network; inbound 443 is open from the corporate network only, never from the internet.</td></tr>
+      <tr><th>External LLM API?</th><td>The network, yes: outbound 443 to the model API is in the allowlist ticket IT is opening. The approval, no: there is no approved internal LLM, no Azure OpenAI instance and no approved Anthropic API (Oct 12). So in production it can use no model until a route is approved. Whichever route is approved, the switch is configuration only (<code>LLM_MODEL</code>, <code>LLM_API_BASE</code>), because <code>llm.py</code> is provider-agnostic.</td></tr>
+      <tr><th>What surprised you?</th><td>Not the rules: the sponsor set them before the build started. The platform: the planned AKS cluster could not be created on any IT subnet, and the first VM failed on Azure capacity, so the pilot starts on a temporary VM. And there is no approved model route at all: the network can be opened, but there is no approved provider to call.</td></tr>
+      <tr><th>What changes to deploy?</th><td>The code stays the same; how it runs changes: model route (config only); secrets by the method the IT SOC team approves, not <code>--env-file</code>; image built on the VM or pulled from a private Docker Hub repository; Gradio client served from the image, not the public CDN; Entra ID login in front of real users; internal DNS name and TLS certificate for 443.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md?plain=1#L783-L821">README Step 10</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">use_case/ecosystem.md</a></p>
+</div>
+</section>
+
+<!-- ============ 9. VIBE CHECK ============ -->
+<section id="vibe" data-label="Vibe check" data-time="3:30">
+<div class="wrap">
+  <div class="cue"><b>3:30 to 4:00.</b> Pass 1 in one line (model loves markdown; my rules override it). Pass 2: type and act_by always right because code decides. Pass 3: tell Experiment B (draft says "in good time" 12 days after the end). Point at the limitations list: it is the roadmap.</div>
+  <p class="kicker"><span class="n">09</span> Vibe check</p>
+  <span class="req">Vibe check, aspect named for every prompt</span>
+  <h2>Code gets the type right; the model can still say something false</h2>
+  <div class="grid g3">
+    <div class="card"><h4>Pass 1 · general capability</h4>Five prompts in the raw Chat box. Correct answers, but heavy markdown and extra content in all five, even with "Be concise". My rules must override that default.<span class="dash"></span></div>
+    <div class="card"><h4>Pass 2 · my use case</h4>message_type and act_by matched the golden in every run, because code decides them. No markdown, placeholders kept, "may not" instead of "does not". One small invention in golden 4.<span class="dash"></span></div>
+    <div class="card inkc"><h4>Pass 3 · where it falls down</h4>Two experiments that try to break it: owner left with no auto-renewal (A), contract already ended (B).<span class="dash"></span></div>
+  </div>
+  <h3>Pass 3, Experiment B: contract already ended</h3>
+  <p><b>Aspect tested:</b> invalid input: no check that the dates make sense. Inputs: terminate, no auto-renewal, end date 2026-09-30, today 2026-10-12.</p>
+<pre class="msg" style="background:var(--white)">Subject: [Product]: end of contract on 30 September 2026
+
+Hello [Vendor contact],
+
+We are writing to let you know that our contract for [Product] ended on 30 September 2026 and we will not be continuing after that date. <mark>We wanted to inform you in good time so that you can plan accordingly.</mark>
+...</pre>
+  <blockquote class="hers"><p>The model partly noticed the date conflict: it switched to the past tense ("ended", "stopped"). But it still followed the rule "We tell them in good time so they can plan", which is false 12 days after the end date. The draft contradicts itself.</p></blockquote>
+  <details>
+    <summary>The real limitations of this application (9)</summary>
+    <blockquote class="hers">
+      <p>1. <b>No access to my systems.</b> The only input is six fields typed by hand, one contract at a time.</p>
+      <p>2. <b>No memory.</b> Every run starts fresh: it does not know the owner was already told, or that a reminder was sent.</p>
+      <p>3. <b>"File found" is only yes/no.</b> The agent never reads the contract.</p>
+      <p>4. <b>The notice deadline is typed by hand.</b> It should be calculated from the contract: the auto-renewal date minus the notice period in the contract.</p>
+      <p>5. <b>No urgency.</b> The escalation asks for a new owner whatever the time left (Experiment A).</p>
+      <p>6. <b>No input checks.</b> An end date in the past is accepted and routed like a normal case (Experiment B).</p>
+      <p>7. <b>Placeholders only.</b> No real product, vendor or owner names, so every draft needs manual completion.</p>
+      <p>8. <b>Silent failure on a blocked network.</b> If the CDN for the Gradio client is blocked, the form loads and does nothing.</p>
+      <p>9. <b>Drafts only (scope).</b> No sending, reminders, escalation follow-up or quote comparison yet.</p>
+    </blockquote>
+  </details>
+  <details>
+    <summary>What a vibe check is worth as evidence</summary>
+    <blockquote class="hers"><p>A vibe check is weak evidence: one run per case, judged by eye, so it exposes the system's real limitations and helps plan the roadmap, but it cannot show that one version is better than another. Before comparing two versions, I would write down for each golden what the text must contain (for example the deadline date and the request to the owner) and must not contain (an invented fact, a legal rule stated as fact), then test every version against the same conditions on many goldens built from real contracts.</p></blockquote>
+  </details>
+  <p class="src">Sources: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md?plain=1#L894-L937">README Step 11 (Pass 1)</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/vibe_check_pass2.md">vibe_check_pass2.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/vibe_check_pass3.md">vibe_check_pass3.md</a></p>
+</div>
+</section>
+
+<!-- ============ 10. USERS ============ -->
+<section id="users" data-label="Real users" data-time="4:00">
+<div class="wrap">
+  <div class="cue"><b>4:00 to 4:20.</b> Two live demos on Oct 13. The surprise: both asked first for step A (overview, automatic alerts), not for drafts. That is the most useful thing I learned.</div>
+  <p class="kicker"><span class="n">10</span> Demo to real users</p>
+  <span class="req">Step 12 answers</span>
+  <h2>Both users asked first for alerts and an overview</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Question</th><th>Graphic designer (team colleague, not the pilot user)</th><th>Head of IT infrastructure (sponsor, contract owner)</th></tr></thead>
+    <tbody>
+      <tr><td><b>What would you use this for?</b></td><td>Her personal subscriptions (music, storage, work tools such as image generation): to be reminded when a plan ends and to help her decide whether to renew or change the plan.</td><td>Renewing contracts on time, negotiating a better final price, making better use of what we invest, and even rationalising the company's tools.</td></tr>
+      <tr><td><b>What is missing?</b></td><td>An overview of all her subscriptions, plans and paid features, with an analysis on top: similar or overlapping services, and whether one service or plan could cover two needs for one price.</td><td>Sometimes the source of the contracts and all their terms. An automatic alert: today he does it by hand. For contracts outside IT, sometimes the contract owner.</td></tr>
+      <tr><td><b>What would you expect it to cost?</b></td><td>$5 to $10 per month, no more.</td><td>Hosting (database and VM) and agent usage (annual credits), against a much lower internal human processing cost. In his words: "trading time for money, and renewing my contracts on time."</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <h3>What the feedback changed</h3>
+  <blockquote class="hers">
+    <p>Oct 13: the sponsor asked first for automatic alerts and contract terms (step A), which meets the condition in row a. Candidate to move step A earlier: decide in Week 2.</p>
+    <p>Record "owner unknown" as a missing case; TC1 schema unchanged (owner_status stays active | left).</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md#my-demo">README: My demo</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> rows 21 to 22 · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a></p>
+</div>
+</section>
+
+<!-- ============ 11. BRING IT TO WORK ============ -->
+<section id="work" data-label="Bring it to work" data-time="4:20">
+<div class="wrap">
+  <div class="cue"><b>4:20 to 4:35.</b> Cost is not the problem (2,597x), latency is not the problem (4.3 s). The blocker is approval: there is no approved LLM route.</div>
+  <p class="kicker"><span class="n">11</span> Bring it to work</p>
+  <span class="req">## Bring it to work lines</span>
+  <h2>Cost and latency are fine; approval is the blocker</h2>
+  <div class="grid g3">
+    <div class="card"><div class="big">$0.0058<small>per draft (tokens measured, price looked up)</small></div></div>
+    <div class="card accent"><div class="big">2,597×<small>human cost / model cost per year ($12,600 vs $4.85)</small></div></div>
+    <div class="card"><div class="big">4.3 s<small>p95 measured, target 20 s in chat</small></div></div>
+  </div>
+  <h3>Napkin math (Claude Sonnet 4.6, base scenario)</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Line</th><th>Calculation</th><th>Result</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Cost per call</td><td>710 / 1e6 × $3 + 243 / 1e6 × $15</td><td>$0.0058</td><td>tokens: measured; price: looked up</td></tr>
+      <tr><td>Model per year</td><td>$0.0058 × 840 drafts</td><td>$4.85</td><td>volume: my estimate (120 contracts × 7 emails)</td></tr>
+      <tr><td>Human per year</td><td>15 min / 60 × $60/hour × 840 drafts</td><td>$12,600</td><td>looked up (estimates, not timed)</td></tr>
+      <tr><td>Ratio</td><td>$12,600 / $4.85</td><td><b>2,597×</b></td><td>comfortable (&gt; 20×)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>My math covers only the model cost; hosting (VM, managed database), which the sponsor expects, is not counted yet and is likely the larger line.</p>
+  <h3>What I would swap</h3>
+  <blockquote class="hers">
+    <p><b>Data:</b> the 9 goldens are synthetic (six typed fields, placeholders). At work they stand in for real contract cases: dates and owner from the contract records, notice terms read from the signed contract, real names in place of placeholders. First a pilot set of about 25 hand-picked contracts, kept in the private company repo, not this public one.</p>
+    <p><b>Model or endpoint:</b> no approved route yet (Anthropic API under company terms, Azure OpenAI or an internal gateway). Switching is a config change only (<code>LLM_MODEL</code>, <code>LLM_API_BASE</code>). Every model in cost_comparison.md stays far above 20×, so the route changes the price very little.</p>
+    <p><b>Access or approval:</b> read-only access to the contract records and the signed contract files; code in a private company repo with clean secret, dependency and code scans; an entry in the authorized-apps registry; sign-off from the pilot sponsor.</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/README.md#bring-it-to-work">README: Bring it to work</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/cost_comparison.md">cost_comparison.md</a></p>
+</div>
+</section>
+
+<!-- ============ 12. FINAL PRODUCT ============ -->
+<section id="product" data-label="Final product" data-time="4:35">
+<div class="wrap">
+  <div class="cue"><b>4:35 to 4:48.</b> "This is where it goes." Point at step 1: the alert is what would have stopped the dragon. Point at step 2: that is what I built this week. Then press → .</div>
+  <p class="kicker"><span class="n">12</span> The final product</p>
+  <h2>One renewal, from the first alert to the new contract</h2>
+  <p class="lead">TC1 built one step. The final product covers the whole renewal, and a human approves every message that leaves the company.</p>
+
+  <div class="flow6">
+    <div class="fstep">
+      <div class="fh"><span class="no">1</span><b>Alert</b><span class="tc">Builds in TC2</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Watches every contract date each day. Warns before the notice deadline, the end date and the <b>purchase-order date</b>.</div>
+      <div class="lane owner"><span class="who">Owner</span>Gets the alert with time to act, not after the date.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Not involved yet.</div>
+    </div>
+    <div class="fstep built">
+      <div class="fh"><span class="no">2</span><b>Decide</b><span class="tc">Built in TC1 ✓</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Drafts the right next message for the decision and the dates. Declines when the file or the owner is missing.</div>
+      <div class="lane owner"><span class="who">Owner</span>Says renew or terminate, in Claude or by email.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Gets a termination notice only after the owner approves it.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">3</span><b>Review</b><span class="tc">Builds in TC3</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Reads the contract: clauses, features, tier, quantities, price, uplift terms. Prepares review points for this contract.</div>
+      <div class="lane owner"><span class="who">Owner</span>Answers: duration, quantity, tier, what is used and what is not.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Not involved yet.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">4</span><b>Ask</b><span class="tc">Scored in TC4</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Drafts the quote request from the review answers, with our target conditions.</div>
+      <div class="lane owner"><span class="who">Owner</span>Approves or rejects the draft. Nothing is sent before that.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Receives the request.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">5</span><b>Negotiate</b><span class="tc">Builds in TC5 to TC7</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Compares the first quote, last year's price and the target. Proposes new conditions. Remembers every round.</div>
+      <div class="lane owner"><span class="who">Owner</span>Picks the quote to keep, or asks for another round.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Sends quotes and counter-offers to the shared mailbox.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">6</span><b>Close</b><span class="tc">Runs in TC9 and TC10</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Records the new terms when the PO is issued, and sets next year's alerts.</div>
+      <div class="lane owner"><span class="who">Owner</span>Confirms. The PO goes out before the date, not after.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Confirms the new contract.</div>
+    </div>
+  </div>
+
+  <div class="guard">
+    <span class="lab">At every step</span>
+    <span>A human approves every send</span>
+    <span>Vendor email is untrusted input</span>
+    <span>Read-only access by default</span>
+    <span>Every decision has a named person</span>
+  </div>
+  <div class="runs">
+    <span>Owner works in Claude Desktop</span>
+    <span>Daily watcher</span>
+    <span>Shared mailbox for replies</span>
+    <span>Contract database</span>
+    <span>Company cloud, private network</span>
+  </div>
+  <p class="help" style="margin-top:14px">New case from the story: a price increase tied to the purchase-order date, not to a notice deadline. It is not in the TC1 schema yet; it enters in steps 1 and 3.</p>
+</div>
+</section>
+
+<!-- ============ 13. THE PATH ============ -->
+<section id="path" data-label="How I get there" data-time="4:48">
+<div class="wrap">
+  <div class="cue"><b>4:48 to 5:00.</b> "Each week of the course builds one block." Read the four step titles left to right, end on the summit, then stop recording.</div>
+  <p class="kicker"><span class="n">13</span> How I get there</p>
+  <h2>Each course week builds one block of the real product</h2>
+  <p class="lead">Start small and ship every week, then climb toward the sponsor's bigger goal.</p>
+
+  <div class="stairs">
+    <div class="step s0">
+      <div class="lvl"><span class="ln">1</span><span><b>See every date</b><small>Never miss a deadline</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC2</span><span>Oct 21</span></div><h5>Synthetic contracts and backtest</h5>Fake contracts with real clause types, including "+15% if the PO is late". Backtest last year: <b>would the alert have caught the dragon?</b></div>
+      <div class="bk"><div class="tcn"><span>TC2</span><span>Oct 21</span></div><h5>A local open model</h5>A model the company can run itself: one way around "no approved LLM route".</div>
+    </div>
+    <div class="step s1">
+      <div class="lvl"><span class="ln">2</span><span><b>Read the contract</b><small>Know what we signed</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC3</span><span>Oct 28</span></div><h5>Retrieval from contracts</h5>Clauses, features, tiers, notice periods and uplift terms from contract PDFs, including scanned ones.</div>
+      <div class="bk"><div class="tcn"><span>TC4</span><span>Nov 4</span></div><h5>Evals and a 5-minute demo</h5>The goldens become scored evals. Demo to the sponsor.</div>
+    </div>
+    <div class="step s2">
+      <div class="lvl"><span class="ln">3</span><span><b>Negotiate, safely</b><small>More than an email writer</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC5</span><span>Nov 11</span></div><h5>Agent architecture</h5>Negotiation is the first part that may need a real agent: the vendor's reply decides the next step.</div>
+      <div class="bk mile"><div class="tcn"><span>Milestone</span><span>Nov 16 to 17</span></div><h5>Internal hackathon</h5>The project presented inside the company.</div>
+      <div class="bk"><div class="tcn"><span>TC6</span><span>Nov 18</span></div><h5>Guardrails</h5>Vendor emails can carry prompt injection: the sponsor named the mailbox as the entry point.</div>
+      <div class="bk"><div class="tcn"><span>TC7</span><span>Nov 25</span></div><h5>Memory</h5>Case history across months: alerts sent, quote rounds, what was agreed.</div>
+    </div>
+    <div class="step s3">
+      <div class="lvl"><span class="ln">4</span><span><b>Run it at the company</b><small>Inside their walls</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC8</span><span>Dec 9</span></div><h5>A negotiator, not an email writer</h5>Fine-tune an open model on negotiation: tier checks, new conditions, counter-offers. It must beat the TC4 scores before it is trusted, and the company can host it.</div>
+      <div class="bk"><div class="tcn"><span>TC9</span><span>Dec 16</span></div><h5>Deploy in IT's ecosystem</h5>The IT VM now, the cluster later. Secrets, network and login as IT requires.</div>
+      <div class="bk"><div class="tcn"><span>TC10</span><span>Dec 23</span></div><h5>Final report to the sponsor</h5>Dates caught, renewals on time, money saved.</div>
+    </div>
+    <div class="step s4">
+      <div class="lvl"><span class="ln">★</span><span><b>Tool governance</b><small>The sponsor's goal</small></span></div>
+      <div class="bk hot"><h5>One contract per tool</h5>No two contracts for the same tool across teams.</div>
+      <div class="bk hot"><h5>Consolidate similar tools</h5>Fewer tools that do the same job; one plan that covers two needs.</div>
+      <div class="bk hot"><h5>Better prices, measured savings</h5>First quote vs negotiated price vs last year's price, reported for every renewal.</div>
+    </div>
+  </div>
+
+  <div class="summit">
+    <span class="flag">Summit</span>
+    <p>Fewer tools, better prices, no missed dates: the owner sets the goal, the agent negotiates, a human approves.</p>
+  </div>
+  <p class="src">From: course agenda (TC2 to TC10) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a> success metrics · sponsor conversations, Oct 13</p>
+</div>
+</section>
+
+</main>
+
+<script>
+/* Paste the Loom link between the quotes after recording. */
+const LOOM_URL = "https://drive.google.com/file/d/1o1QLMs9iYfx2VR1H0tSl7ZhJYkiUpxKN/view?usp=sharing";
+
+(function(){
+  /* cover decoration: rising pixel staircase, ink fading into orange */
+  const svg = document.getElementById('stairs');
+  if (svg) {
+    const N = 12, ns = 'http://www.w3.org/2000/svg';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (Math.floor(c / 3) + Math.floor((N - 1 - r) / 3) < 3) continue;   // 4 steps of 3x3 cells
+      const s = document.createElementNS(ns, 'rect');
+      s.setAttribute('x', c + .08); s.setAttribute('y', r + .08);
+      s.setAttribute('width', .84); s.setAttribute('height', .84); s.setAttribute('rx', .2);
+      const t = (c + (N - 1 - r)) / (2 * (N - 1));
+      s.setAttribute('fill', t > .55 ? '#F04B2A' : '#0E0E0E');
+      s.setAttribute('opacity', (0.25 + 0.75 * t).toFixed(2));
+      svg.appendChild(s);
+    }
+  }
+
+  const loom = document.getElementById('loomLink');
+  if (LOOM_URL) { loom.href = LOOM_URL; } else { loom.textContent = 'Video (link to be added)'; loom.removeAttribute('href'); }
+
+  /* build the sidebar list: every section, numbered, with video time or "doc" */
+  const sections = Array.from(document.querySelectorAll('main section'));
+  const nav = document.getElementById('nav');
+  const links = sections.map((s, i) => {
+    const a = document.createElement('a');
+    a.href = '#' + s.id;
+    const isDoc = s.classList.contains('doc-only');
+    const k = s.querySelector('.kicker .n');
+    const num = s.dataset.n || (k ? k.textContent : String(i).padStart(2, '0'));
+    a.innerHTML = '<span class="n">' + num + '</span><span>' + s.dataset.label + '</span>' +
+      (isDoc ? '<span class="doc">doc</span>' : '<span class="t">' + (s.dataset.time || '') + '</span>');
+    a.addEventListener('click', e => { e.preventDefault(); s.scrollIntoView({behavior:'smooth', block:'start'}); });
+    nav.appendChild(a);
+    return a;
+  });
+
+  const presenter = () => document.body.classList.contains('presenter');
+  const visibleIdx = () => sections.map((s, i) => i).filter(i => !(presenter() && sections[i].classList.contains('doc-only')));
+
+  /* current section = last visible one whose top has passed 35% of the window */
+  function currentIndex(){
+    const line = window.innerHeight * 0.35; let cur = visibleIdx()[0];
+    visibleIdx().forEach(i => { if (sections[i].getBoundingClientRect().top <= line) cur = i; });
+    return cur;
+  }
+
+  function update(){
+    const vis = visibleIdx(); const cur = currentIndex(); const pos = vis.indexOf(cur);
+    links.forEach((a, i) => {
+      a.classList.toggle('hide', !vis.includes(i));
+      a.classList.toggle('on', i === cur);
+      a.classList.toggle('done', vis.includes(i) && vis.indexOf(i) < pos);
+    });
+    document.getElementById('pos').textContent = pos + 1;
+    document.getElementById('tot').textContent = vis.length;
+    document.querySelector('#prog i').style.width = ((pos + 1) / vis.length * 100) + '%';
+    document.getElementById('modeLabel').textContent = presenter() ? 'Presenter' : 'Document';
+    /* keep the active item visible inside the sidebar only (never moves the page) */
+    const a = links[cur];
+    if (a && nav.scrollHeight > nav.clientHeight) {
+      if (a.offsetTop < nav.scrollTop) nav.scrollTop = a.offsetTop - 8;
+      else if (a.offsetTop + a.offsetHeight > nav.scrollTop + nav.clientHeight) nav.scrollTop = a.offsetTop + a.offsetHeight - nav.clientHeight + 8;
+    }
+  }
+
+  function go(step){
+    const vis = visibleIdx(); const pos = vis.indexOf(currentIndex());
+    const next = vis[Math.max(0, Math.min(vis.length - 1, pos + step))];
+    sections[next].scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  /* only ← → P A are used; mouse wheel, Space, PageDown and ↓ scroll normally */
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,textarea,select')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    else if (e.key === 'p' || e.key === 'P') {
+      const keep = sections[currentIndex()];
+      document.body.classList.toggle('presenter');
+      const target = (keep.offsetParent !== null) ? keep : sections[currentIndex()];
+      target.scrollIntoView({block:'start'});
+      update();
+    }
+    else if (e.key === 'a' || e.key === 'A') { window.open('http://localhost:7860', '_blank', 'noopener'); }
+  });
+
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(() => { update(); ticking = false; }); }
+  }, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
+</body>
+</html>

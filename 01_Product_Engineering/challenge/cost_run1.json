@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-13",
+  "model": "anthropic/claude-sonnet-4-6",
+  "commit": "06e261d",
+  "records": [
+    {
+      "golden": 1,
+      "message_type": "termination_draft",
+      "tokens_in": 580,
+      "tokens_out": 99,
+      "seconds": 3.79,
+      "reply": "Subject: Notice of non-renewal: [Product]\n\nHello [Vendor contact],\n\nWe are writing to inform you that we will not be renewing [Product]. This message serves as our formal notice of non-renewal. We ask that the contract end on its current end date of 15 December 2026 and that it does not renew automatically.\n\nPlease confirm in writing that you have received this notice.\n\nBest regards,\n[Owner]"
+    },
+    {
+      "golden": 2,
+      "message_type": "renewal_review_email",
+      "tokens_in": 704,
+      "tokens_out": 223,
+      "seconds": 3.94,
+      "reply": "Hello [Owner],\n\nThank you for confirming that you want to renew [Product].\n\nThe contract ends on 15 December 2026 and renews automatically on its current terms unless notice is given by 15 November 2026. The review must be finished before 15 November 2026.\n\nBefore I draft the quote request for the vendor, please check the four items:\n\n1. Duration: one year or three years?\n2. License model: keep the current model or change it?\n3. Quantity: how many licenses do you need?\n4. Usage: are all licenses in use, and are there features you do not use?\n\nYou can answer in either of two ways:\n\nIn Claude: open a review session and I will take you through this contract, together with any other contracts waiting for your review.\n\nBy reply: answer the four points above, and I will use the answers to draft the quote request.\n\nNothing goes to the vendor until you approve the draft.\n\nBest regards,\nContract agent"
+    },
+    {
+      "golden": 3,
+      "message_type": "late_notice_to_owner",
+      "tokens_in": 479,
+      "tokens_out": 169,
+      "seconds": 4.08,
+      "reply": "Hello [Owner],\n\nYou asked to terminate [Product].\n\nThe last day to give notice was 15 November 2026. That date has now passed and no termination notice has been sent to the vendor. The contract will renew on its current terms at its end date of 15 December 2026.\n\nWould you still like me to prepare a draft request to the vendor asking them to end the contract? Because the deadline has passed, this would be a request rather than a formal notice, and the vendor may not have to accept. Please let me know how you would like to proceed.\n\nReply yes and I will prepare a draft request for you to review.\nReply no and the contract will renew as it stands.\n\nThe decision is yours.\n\nBest regards,\nContract agent"
+    },
+    {
+      "golden": 4,
+      "message_type": "missing_file_notice",
+      "tokens_in": 411,
+      "tokens_out": 107,
+      "seconds": 2.77,
+      "reply": "Hello [Owner],\n\nYou asked me to help you terminate the contract for [Product]. The notice deadline of 15 November 2026 is still open and continues to run.\n\nHowever, I can't find the signed contract, so I am unable to check its notice terms. I have not prepared a draft.\n\nPlease send me the signed contract or let me know where it is stored as soon as you can, so I can move forward before the deadline passes.\n\nBest regards,\nContract agent"
+    },
+    {
+      "golden": 5,
+      "message_type": "escalation_to_procurement",
+      "tokens_in": 458,
+      "tokens_out": 114,
+      "seconds": 2.75,
+      "reply": "Hello Procurement team,\n\nThe owner of the [Product] contract has left the company. The decision on record was to terminate this contract, but with no owner in place, there is nobody available to review or approve a draft notice, so I have not prepared one.\n\nThe contract ends on 15 December 2026, and the notice deadline is 15 November 2026. Please assign a new owner as soon as possible so they can confirm or change the termination decision before that deadline.\n\nBest regards,\nContract agent"
+    },
+    {
+      "golden": 6,
+      "message_type": "escalation_to_procurement",
+      "tokens_in": 459,
+      "tokens_out": 166,
+      "seconds": 3.3,
+      "reply": "Hello Procurement team,\n\nThe owner of the [Product] contract with [Vendor contact] has left the company. The decision on record was to terminate this contract, but with no owner in place, there is no one who can review or approve a draft notice, so I have not prepared one.\n\nThe contract end date is 15 December 2026 and the notice deadline is 15 November 2026, which is still open. Please assign a new owner as soon as possible so they can confirm or change the termination decision before that deadline.\n\nI also want to flag that I cannot find the signed contract file, so I am unable to check its notice terms. Could you please send it or let me know where it is stored?\n\nBest regards,\nContract agent"
+    },
+    {
+      "golden": 7,
+      "message_type": "termination_draft",
+      "tokens_in": 579,
+      "tokens_out": 124,
+      "seconds": 2.93,
+      "reply": "Subject: [Product]: end of contract on 15 December 2026\n\nHello [Vendor contact],\n\nWe wanted to reach out in good time to let you know that our contract for [Product] comes to an end on 15 December 2026 and we will not be continuing after that date. We hope this gives you sufficient time to plan accordingly.\n\nCould you please confirm that all services and billing will stop on 15 December 2026, and let us know if there is anything you need from us before then?\n\nBest regards,\n[Owner]"
+    },
+    {
+      "golden": 8,
+      "message_type": "termination_draft",
+      "tokens_in": 580,
+      "tokens_out": 102,
+      "seconds": 2.24,
+      "reply": "Subject: Notice of non-renewal: [Product]\n\nHello [Vendor contact],\n\nWe are writing to inform you that we will not be renewing [Product]. This message constitutes our formal notice of non-renewal. We ask that the contract end on its current end date of 15 December 2026 and that it does not renew automatically beyond that date.\n\nPlease confirm in writing that you have received this notice.\n\nBest regards,\n[Owner]"
+    },
+    {
+      "golden": 9,
+      "message_type": "renewal_review_email",
+      "tokens_in": 717,
+      "tokens_out": 263,
+      "seconds": 4.34,
+      "reply": "Hello [Owner],\n\nThank you for confirming that you want to renew [Product].\n\nThe notice deadline of 15 November 2026 has passed, so the contract renews on its current terms at its end date of 15 December 2026. A review is still worth doing, however, as it will give you a clear picture of what you need going into the next renewal cycle.\n\nPlease check the four items below:\n\n1. Duration: one year or three years?\n2. License model: keep the current model or change it?\n3. Quantity: how many licenses do you need?\n4. Usage: are all licenses in use, and are there features you do not use?\n\nIf the review shows that fewer licenses or a different model are needed, you can still ask [Vendor contact] to adjust, but the vendor may not have to accept until the next renewal.\n\nThere are two ways to work through this:\n\n- In Claude: open a review session and I will take you through this contract, together with any other contracts waiting for your review.\n- By reply: answer the four points above and I will use your answers to draft the request to the vendor.\n\nBest regards,\nContract agent"
+    }
+  ]
+}
