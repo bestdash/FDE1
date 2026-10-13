@@ -3,44 +3,218 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Rename this. It is your app. -->
-    <title>Your AI Application</title>
+    <title>Contract agent</title>
     <style>
+      :root {
+        --bg: #f5f6f8;
+        --card: #ffffff;
+        --text: #1c2330;
+        --muted: #5b6575;
+        --border: #d5dae2;
+        --accent: #1f5fbf;
+        --accent-dark: #174a96;
+        --error-bg: #fdecec;
+        --error-text: #b42318;
+      }
+      * { box-sizing: border-box; }
       body {
         font-family: system-ui, sans-serif;
-        max-width: 44rem;
-        margin: 2rem auto;
-        padding: 0 1rem;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
         line-height: 1.5;
       }
+      header {
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      header h1 { margin: 0; font-size: 1.4rem; }
+      #model { color: var(--muted); font-size: 0.9rem; }
+      main {
+        max-width: 56rem;
+        margin: 1.5rem auto;
+        padding: 0 1rem;
+        display: grid;
+        gap: 1.5rem;
+      }
+      section {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.25rem 1.5rem;
+      }
+      h2 { margin: 0 0 1rem; font-size: 1.15rem; }
       #log {
-        border: 1px solid #ccc;
+        border: 1px solid var(--border);
         border-radius: 6px;
         padding: 1rem;
-        min-height: 20rem;
+        height: 20rem;
         margin-bottom: 1rem;
         white-space: pre-wrap;
         overflow-y: auto;
+        background: #fafbfc;
       }
       .turn { margin-bottom: 1rem; }
       .who { font-weight: 600; }
-      form { display: flex; gap: 0.5rem; }
-      input { flex: 1; padding: 0.5rem; font: inherit; }
-      button { padding: 0.5rem 1rem; font: inherit; }
+      #form { display: flex; gap: 0.5rem; }
+      #form input { flex: 1; }
+      label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+      .field { margin-bottom: 1rem; }
+      .field.check label { display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+      input, select, button { font: inherit; padding: 0.5rem 0.65rem; }
+      input:not([type="checkbox"]), select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+      }
+      input:focus, select:focus, button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        column-gap: 1.5rem;
+      }
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:hover { background: var(--accent-dark); }
+      #decision-result {
+        margin-top: 1rem;
+        white-space: pre-wrap;
+        background: #fafbfc;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+      }
+      #decision-result:empty { display: none; }
+      #prompt-box { margin-top: 1rem; }
+      #prompt-box[hidden] { display: none; }
+      #prompt-box summary { cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; }
+      #decision-prompt {
+        white-space: pre-wrap;
+        background: #fafbfc;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0 0;
+        font-size: 0.85rem;
+        max-height: 24rem;
+        overflow-y: auto;
+      }
+      button.secondary {
+        background: #fff;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        padding: 0.25rem 0.75rem;
+      }
+      button.secondary:hover { background: #eef3fb; }
+      #decision-error {
+        margin-top: 1rem;
+        background: var(--error-bg);
+        color: var(--error-text);
+        border: 1px solid var(--error-text);
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+      }
+      #decision-error[hidden] { display: none; }
     </style>
   </head>
   <body>
-    <h1>Your AI Application</h1>
-    <p>
-      This is a deliberately plain frontend. Making it good is your job — open
-      this file in VS Code and point Claude Code at it.
-    </p>
+    <header>
+      <h1>Contract agent</h1>
+      <span id="model"></span>
+    </header>
 
-    <div id="log"></div>
-    <form id="form">
-      <input id="input" placeholder="Ask something..." autocomplete="off" />
-      <button type="submit">Send</button>
-    </form>
+    <main>
+      <section>
+        <h2>Chat</h2>
+        <div id="log"></div>
+        <form id="form">
+          <input id="input" placeholder="Ask something..." autocomplete="off" />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Draft a message for a renew or terminate decision</h2>
+        <form id="decision-form">
+          <div class="fields">
+            <div class="field">
+              <label for="decision">Decision</label>
+              <select id="decision" name="decision">
+                <option value="renew">renew</option>
+                <option value="terminate">terminate</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="owner_status">Owner status</label>
+              <select id="owner_status" name="owner_status">
+                <option value="active">active</option>
+                <option value="left">left</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="autorenew_date">Notice deadline before auto-renewal (leave empty if none)</label>
+              <input type="date" id="autorenew_date" name="autorenew_date" />
+            </div>
+            <div class="field">
+              <label for="end_date">End date</label>
+              <input type="date" id="end_date" name="end_date" required />
+            </div>
+            <div class="field">
+              <label for="today">Today</label>
+              <input type="date" id="today" name="today" required />
+            </div>
+          </div>
+          <div class="field check">
+            <label for="file_exists">
+              <input type="checkbox" id="file_exists" name="file_exists" checked />
+              Signed contract file found
+            </label>
+          </div>
+          <button type="submit">Draft message</button>
+        </form>
+        <div id="decision-result"></div>
+        <details id="prompt-box" hidden>
+          <summary>Prompt sent to the model</summary>
+          <button type="button" id="copy-prompt" class="secondary">Copy prompt</button>
+          <pre id="decision-prompt"></pre>
+        </details>
+        <div id="decision-error" hidden></div>
+      </section>
+    </main>
+
+    <!-- Separate classic script so it still runs if the CDN import below fails. -->
+    <script>
+      // Local date, not toISOString(), which is UTC and can be off by a day.
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      document.getElementById("today").value =
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+      fetch("/health")
+        .then((r) => r.json())
+        .then((h) => {
+          document.getElementById("model").textContent = `Model: ${h.model}`;
+        })
+        .catch(() => {
+          document.getElementById("model").textContent = "Model: unavailable";
+        });
+    </script>
 
     <script type="module">
       // NOTE: this loads the Gradio client from a public CDN. On a locked-down
@@ -91,6 +265,69 @@
 
         history.push({ role: "user", content: message });
         history.push({ role: "assistant", content: reply });
+      });
+
+      // --- Draft a message for a renew or terminate decision ---------------
+      const decisionForm = document.getElementById("decision-form");
+      const decisionButton = decisionForm.querySelector("button[type=submit]");
+      const decisionResult = document.getElementById("decision-result");
+      const decisionError = document.getElementById("decision-error");
+      const promptBox = document.getElementById("prompt-box");
+      const decisionPrompt = document.getElementById("decision-prompt");
+      const copyPrompt = document.getElementById("copy-prompt");
+
+      copyPrompt.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(decisionPrompt.textContent);
+        copyPrompt.textContent = "Copied";
+        setTimeout(() => (copyPrompt.textContent = "Copy prompt"), 1500);
+      });
+
+      decisionForm.addEventListener("submit", async (e) => {
+        e.preventDefault(); // stop the browser from reloading the page
+
+        // Clear the previous result and error.
+        decisionResult.textContent = "";
+        decisionError.textContent = "";
+        decisionError.hidden = true;
+        promptBox.hidden = true;
+        decisionPrompt.textContent = "";
+
+        // Read the form.
+        const params = {
+          decision: document.getElementById("decision").value,
+          autorenew_date: document.getElementById("autorenew_date").value,
+          end_date: document.getElementById("end_date").value,
+          today: document.getElementById("today").value,
+          owner_status: document.getElementById("owner_status").value,
+          file_exists: document.getElementById("file_exists").checked,
+        };
+
+        // Block double clicks while the model is writing.
+        decisionButton.disabled = true;
+        decisionButton.textContent = "Drafting...";
+
+        try {
+          // No model call behind this one, so it returns at once.
+          const promptCall = client
+            .predict("/show_prompt_for_renew_or_terminate", params)
+            .then((r) => {
+              decisionPrompt.textContent = r.data[0];
+              promptBox.hidden = false;
+            });
+          const result = await client.predict(
+            "/draft_message_for_renew_or_terminate",
+            params
+          );
+          decisionResult.textContent = result.data[0];
+          await promptCall;
+        } catch (err) {
+          decisionError.textContent =
+            "Could not draft the message: " + (err?.message || String(err));
+          decisionError.hidden = false;
+        } finally {
+          decisionButton.disabled = false;
+          decisionButton.textContent = "Draft message";
+        }
       });
     </script>
   </body>

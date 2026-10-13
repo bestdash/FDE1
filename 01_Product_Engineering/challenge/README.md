@@ -535,6 +535,35 @@ coming, and doing them now teaches the wrong lesson.
    box, or showing which model is answering, or handling errors visibly. Pick
    what matters for your use case, not all of them.
 
+### My Step 8 answers
+
+**1. What is one thing you do at work this could take over?**
+
+Today: a shared spreadsheet, a review call every two weeks, manual emails, and reminding myself to check where I am with each contract. This endpoint takes over one step only: writing the next message after the owner says renew or terminate. That can be the notice to the vendor, the review email for the current contract, the request for a missing contract file, or the escalation to procurement. Why it matters: about 120 person-hours a year in review meetings, and about 1 in 5 renewals late or missed.
+
+**2. What exactly goes in?**
+
+Six fields, not a file or free text: `decision`, `autorenew_date`, `end_date`, `today`, `owner_status`, `file_exists`. Dates are text in YYYY-MM-DD format; an empty `autorenew_date` means no auto-renewal clause; `file_exists` is true or false. The contract file itself is not read: `file_exists` only says whether it is on record.
+
+**3. What comes back, and who reads it?**
+
+One text with `message_type`, `act_by` and `message`. Who reads it depends on the type:
+
+- `termination_draft`: the owner reviews it, then sends it to the vendor.
+- `late_notice_to_owner`, `renewal_review_email`, `missing_file_notice`: the owner.
+- `escalation_to_procurement`: procurement.
+
+`act_by` gives the reader the last day to act. The app sends nothing.
+
+**4. What did you name it, and why would an agent pick it correctly?**
+
+`draft_message_for_renew_or_terminate`.
+
+- "draft": it writes and sends nothing, so it is different from a tool that approves or sends.
+- "renew_or_terminate": the draft depends on the owner's decision, renew or terminate, so the name names both and nobody reads it as "only for renew".
+- Not "owner_decision": later owner decisions (price, retained quote) would fit that name too.
+- The name says draft and the docstring says it sends nothing, so an agent will not call it to send a message.
+
 ---
 
 ## Step 9 — Containerize it
@@ -605,9 +634,14 @@ Hold the thought — Step 10 is about to make it concrete.
    `localhost:7860`.
 2. **One paragraph** naming the CDN dependency and what you would do about it on
    a network that blocks it.
+
+   frontend/index.html imports the Gradio client (@gradio/client) from a public CDN, cdn.jsdelivr.net. The browser makes this request, not the container, so what matters is the user’s network. If that network blocks the CDN, the page still loads and shows the date and the model, but the form does nothing and shows no error. My two probe runs (use_case/ecosystem.md) reached jsDelivr, but both ran from my home network, not from the office or the deployment VM. The fix is to vendor the library: download a pinned version at build time, copy it into the image, and serve it from the app. Then the browser never calls the CDN at run time. The URL also has no version, so pinning it fixes the same problem uv.lock fixes for Python packages.
+
 3. **One or two sentences** on what a container image captures that a virtual
    environment does not — and why that difference is what makes the image the
    thing you hand to a platform team.
+   
+   A virtual environment holds only the Python packages; the image also holds the operating system, the Python version, the code files, the user it runs as, the port and the start command. So a platform team can run the image with no setup and no guessing: they only add the keys at run time, and if a file is missing (like schema.py was in my first build), it fails the same way for them as for me.
 
 ---
 
@@ -752,31 +786,38 @@ Fill these in directly in this README, and commit it.
 
 **Who did you ask?** (role, not name)
 
-<!-- Your answer here -->
+The IT cloud engineer who runs our Azure setup, with the Head of IT infrastructure (the sponsor) and the IT security and platform admin in copy (email thread, Oct 1 to Oct 12).
 
 **Where would this application run?**
 
-<!-- Your answer here -->
+On a Linux VM in Azure, as a proof of concept. The planned AKS cluster could not be created, so the VM is a temporary step (confirmed Oct 12) and the pilot moves to AKS when the subnet issue is fixed. The database is an Azure managed PostgreSQL server (PaaS) connected to the VM.
 
 **Which cloud provider, if any?**
 
-<!-- Your answer here -->
+Azure, US region.
 
 **How would users authenticate?**
 
-<!-- Your answer here -->
+Entra ID. Pilot users connect from Claude Desktop over the corporate network; inbound 443 is open from the corporate network only, never from the internet.
 
 **Could this container reach an external LLM API? If not, what would it use instead?**
 
-<!-- Your answer here -->
+The network, yes: outbound 443 to the model API is in the allowlist ticket IT is opening. The approval, no: there is no approved internal LLM, no Azure OpenAI instance and no approved Anthropic API (Oct 12). So in production it can use no model until a route is approved. Whichever route is approved, the switch is configuration only (`LLM_MODEL`, `LLM_API_BASE`), because `llm.py` is provider-agnostic.
 
 **What surprised you in this conversation?**
 
-<!-- Your answer here -->
+Not the rules: the sponsor set them before the build started. The platform: the planned AKS cluster could not be created on any IT subnet, and the first VM failed on Azure capacity, so the pilot starts on a temporary VM. And there is no approved model route at all: the network can be opened, but there is no approved provider to call.
 
 **What would you have to change about this app to make it deployable there?**
 
-<!-- Your answer here -->
+The code stays the same; how it runs changes:
+
+- Model: set `LLM_MODEL` (and `LLM_API_BASE` for a gateway) to the route that gets approved. No code change.
+- Secrets: the method the IT SOC team approves, not `--env-file` from a laptop.
+- Image: there is no internal registry, so build it on the VM or pull it from a private Docker Hub repository.
+- Frontend: serve the Gradio client from the image instead of the public CDN, in case the network blocks it.
+- Login: this app has no authentication; in front of real users it needs Entra ID.
+- 443: an internal DNS name and a TLS certificate from IT; I give them the certificate Common Name.
 
 Then log the answers in [`use_case/ecosystem.md`](../../use_case/ecosystem.md)
 and the person you asked in
@@ -852,48 +893,49 @@ demo.
 
 ### Pass 1 — General capability
 
-Run each prompt through your app. Name the capability it tests.
+Run in the Chat box (raw model `anthropic/claude-sonnet-4-6`, default system prompt "You are a helpful assistant. Be concise and concrete."). Full transcript kept locally, not committed.
 
 **1.** *Explain object-oriented programming in simple terms to a complete beginner.*
-**Aspect tested:** <!-- your answer --> **Response:** <!-- your answer -->
+**Aspect tested:** instruction-following on audience level (complete beginner) and tone.
+**Response:** The dog analogy and the one-sentence summary are at beginner level. But it also gave Python code with `__init__` and a table of the four principles (encapsulation, inheritance, polymorphism, abstraction): too much jargon for a complete beginner. Heavy markdown: headers, a table, emoji checkmarks.
 
-**2.** *Read a paragraph of your choosing and summarize the key points.*
-**Aspect tested:** <!-- your answer --> **Response:** <!-- your answer -->
+**2.** *Read a paragraph of your choosing and summarize the key points.* (Input: an internal meeting agenda for a CRM integration, 3 sections, 9 lines. Not reproduced here.)
+**Aspect tested:** summarization (keep the key points, drop the rest) and factual grounding (add nothing).
+**Response:** All 9 points kept, but as 9 bullets, one per source line: it reorganized the text instead of condensing it. The "Bottom Line" adds "before build begins", which the agenda does not say.
 
 **3.** *Write a short, imaginative story (100–150 words) about a robot finding friendship in an unexpected place.*
-**Aspect tested:** <!-- your answer --> **Response:** <!-- your answer -->
+**Aspect tested:** instruction-following on a measurable constraint (100 to 150 words) and creativity on a given topic.
+**Response:** About 130 words without the title (counted): inside the limit. Clear structure (opening, action, closing) and on topic. It added a markdown title that was not asked for.
 
 **4.** *If a store sells apples in packs of 4 and oranges in packs of 3, how many packs of each do I need to get exactly 12 apples and 9 oranges?*
-**Aspect tested:** <!-- your answer --> **Response:** <!-- your answer -->
+**Aspect tested:** reasoning (arithmetic) and format adherence.
+**Response:** Correct: 3 packs of apples, 3 packs of oranges, and it checks its own work (3 x 4 = 12). For a one-line answer it used a table, emojis and three headers, and added "6 packs total", which was not asked.
 
 **5.** *Rewrite a paragraph of your choosing in a professional, formal tone.*
-**Aspect tested:** <!-- your answer --> **Response:** <!-- your answer -->
+**Aspect tested:** tone, and handling of missing information (I gave no paragraph).
+**Response:** It did not ask for the paragraph: it wrote its own casual one and rewrote that. The formal tone is good, but the rewrite adds ideas that are not in the original ("ethical implications", "policymakers"): it changed the meaning, not only the tone. It also added a "Key Changes" table that was not asked for.
 
 **❓ Are the answers correct and useful?**
-<!-- your answer -->
+Correct: the arithmetic is right and the story meets the word limit. Useful for general questions, with good examples and analogies. But the same pattern shows in all five answers: heavy markdown (headers, tables, emojis) and extra content nobody asked for, even with "Be concise" in the system prompt. For my use case this is the model's default that I have to override: my drafting rules say "Plain text, no markdown" and "Invent nothing" (`schema.py`, MESSAGE_RULES). Pass 2 checks whether those rules win.
 
 ### Pass 2 — Your actual use case
 
 Test it with prompts from the problem you care about — your five golden
 examples from Step 7 are the obvious first three.
 
-**Prompt:** <!-- --> **Result:** <!-- -->
-**Prompt:** <!-- --> **Result:** <!-- -->
-**Prompt:** <!-- --> **Result:** <!-- -->
+Full prompts and replies: [vibe_check_pass2.md](./vibe_check_pass2.md)
+
 
 **❓ Does it behave the way you expected? Why or why not?**
-<!-- your answer -->
+Yes on the structure: message_type and act_by matched the golden in every run, because code decides them (route_request), not the model. Yes on the text rules: no markdown in any reply, placeholders kept, "may not" instead of "does not", so the rules in the prompt beat the model's default from Pass 1. The wording is different from the goldens every time, with one small invention in golden 4. I judged the text by eye, so the owners at the demo need to say whether these drafts are what they would send.
 
 ### Pass 3 — Where it falls down
 
 Try things it cannot do yet — real-time data, memory across sessions, access to
 your systems.
 
-**Prompt:** <!-- --> **Result:** <!-- -->
-**Prompt:** <!-- --> **Result:** <!-- -->
+Experiments and results: [vibe_check_pass3.md](./vibe_check_pass3.md)
 
-**❓ What are the real limitations of this application?**
-<!-- your answer -->
 
 ### ✅ Deliverables
 
@@ -953,6 +995,64 @@ most valuable thing you will learn this week.
    reject, and what did you change as a result — one line in
    `use_case/decisions.md` or a rewritten example.
 
+### My demo
+
+On Oct 13 2026 I gave a live demo of the running app (form, prompt box, drafts)
+to two people and asked the three questions in order.
+
+#### Demo 1: a graphic designer in my team
+
+She is not a contract owner and not the pilot user.
+
+1. **What would you use this for?** Her personal subscriptions (music, storage,
+   work tools such as image generation): to be reminded when a plan ends and to
+   help her decide whether to renew or change the plan.
+2. **What is missing before you would actually use it?** An overview of all her
+   subscriptions, plans and paid features, with an analysis on top: similar or
+   overlapping services, and whether one service or plan could cover two needs
+   (for example images and video) for one price.
+3. **What would you expect it to cost?** $5 to $10 per month, no more. With only
+   3 or 4 subscriptions, it would cost as much as one subscription. With many
+   subscriptions, or group and family plans, it would be worth it.
+
+**Goldens:** only one was shown (golden number: not recorded). Her reaction: not
+recorded.
+
+**Idea this raised (mine, not hers):** subscription management as a separate
+product. It is free or almost free for users. Competing apps pay to place their
+offer in the categories the user already pays for, shown during the review. A
+paid version removes these, or shows several clearly labelled sponsored
+recommendations.
+
+#### Demo 2: the Head of IT infrastructure (sponsor, contract owner in the charter)
+
+In the office. He answered in French; this is my translation.
+
+1. **What would you use this for?** Renewing contracts on time, negotiating a
+   better final price, making better use of what we invest, and even
+   rationalising the company's tools.
+2. **What is missing before you would actually use it?** Sometimes the source of
+   the contracts and all their terms. An automatic alert: today he does it by
+   hand. For contracts outside IT, sometimes the contract owner: he does not know
+   who to talk to internally and forwards to whoever he guesses is interested.
+3. **What would you expect it to cost?** New costs compared with today: hosting
+   (database and VM) and agent usage (annual credits). In return, a much lower
+   internal human processing cost in finance, sourcing, legal and above all IT,
+   which today relays for all these functions. In his words: "trading time for
+   money, and renewing my contracts on time."
+
+**Goldens:** which ones were shown, and which one he would reject: not recorded.
+
+**LLM route:** his answer on which model route to get approved: not recorded.
+
+**Their cost vs my Step 13 math:** the designer expects $5 to $10 per month; my
+model cost is $0.0058 per draft (100 drafts a year is about $0.58), so her price
+is set by what her subscriptions cost, not by the model. The sponsor expects
+hosting plus annual credits, against lower human time.
+
+The rows are in [`use_case/stakeholders.md`](../../use_case/stakeholders.md) and
+[`use_case/decisions.md`](../../use_case/decisions.md).
+
 ---
 
 ## 📤 Step 13 — Share: bring it to work
@@ -1005,6 +1105,36 @@ build against it — measuring it afterwards is a different, weaker thing.
    heading is a list of exactly what it would take to run each piece at work.
 4. **Your repo link posted in [our community on Maven](https://bit.ly/fde1-maven-community)**,
    and comments on at least two other students' submissions after the deadline.
+
+## Bring it to work
+
+Full numbers and model comparison: [cost_comparison.md](./cost_comparison.md)
+
+### Napkin math (Claude Sonnet 4.6, base scenario)
+
+| Line | Calculation | Result | Source |
+| --- | --- | ---: | --- |
+| Cost per call | 710 / 1e6 × $3 + 243 / 1e6 × $15 | $0.0058 | tokens: **measured** (mean of the dearest type, renewal_review_email); price: **looked up** |
+| Model per year | $0.0058 × 840 drafts (about 3.4 per day × 250) | $4.85 | volume: my estimate (120 contracts × 7 emails) |
+| Human per year | 15 min / 60 × $60/hour × 840 drafts | $12,600 | minutes and rate: **looked up** (estimates, not timed; salary only) |
+| Ratio | $12,600 / $4.85 | **2,597×** | comfortable (> 20×) |
+
+**Expected cost from Step 12 (sponsor):** hosting (VM, managed database) plus
+annual model credits, against lower human time in finance, sourcing, legal and
+IT. My math covers only the model cost ($4.85 a year); hosting is not counted yet
+and is likely the larger line.
+
+### Latency
+
+- **p95 target:** 20 s to a ready draft in chat, 3 min by email.
+- **Measured:** p95 4.3 s, p50 2.9 s over 9 calls.
+- **Cost or latency:** neither is likely to stop it. The ratio is far above 20×, and the owner reads the draft later. Approval and draft quality are the real blockers.
+
+### What I would swap
+
+- **Data:** the 9 goldens are synthetic (six typed fields, placeholders). At work they stand in for real contract cases: dates and owner from the contract records, notice terms read from the signed contract, real names in place of placeholders. First a pilot set of about 25 hand-picked contracts, kept in the private company repo, not this public one.
+- **Model or endpoint:** no approved route yet (Anthropic API under company terms, Azure OpenAI or an internal gateway). Switching is a config change only (`LLM_MODEL`, `LLM_API_BASE`). Every model in cost_comparison.md stays far above 20×, so the route changes the price very little.
+- **Access or approval:** read-only access to the contract records and the signed contract files; code in a private company repo with clean secret, dependency and code scans; an entry in the authorized-apps registry; sign-off from the pilot sponsor.
 
 ---
 
