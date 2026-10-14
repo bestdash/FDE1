@@ -581,8 +581,8 @@ One text with `message_type`, `act_by` and `message`. Who reads it depends on th
 >   image can read anything baked into it.*
 
 ```powershell
-docker build -t challenge .
-docker run -p 7860:7860 --env-file ../../.env challenge
+docker build -t enterprise-fde-challenge .
+docker run -p 7860:7860 --env-file ../../.env enterprise-fde-challenge
 ```
 
 Open <http://localhost:7860> again. Same app, now in a container.
