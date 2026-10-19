@@ -1,3 +1,14 @@
+**My TC2 submission:** [submission page](https://raw.githack.com/bestdash/FDE1/main/02_Open_Weights/challenge/TC2_submission.html) · [video](VIDEO_LINK)
+
+## Bring it to work
+
+- **Project:** the contract renewal agent cannot be tested on real IT contracts until a model route is approved for contract data. IT confirmed none exists yet (Oct 12), because no system like this has asked for one.
+- **Data:** seed from masked copies of real IT contracts (vendor, contacts and amounts changed), generate from the schema and a written description, and keep the masked set in the private company repo as backtesting data, never in this public fork.
+- **Model or endpoint:** a capable hosted model through a company account, set to keep no data. Only structured fields leave the network (dates, decision, flags), no vendor names.
+- **Access or approval:** ask IT security, with the sponsor's support (he already prefers a capable hosted model), to approve a hosted model API route for contract data, building on a similar AI integration already approved with read-only access. A local model would need a third-party risk review of its vendor first.
+
+---
+
 <div align="center">
   <img
     src="https://github.com/AI-Maker-Space/LLM-Dev-101/assets/37101144/d1343317-fa2f-41e1-8af1-1dbb18399719"

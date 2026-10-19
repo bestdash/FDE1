@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contract Agent TC2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Palette: paper 45% · ink 35% · white 10% · orange 10% (accent only) */
+:root{
+  --paper:#F3F1EC; --white:#FFFFFF; --ink:#0E0E0E; --orange:#F04B2A;
+  --stone:#D6D2C9; --gray:#5B5852; --tint:#FBE2DA;
+  --display:"Schibsted Grotesk", "Segoe UI", system-ui, Arial, sans-serif;
+  --body:"Archivo", "Segoe UI", system-ui, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --r:16px; --side:260px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.5}
+a{color:var(--ink); text-decoration:underline; text-decoration-color:var(--orange); text-decoration-thickness:2px; text-underline-offset:3px}
+a:hover{color:var(--orange)}
+code{font-family:var(--mono); font-size:.86em; background:var(--paper); border:1px solid var(--stone); padding:.02em .35em; border-radius:6px; overflow-wrap:anywhere}
+mark{background:var(--tint); color:var(--ink); padding:0 .15em; border-radius:3px}
+
+/* ---------- left sidebar: all points + progress ---------- */
+#side{position:fixed; top:16px; left:16px; bottom:16px; width:var(--side); z-index:10;
+  background:var(--white); border-radius:var(--r); padding:18px 12px 12px; display:flex; flex-direction:column}
+#side .brand{font-family:var(--display); font-weight:800; text-transform:uppercase; font-size:16px; display:flex; align-items:center; gap:8px; padding:0 8px}
+#side .count{display:flex; justify-content:space-between; align-items:baseline; margin:18px 8px 8px;
+  font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray)}
+#side .count b{font-family:var(--display); font-size:20px; letter-spacing:0; color:var(--ink)}
+#prog{height:6px; background:var(--paper); border-radius:3px; overflow:hidden; margin:0 8px 12px}
+#prog i{display:block; height:100%; width:0; background:var(--orange); border-radius:3px; transition:width .25s}
+#nav{flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:2px}
+#nav a{display:grid; grid-template-columns:30px 1fr auto; gap:6px; align-items:center; padding:7px 8px; border-radius:10px;
+  text-decoration:none; color:var(--gray); font-size:14px; line-height:1.2}
+#nav a:hover{background:var(--paper); color:var(--ink)}
+#nav a .n{font-family:var(--display); font-weight:800; font-size:14px; color:var(--stone)}
+#nav a .t{font-family:var(--mono); font-size:11px; color:var(--gray)}
+#nav a .doc{font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--stone); border-radius:999px; padding:1px 6px; color:var(--gray)}
+#nav a.done{color:var(--ink)}
+#nav a.done .n{color:var(--orange)}
+#nav a.on{background:var(--orange); color:var(--ink); font-weight:600}
+#nav a.on .n, #nav a.on .t{color:var(--ink)}
+#nav a.on .doc{border-color:var(--ink); color:var(--ink)}
+#nav a.hide{display:none}
+#mode{font-size:12px; color:var(--gray); line-height:2; margin:10px 8px 0; padding-top:10px; border-top:1px solid var(--stone)}
+#mode b{color:var(--ink)}
+main{margin-left:calc(var(--side) + 32px)}
+
+/* ---------- sections ---------- */
+section{min-height:100vh; padding:44px 24px 64px 0}
+.wrap{max-width:1120px}
+.kicker{display:flex; align-items:baseline; gap:10px; margin:0 0 10px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gray)}
+.kicker .n{font-family:var(--display); font-size:26px; font-weight:800; letter-spacing:0; color:var(--orange); line-height:1}
+h1{font-family:var(--display); font-weight:800; font-size:76px; line-height:.88; letter-spacing:-.01em; text-transform:uppercase; margin:6px 0 22px}
+h2{font-family:var(--display); font-weight:700; font-size:42px; line-height:.98; letter-spacing:-.01em; margin:0 0 20px; max-width:980px}
+h3{font-family:var(--display); font-weight:700; font-size:24px; line-height:1.05; margin:32px 0 12px}
+.lead{font-weight:500; font-size:22px; line-height:1.4; max-width:820px; margin:0 0 8px}
+.req{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink); background:var(--white); border-radius:999px; padding:5px 12px 5px 8px; margin:0 0 16px}
+.req::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--orange)}
+.src{font-size:14px; color:var(--gray); margin-top:16px}
+
+.grid{display:grid; gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--white); border-radius:var(--r); padding:18px 20px; min-width:0; overflow-wrap:anywhere}
+.card h4{font-family:var(--display); font-weight:700; margin:0 0 8px; font-size:19px; line-height:1.1}
+.card.accent{background:var(--orange); color:var(--ink)}
+.card.accent small{color:var(--ink)}
+.card.inkc{background:var(--ink); color:var(--white)}
+.big{font-family:var(--display); font-size:46px; font-weight:800; line-height:.95; letter-spacing:-.01em}
+.big small{display:block; font-family:var(--body); font-size:15px; font-weight:500; letter-spacing:0; color:var(--gray); margin-top:10px; line-height:1.35}
+.card .dash{display:block; width:28px; height:4px; border-radius:2px; background:var(--orange); margin-top:14px}
+
+blockquote.hers{margin:12px 0; padding:16px 20px; background:var(--white); border-radius:var(--r); position:relative; font-size:17px}
+blockquote.hers::before{content:""; position:absolute; left:0; top:18px; bottom:18px; width:4px; border-radius:0 3px 3px 0; background:var(--orange)}
+blockquote.hers p{margin:0 0 10px} blockquote.hers p:last-child{margin:0}
+
+.statement{background:var(--ink); color:var(--white); border-radius:var(--r); padding:26px 28px; margin:14px 0}
+.statement .lab{font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin:0 0 12px}
+.statement p{font-family:var(--display); font-weight:700; font-size:30px; line-height:1.12; margin:0}
+
+table{border-collapse:collapse; width:100%; background:var(--white); font-size:16px}
+th,td{text-align:left; vertical-align:top; padding:11px 14px; border-bottom:1px solid var(--stone); overflow-wrap:anywhere}
+th{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--gray)}
+thead th{border-bottom:1px solid var(--ink)}
+tr:last-child td, tr:last-child th{border-bottom:0}
+.tablewrap{overflow-x:auto; border-radius:var(--r); background:var(--white)}
+.card table{background:transparent}
+.card table td{padding:8px 10px 8px 0}
+/* Request / Response field tables: field name always on one line */
+.fields td{overflow-wrap:normal; vertical-align:baseline}
+.fields td:first-child{white-space:nowrap; width:1%; padding-right:18px}
+.fields code{white-space:nowrap; overflow-wrap:normal}
+.fields .vals{display:block; line-height:1.6}
+
+.tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap}
+.t-base{background:var(--paper); color:var(--ink); border:1px solid var(--stone)}
+.t-edge{background:var(--orange); color:var(--ink)}
+.t-decline{background:var(--ink); color:var(--white)}
+.t-other{background:var(--white); color:var(--gray); border:1px solid var(--stone)}
+
+.flow{display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; margin:10px 0 4px}
+.flow .step{background:var(--white); border-radius:12px; padding:10px 14px; font-size:16px}
+.flow .step small{color:var(--gray)}
+.flow .arrow{align-self:center; color:var(--orange); font-weight:800; font-size:22px}
+
+pre.msg{white-space:pre-wrap; font-family:var(--mono); font-size:14px; background:var(--paper); border-radius:12px; padding:14px 16px; margin:10px 0 0}
+
+details{background:var(--white); border-radius:var(--r); padding:12px 18px; margin-top:12px}
+details summary{cursor:pointer; font-weight:600; font-size:16px}
+details summary::marker{color:var(--orange)}
+details blockquote.hers{background:var(--paper)}
+
+.inputs{width:100%; font-size:16px}
+.inputs td:first-child{color:var(--gray); width:48%}
+.inputs td.changed{font-weight:700; background:var(--tint); border-radius:6px; padding-left:8px}
+.expect{margin:12px 0 0; font-size:15px; padding-top:12px; border-top:1px solid var(--stone)}
+
+/* presenter cues: ink chip, deliberate on camera */
+.cue{display:none; margin:0 0 18px; padding:10px 16px; border-radius:12px; background:var(--ink); color:var(--white); font-size:16px}
+.cue b{color:var(--orange)}
+.cue kbd{color:var(--ink)}
+body.presenter .cue{display:block}
+body.presenter section.doc-only{display:none}
+
+.btn{display:inline-block; text-decoration:none; font-weight:600; background:var(--orange); color:var(--ink); padding:12px 22px; border-radius:999px; margin:6px 8px 0 0}
+.btn:hover{color:var(--ink); filter:brightness(1.05)}
+.btn.ghost{background:var(--white); color:var(--ink)}
+.help{font-size:14px; color:var(--gray)}
+kbd{font-family:var(--mono); font-size:12px; border:1px solid var(--stone); border-bottom-width:2px; border-radius:5px; padding:0 5px; background:var(--white); color:var(--ink)}
+
+/* cover */
+.cover-grid{display:grid; grid-template-columns:1fr auto; gap:24px; align-items:end}
+
+/* story */
+.story-h{font-family:var(--display); font-weight:800; font-size:84px; line-height:.88; letter-spacing:-.015em; margin:8px 0 14px}
+.story-h em{font-style:normal; color:var(--orange)}
+.byline{font-size:15px; color:var(--gray); margin:0 0 28px}
+.beats{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; counter-reset:beat}
+.beat{background:var(--white); border-radius:var(--r); padding:18px 20px 20px; font-size:18px; line-height:1.4; position:relative}
+.beat::before{counter-increment:beat; content:"0" counter(beat); display:block; font-family:var(--display); font-weight:800; font-size:22px; color:var(--orange); margin-bottom:10px}
+.beat.hit{background:var(--orange)}
+.beat.hit::before{color:var(--ink)}
+.beat .amt{display:block; font-family:var(--display); font-weight:800; font-size:44px; line-height:1; margin:4px 0 8px}
+.moral{font-family:var(--display); font-weight:700; font-size:34px; line-height:1.1; margin:30px 0 10px; max-width:900px}
+.moral span{color:var(--orange)}
+.placeholder{outline:2px dashed var(--ink); outline-offset:3px; border-radius:4px}
+
+/* TC2: short first-person notes from the way */
+.diary{background:transparent; border:1px dashed var(--gray); border-radius:var(--r); padding:14px 18px; margin:16px 0; font-size:17px}
+.intro{font-size:18px; max-width:none; margin:0 0 16px}
+.axes td:first-child{width:52%}
+.axes .ax{display:block; margin-bottom:6px}
+.axes ol{margin:0; padding-left:20px} .axes li{margin:0 0 4px}
+.after{background:var(--tint); border-radius:var(--r); padding:14px 18px; margin:12px 0; font-size:17px}
+.diary .lab{display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin-bottom:6px}
+.diary p{margin:0 0 8px} .diary p:last-child{margin:0}
+
+/* roadmap: rising staircase of building blocks */
+.stairs{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; align-items:start; margin-top:22px}
+.step{display:flex; flex-direction:column; gap:8px}
+.s0{margin-top:200px} .s1{margin-top:150px} .s2{margin-top:100px} .s3{margin-top:50px} .s4{margin-top:0}
+.lvl{display:flex; align-items:center; gap:10px; border-radius:12px; padding:10px 12px; background:var(--white); border:2px solid var(--ink)}
+.lvl .ln{font-family:var(--display); font-weight:800; font-size:30px; line-height:1; color:var(--orange)}
+.lvl b{display:block; font-family:var(--display); font-size:17px; line-height:1.05}
+.lvl small{display:block; font-size:12px; color:var(--gray); margin-top:2px}
+.s4 .lvl{background:var(--orange); border-color:var(--orange)} .s4 .lvl .ln, .s4 .lvl small{color:var(--ink)}
+.bk .tcn{display:flex; justify-content:space-between; gap:8px; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--orange); margin-bottom:4px}
+.bk .tcn span:last-child{color:var(--gray)}
+.bk.mile{background:var(--ink); color:var(--white)} .bk.mile .tcn{color:var(--orange)} .bk.mile .tcn span:last-child{color:var(--stone)}
+
+/* final product: six-step lifecycle with lanes */
+.flow6{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-top:20px}
+.fstep{background:var(--white); border-radius:var(--r); overflow:hidden; display:flex; flex-direction:column; min-width:0}
+.fh{padding:12px 14px 10px; border-bottom:1px solid var(--stone)}
+.fh .no{font-family:var(--display); font-weight:800; font-size:24px; line-height:1; color:var(--orange)}
+.fh b{display:block; font-family:var(--display); font-size:18px; line-height:1.05; margin-top:4px}
+.fh .tc{display:inline-block; margin-top:8px; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; border:1px solid var(--stone); border-radius:999px; padding:2px 8px; color:var(--gray)}
+.fstep.built{box-shadow:0 0 0 3px var(--orange)}
+.fstep.built .fh{background:var(--orange); border-bottom-color:var(--orange)}
+.fstep.built .fh .no{color:var(--ink)}
+.fstep.built .fh .tc{border-color:var(--ink); color:var(--ink); background:var(--white)}
+.lane{padding:10px 14px; font-size:14px; line-height:1.35; border-bottom:1px solid var(--paper)}
+.lane:last-child{border-bottom:0}
+.lane.agent{min-height:128px} .lane.owner{min-height:88px} .lane.vendor{min-height:60px}
+.lane .who{display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gray); margin-bottom:4px}
+.lane .who::before{content:""; width:8px; height:8px; border-radius:2px}
+.lane.agent .who::before{background:var(--orange)}
+.lane.owner .who::before{background:var(--ink)}
+.lane.vendor .who::before{background:var(--stone)}
+.lane.none{color:var(--stone)}
+.guard{display:flex; flex-wrap:wrap; gap:8px 22px; align-items:center; background:var(--ink); color:var(--white); border-radius:var(--r); padding:14px 20px; margin-top:12px; font-size:15px}
+.guard .lab{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--orange)}
+.runs{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.runs span{background:var(--white); border-radius:999px; padding:5px 12px; font-size:13.5px}
+@media (max-width:1250px){ .flow6{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:700px){ .flow6{grid-template-columns:1fr} .lane{min-height:0!important} }
+.bk{background:var(--white); border-radius:12px; padding:12px 13px; font-size:14.5px; line-height:1.38; display:flex; flex-direction:column}
+.bk h5{font-family:var(--display); font-weight:700; font-size:16px; line-height:1.1; margin:0 0 6px}
+.bk.done{background:transparent; border:1px dashed var(--stone)}
+.bk.done h5::before{content:"✓ "; color:var(--orange)}
+.bk.hot{background:var(--tint)}
+.src-tag{margin-top:8px; font-size:10.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--gray)}
+.summit{display:flex; align-items:center; gap:16px; background:var(--ink); color:var(--white); border-radius:var(--r); padding:18px 22px; margin-top:16px}
+.summit .flag{flex:none; background:var(--orange); color:var(--ink); font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; border-radius:999px; padding:5px 12px}
+.summit p{margin:0; font-family:var(--display); font-weight:700; font-size:22px; line-height:1.2}
+@media (max-width:1250px){ .stairs{grid-template-columns:1fr 1fr} .step{margin-top:0!important} }
+@media (max-width:620px){ .stairs{grid-template-columns:1fr} .summit{flex-direction:column; align-items:flex-start} }
+
+@media (max-width:760px){ .story-h{font-size:48px} .moral{font-size:24px} .beat .amt{font-size:34px} }
+
+/* ---------- narrow screens: sidebar becomes a block at the top ---------- */
+@media (max-width:900px){
+  #side{position:static; width:auto; margin:16px 16px 0}
+  #nav{overflow:visible}
+  main{margin-left:0}
+  section{padding:36px 16px 56px}
+}
+@media (max-width:760px){
+  body{font-size:16px}
+  h1{font-size:44px} h2{font-size:30px} h3{font-size:21px} .lead{font-size:18px}
+  .statement p{font-size:22px} .big{font-size:34px}
+  .cover-grid{grid-template-columns:1fr} .pixels{display:none}
+}
+@media print{
+  #side,.cue{display:none!important}
+  main{margin-left:0}
+  section{min-height:0; page-break-inside:avoid; padding:20px 0}
+  section.doc-only{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<aside id="side">
+  <span class="brand"><svg width="16" height="16" viewBox="0 0 4 4" aria-hidden="true"><rect x="3" y="0" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="0" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/></svg>Contract Agent</span>
+  <div class="count"><span id="modeLabel">Document</span><span><b id="pos">1</b> / <span id="tot">13</span></span></div>
+  <div id="prog"><i></i></div>
+  <nav id="nav"></nav>
+  <div id="mode"><kbd>P</kbd> presenter mode<br><kbd>←</kbd> <kbd>→</kbd> previous / next section<br><kbd>A</kbd> open the app</div>
+</aside>
+
+<main>
+
+<!-- ============ STORY ============ -->
+<section id="story" data-label="My path" data-time="0:00" data-n="→">
+<div class="wrap">
+  <div class="cue"><b>0:00 to 0:30.</b> Tell it as a diary: four cards, one sentence each. Pause on the orange card. End on the last line, then press → .</div>
+  <p class="kicker">Week 2 of the project, told as it happened</p>
+  <h1 class="story-h">The fake contracts were clean.<br>They were also <em>all the same.</em></h1>
+  <p class="byline">Two generation runs, 50 cases read by hand, two review sessions with the sponsor.</p>
+  <div class="beats">
+    <div class="beat"><b>The need.</b> My agent helps contract owners act before renewal deadlines. To test it, I need hundreds of contract cases, and real contracts cannot leave the company.</div>
+    <div class="beat"><b>The trick.</b> I described how real cases differ (urgency, complexity, missing information) and asked a model to invent cases, starting from 9 examples I wrote by hand.</div>
+    <div class="beat hit"><b>The surprise.</b> First run:<span class="amt">0 refusals</span>No case where the agent must refuse to draft. The model had never seen such an example, so it invented its own labels, and my checks threw them all away.</div>
+    <div class="beat"><b>The lesson.</b> I read 50 cases: they sounded alike. Then the sponsor, who handles these contracts every year, showed me what was missing.</div>
+  </div>
+  <p class="moral">The fake data proved my pipeline works.<br>Only someone who handles real contracts could tell me <span>what it cannot prove.</span></p>
+  <p class="lead">This page follows that path: how the cases were made, what survived the checks, what I found when I read them, and what they must never be used to prove.</p>
+</div>
+</section>
+
+<!-- ============ 0. COVER ============ -->
+<section id="cover" data-label="Overview" data-time="0:30">
+<div class="wrap">
+  <div class="cue"><b>0:30 to 0:35.</b> One line: "Week 2: invented contract cases to test my agent, and the datasheet that says what they can prove." Then press → .</div>
+  <p class="kicker"><span class="n">00</span> AI Forward-Deployed Engineer · Technical Challenge 2</p>
+  <div class="cover-grid">
+    <div>
+      <h1>Synthetic<br>Contract<br>Cases</h1>
+      <p class="lead">128 invented contract-management cases (renew or terminate, on time or late, owner present or gone, signed file found or missing), and a datasheet that says what they can and cannot prove. No real contract was used.</p>
+    </div>
+    <svg class="pixels" id="stairs" width="240" height="240" viewBox="0 0 12 12" aria-hidden="true"></svg>
+  </div>
+  <p>
+    <a class="btn" href="https://github.com/bestdash/FDE1/tree/main">Repository</a>
+    <a class="btn" id="loomLink" href="#" target="_blank" rel="noopener">▶ Watch the video (5 min)</a>
+    <a class="btn ghost" href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md">Datasheet</a>
+  </p>
+
+  <h3>Where each required item is answered</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Required item</th><th>On this page</th><th>Source in the repo</th></tr></thead>
+    <tbody>
+      <tr><td>Video (5 minutes or less)</td><td>Button above</td><td><a href="https://drive.google.com/file/d/1ctamvxTuRSexI-NsS5ZqYpL64HhD81c1/view?usp=sharing" target="_blank" rel="noopener">Google Drive</a></td></tr>
+      <tr><td>Course item: at least two axes specific to my domain, and one value where the agent must refuse → all three are contract-specific; the refusal is "signed contract file not found"</td><td><a href="#axes">01 Axes</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md#variation-axes">DATASHEET.md · Variation axes</a></td></tr>
+      <tr><td><code>synthetic_v1.jsonl</code> written (gitignored)</td><td><a href="#counts">02 Counts</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md#what-this-data-is">DATASHEET.md · What this data is</a> (128 rows)</td></tr>
+      <tr><td>Generated / after dedupe / schema-valid / dead combinations, with settings</td><td><a href="#counts">02 Counts</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md#how-it-was-generated">DATASHEET.md · How it was generated</a></td></tr>
+      <tr><td>Dedupe threshold row</td><td><a href="#dedupe">03 Dedupe</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a></td></tr>
+      <tr><td>Leak check and fifty rows read, with what I removed</td><td><a href="#reading">04 Fifty rows</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md#leakage-check--outward-what-left">DATASHEET.md · Leakage check</a></td></tr>
+      <tr><td>DATASHEET filled: cannot validate, never compared against, goldens disjoint</td><td><a href="#limits">05 What it cannot prove</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md">DATASHEET.md</a></td></tr>
+      <tr><td>Model/endpoint row, tagged measured / looked up, constraint / preference</td><td><a href="#model">06 Model</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">ecosystem.md</a> (local model)</td></tr>
+      <tr><td>Demo to a real user, feedback in my own words, what it changed</td><td><a href="#review">07 Sponsor review</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a></td></tr>
+      <tr><td>What I would swap to run this at work (three lines)</td><td><a href="#work">08 Bring it to work</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/02_Open_Weights/challenge/README.md#bring-it-to-work">challenge README · Bring it to work</a></td></tr>
+      <tr><td>Generation code</td><td><a href="#counts">02 Counts</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/02_Open_Weights/challenge/S4_my_run.py">S4_my_run.py</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">All data on this page is synthetic. Roles, not names. Press <kbd>P</kbd> for presenter mode (cues on, document-only sections hidden).</p>
+</div>
+</section>
+
+<!-- ============ 1. AXES ============ -->
+<section id="axes" data-label="Axes" data-time="0:35">
+<div class="wrap">
+  <div class="cue"><b>0:35 to 1:15.</b> My agent receives fields, not free text, so the axes describe the contract's situation. Read the three axis names, point at the refusal value, then at the orange "after the review" line. 3 × 3 × 3 = 27 combinations.</div>
+  <p class="kicker"><span class="n">01</span> Variation axes</p>
+  <span class="req">Axes: two domain-specific, one refusal</span>
+  <h2>Three ways real contract cases differ, and one value where the agent must refuse</h2>
+  <p class="intro">To invent useful cases, you first say <b>how</b> real cases differ. Each way is an "axis" with a few values. The model then invents cases for every combination of values.</p>
+  <div class="diary"><span class="lab">From my notes</span>
+    <p>My agent does not read free text. It receives six fields: the owner's decision (renew or terminate), three dates, whether the owner is still in the company, and whether the signed contract is on file. So my axes describe the contract's situation: how urgently the contract must be managed, how complex it is, and what information is missing.</p>
+    <p>A <b>refusal</b> (the course calls it a "decline") is a case where the agent must not draft anything, for example when the signed contract cannot be found.</p>
+  </div>
+  <blockquote class="hers">
+    <div class="tablewrap">
+    <table class="axes">
+      <thead><tr><th>Axis and its values</th><th>Reason</th></tr></thead>
+      <tbody>
+        <tr><td><b class="ax"><code>time_left</code></b><ol><li>more than 30 days before the deadline (auto-renewal date if one exists, otherwise end date): comfortable</li><li>14 to 30 days left: the owner must answer now</li><li>less than 14 days left: not enough time for the internal purchase request and order</li></ol></td><td>Time left decides the tone, the recipient, and whether the purchase process can still finish (it needs about 2 weeks)</td></tr>
+        <tr><td><b class="ax"><code>contract_complexity</code></b><ol><li>simple: per-user or per-usage subscription, one price line</li><li>complex: priced on compute capacity, plus license and support fees, so the quantity is hard to estimate</li><li>very complex: several cloud instances, each with its own users and third-party add-ons, plus a paid security support line where the vendor's responsibility in incidents matters</li></ol></td><td>Stakes and review depth grow with the number of price lines and the security risk</td></tr>
+        <tr><td><b class="ax"><code>record_completeness</code></b><ol><li>nothing missing: owner active, signed file found</li><li>partly missing: the owner has left, signed file found</li><li><span class="tag t-decline">Refusal</span> critical missing (decline): signed contract file not found</li></ol></td><td>Missing information changes who gets the message, and some gaps block drafting</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </blockquote>
+  <div class="after"><b>After the sponsor review (for the next run, not used to generate this data):</b> complex and very complex contracts involve several departments, which must provide last year's usage and next year's forecast before a quote can be requested. Very complex also covers products used by internal users and customers at once. Support and security are two separate paid add-ons, not one "security support line".</div>
+  <div class="diary"><span class="lab">A case I had to think through</span>
+    <p>The owner has left the company, but the signed contract is on file. Should the agent draft the letter anyway and send it to procurement (the purchasing team)? No: procurement can check the letter, but only someone in the team can say whether the product is still needed. So the decision is reviewed again before anything is drafted.</p>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md#variation-axes">use_case/data/DATASHEET.md · Variation axes</a> (table and "after the sponsor review" line) · owner-left decision in <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a></p>
+</div>
+</section>
+
+<!-- ============ 2. COUNTS ============ -->
+<section id="counts" data-label="Four counts" data-time="1:15">
+<div class="wrap">
+  <div class="cue"><b>1:15 to 2:00.</b> Read the four numbers of run 2. Then tell run 1: no refusal case survived, because the model was shown only three examples and none of them was a refusal. Showing six examples fixed it.</div>
+  <p class="kicker"><span class="n">02</span> Generate, dedupe, validate</p>
+  <span class="req">Four counts and settings</span>
+  <h2>162 invented, 128 kept, and the first run had no refusal cases at all</h2>
+  <p class="intro">Every invented case goes through two filters: near-copies are removed (dedupe), then each case is checked against the exact format the agent accepts and returns (the schema). What survives both is the honest size of the dataset. A "dead combination" would be a mix of axis values that produced nothing.</p>
+  <div class="grid g3">
+    <div class="card"><div class="big">162<small>cases invented in run 2 (27 combinations × 6)</small></div></div>
+    <div class="card accent"><div class="big">128<small>kept after dedupe (130) and the format check: the honest size</small></div></div>
+    <div class="card"><div class="big">0<small>dead combinations: every mix of axis values produced cases</small></div></div>
+  </div>
+  <blockquote class="hers">
+    <div class="tablewrap">
+    <table>
+      <thead><tr><th>Run</th><th>Seeds shown</th><th>Rows per combination</th><th>Generated</th><th>After dedupe</th><th>Schema-valid</th><th>Dead combinations</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>goldens 1 to 3</td><td>3</td><td>81</td><td>75</td><td>31</td><td>0</td></tr>
+        <tr><td>2 (kept)</td><td>goldens 1 to 6</td><td>6</td><td>162</td><td>130</td><td>128</td><td>0</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="margin-top:12px"><b>Run 1 finding:</b> no decline or escalation row survived validation. The prompt showed only goldens 1 to 3, so the model never saw <code>missing_file_notice</code>, <code>escalation_to_procurement</code> or <code>owner_status: "left"</code>, and it invented its own names and values. Run 2 shows goldens 1 to 6, which cover all five message types: 2 rows rejected (invented <code>decision</code> value).</p>
+  </blockquote>
+  <div class="diary"><span class="lab">What I saw in the rejected cases</span>
+    <p>My agent has five fixed message types, such as "termination draft" or "missing file notice". In run 1 the model had seen only three of them, so it invented five different labels for "I cannot draft this": <code>missing_file_block</code>, <code>decline_missing_file</code>, <code>blocked_missing_contract</code>, and two more. All sensible, none of them in my format, so the check threw all of them away. Without that count, I would have believed my data tested refusals.</p>
+  </div>
+  <h3>Settings, so the run can be reproduced</h3>
+  <blockquote class="hers">
+    <p><b>Temperature:</b> not set in either run (Anthropic default 1.0, looked up). <b>Top-p:</b> not set (provider default, about 0.99, looked up)</p>
+    <p><b>Dedupe:</b> character 4-gram Jaccard on <code>input</code>, threshold 0.9 (reasons in <code>decisions.md</code>)</p>
+    <p><b>Validator:</b> pydantic model with <code>input: Request</code>, <code>output: Response</code>, <code>why: str</code>, imported from <code>01_Product_Engineering/challenge/schema.py</code></p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md#how-it-was-generated">DATASHEET.md · How it was generated</a> · code: <a href="https://github.com/bestdash/FDE1/blob/main/02_Open_Weights/challenge/S4_my_run.py">S4_my_run.py</a> (the S4 notebook with my axes, seeds and validator)</p>
+</div>
+</section>
+
+<!-- ============ 3. DEDUPE ============ -->
+<section id="dedupe" data-label="Dedupe threshold" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">03</span> Dedupe threshold</p>
+  <span class="req">Decision row: dedupe threshold</span>
+  <h2>At the default setting, cases with different dates looked like copies</h2>
+  <p class="intro">Dedupe compares two cases character by character and drops one if they overlap more than a threshold (0.7 means 70% the same). The right threshold depends on what the data looks like.</p>
+  <div class="diary"><span class="lab">From my notes</span>
+    <p>In run 1, at the course default, dedupe threw away 61 of 81 cases. They were not copies: only the dates differed. Every case starts with the same field names, and to a character counter, that looks like the same text. A person reads "renew" and "terminate" as two different cases; the counter sees one word out of 150 characters.</p>
+    <p>I chose the threshold on run 1 and kept it for run 2: there, it kept 130 of 162 cases.</p>
+  </div>
+  <blockquote class="hers">
+    <p><b>Decision:</b> Dedupe threshold 0.9 on character 4-grams of the <code>input</code> field. Chosen on run 1 (81 rows: kept 75), then applied to run 2 (162 rows: kept 130)</p>
+    <p><b>Rejected:</b> 0.7, the session default (run 1: kept 20 of 81: it dropped rows with different dates, because the dict keys are the same in every row). 0.95 (run 1: kept 78 of 81: the same wrong drop, and fewer real duplicates removed). Not re-tested on run 2: its raw rows were not saved</p>
+    <p><b>Why:</b> Inputs are short structured dicts: most characters are field names, so character overlap is high even when the content differs. 0.9 removed the near-identical rows and kept rows with different dates. Known limit, seen in run 1: at 0.9 and 0.95 one renew row was dropped as a twin of a terminate row, because a one-word change is too small for character overlap to see. In run 2, the 5 dropped pairs I checked had the same decision and near-identical inputs (one differed by one day)</p>
+    <p><b>What would change my mind:</b> More dropped pairs that differ in <code>decision</code>, <code>owner_status</code> or <code>file_exists</code>. Then dedupe on exact field values (decision, owner status, file status, time zone) instead of character overlap</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> (Week 2 rows) · threshold chosen on run 1, applied to run 2</p>
+</div>
+</section>
+
+<!-- ============ 4. READING ============ -->
+<section id="reading" data-label="Fifty rows" data-time="2:00">
+<div class="wrap">
+  <div class="cue"><b>2:00 to 2:40.</b> The automatic check found only my own invented dates. Then say the honest part: reading 50 cases, I did not feel the data got richer. Read the "value of this data" line.</div>
+  <p class="kicker"><span class="n">04</span> Leak check, then fifty cases read</p>
+  <span class="req">Leak check and fifty rows read</span>
+  <h2>Nothing leaked, but almost everything repeated</h2>
+  <p class="intro">Before anything is published, two checks: an automatic search for real names and numbers copied from my examples, then my own reading of 50 random cases.</p>
+  <div class="grid g2">
+    <div class="card"><h4>The automatic check</h4>It only flagged the invented dates from my own examples and a generic greeting. No names, no identifiers: the examples were written from memory, with placeholders such as [Product] and [Owner].<span class="dash"></span></div>
+    <div class="card inkc"><h4>My reading</h4>50 random cases, read one by one: for leaks first, then for sense. No case removed. What I found was not a leak. It was sameness.<span class="dash"></span></div>
+  </div>
+  <div class="diary"><span class="lab">From my reading notes</span>
+    <p>"I do not have the feeling that this synthetic data made the dataset richer. I really do not see much variety." The complexity axis never reached the renewal emails: they always ask the same four questions (duration, licence model, quantity, usage), because my agent does not read the contract yet.</p>
+  </div>
+  <blockquote class="hers">
+    <p><b>Read by me:</b> 50 random valid rows (sample seed 7). Removed: none. Looked for: real product or vendor names, internal formats, copied rare cases, and claims the agent cannot know.</p>
+    <p>Low variety: messages stay close to the goldens' wording. Renew messages always list the same four review points from golden 2, whatever the contract complexity. Missing-file notices are nearly identical whatever the time left.</p>
+    <p>Complexity reaches the message only through the axis text, never through the contract, because the agent does not read the file. Reading the file comes with retrieval (Week 3).</p>
+    <p>Dedupe compares inputs only, so rows with different dates but near-identical messages were all kept.</p>
+    <p>Value of this data: coverage of input situations (decision, dates, owner, file) with the expected type and <code>act_by</code>, for routing tests. Not message variety.</p>
+  </blockquote>
+  <details>
+    <summary>The four outward checks, ticked by me</summary>
+    <blockquote class="hers">
+      <p>✓ No real record was used as a seed.<br>✓ No real entity names, IDs, or identifiers appear.<br>✓ No distinctive internal formats that would identify the firm.<br>✓ Rare categories were generated, not copied.</p>
+      <p><b>Expert check (Oct 16):</b> if this were public, the sensitive parts would be amounts and the technology stack, because knowing which tools we use shows an attacker where to aim. The rows contain no amounts, and the product and add-on names are invented, so they do not describe our stack.</p>
+    </blockquote>
+  </details>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md#leakage-check--outward-what-left">DATASHEET.md · Leakage check: outward</a></p>
+</div>
+</section>
+
+<!-- ============ 5. LIMITS ============ -->
+<section id="limits" data-label="What it cannot prove" data-time="2:40">
+<div class="wrap">
+  <div class="cue"><b>2:40 to 3:30.</b> This is the important half. Read the statement. Then three items: variety, real complexity, deadlines set by the vendor. End on the goldens line: "no, overlap", and why that matters later in the course.</div>
+  <p class="kicker"><span class="n">05</span> The datasheet</p>
+  <span class="req">Cannot validate · never compared against · goldens disjoint</span>
+  <h2>It proves the pipeline works, not that the agent writes well</h2>
+  <p class="intro">A datasheet is the label on the data: where it comes from, what it may be used for, and what it must never be used to prove. In six weeks, people will read this page instead of the data.</p>
+  <div class="statement">
+    <p class="lab">What this data is</p>
+    <p>This is prototyping data: inputs that look like real renewal cases, with no labels a person verified.</p>
+  </div>
+  <div class="grid g2">
+    <div>
+      <h3>What it can validate</h3>
+      <blockquote class="hers">
+        <p>The pipeline runs end to end: generate, dedupe, validate.</p>
+        <p>The generated inputs fit the current <code>Request</code> schema, for each combination of <code>time_left</code> and <code>record_completeness</code>.</p>
+        <p>The validator rejects rows that do not fit, and the counts show how many.</p>
+        <p>Routing coverage: 128 input situations (decision, dates, owner status, file status), each with the type and <code>act_by</code> the model chose, to test routing in Week 4. Not message quality.</p>
+        <p>Plausibility, narrowly: the contract owner read 14 rows and found no situation that would never happen ("we are covered at 99%"). That is one expert on 14 rows, not a measure of the whole file.</p>
+      </blockquote>
+    </div>
+    <div>
+      <h3>What it cannot validate</h3>
+      <blockquote class="hers">
+        <p>Message variety and writing quality: messages are close paraphrases of the goldens.</p>
+        <p>Deadlines set by the vendor: an early-renewal price deadline can arrive weeks before the end date, so <code>time_left</code> from the database can be wrong (expert review, Oct 16).</p>
+        <p>Real complexity: the expert defines it by how many business units must approve, and whether the product serves internal users and customers at once. It is often discovered only at the first quote. None of this is in the schema or the data.</p>
+        <p>Realistic contract wording: the axis value "paid security support line" is something the expert has never seen in a contract. Real contracts have two separate paid options: a software support add-on and a security add-on.</p>
+      </blockquote>
+      <details>
+        <summary>Six more limits</summary>
+        <blockquote class="hers">
+          <p>Dedupe uses character overlap, which cannot see a one-word change in a structured field: one renew row was dropped as a twin of a terminate row in run 1.</p>
+          <p>Validation checks types and allowed values only: not that dates are consistent, that <code>act_by</code> is right, or that the message matches the decision.</p>
+          <p>Which message types appear depends on which goldens the prompt shows: with 3 seeds, run 1 produced zero decline rows.</p>
+          <p>With less than 14 days left, the model wanted an urgent-warning message type the schema does not have. Urgency exists only in the message text.</p>
+          <p>Rows reuse the goldens' invented dates (2026-10-12, 2026-11-15, 2026-12-15), so date variety is lower than it looks.</p>
+          <p>A missing vendor contact: when the vendor's people change and the new email is not in our files, the process blocks. No row covers it. It matters in a later step, after the owner has reviewed the contract.</p>
+        </blockquote>
+      </details>
+    </div>
+  </div>
+  <h3>What it must never be compared against</h3>
+  <blockquote class="hers"><p>Real ground truth is the real contracts and what contract owners actually decided and sent: the contract database and the project mailbox, inside the company's private system. These synthetic rows are not ground truth: their labels (message type, <code>act_by</code>, message) were written by the generating model and checked by no one. A masked copy of real contracts may become a backtesting set later, in the private company repo, never in this public fork.</p></blockquote>
+  <h3>Are the goldens disjoint from anything the system was tuned on?</h3>
+  <p class="intro">The "goldens" are my 9 hand-written test cases, each with the answer I accept. They are the exam the agent is scored on, so the agent must never learn from them or from anything copied from them.</p>
+  <blockquote class="hers">
+    <p>No: overlap. The goldens were written from memory, not from real contracts, but in TC1 the drafting prompt for each message type was adjusted until the goldens passed. A passing score on the goldens partly measures that tuning, not correctness on new cases. This file was generated from goldens 1 to 6, so it must never be used to tune anything the goldens later score: no prompt examples, no fine-tuning.</p>
+    <p><b>Overlap by the dedupe measure:</b> 122 of 128 rows within 0.5 of a golden. The number is inflated: every row shares the same field names, due to my input data structure, so it does not mean the content was copied.</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/data/DATASHEET.md">use_case/data/DATASHEET.md</a></p>
+</div>
+</section>
+
+<!-- ============ 6. MODEL ============ -->
+<section id="model" data-label="Model and endpoint" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">06</span> Model and endpoint</p>
+  <span class="req">Model/endpoint row: measured vs looked up, constraint vs preference</span>
+  <h2>Hosted for fake data now; real contracts wait for an approved route</h2>
+  <p class="intro">Which AI model wrote the cases, and which one could run on real contracts later: a hosted model (the provider runs it, data leaves the network) or a local one (it runs on our own machine). Every number below is marked "measured" (I timed it) or "looked up" (from a price page).</p>
+  <div class="grid g3">
+    <div class="card"><div class="big">15 s<small>local 350M model on my laptop CPU, 80 tokens (measured)</small></div></div>
+    <div class="card accent"><div class="big">3.8 s<small>hosted model, same prompt and budget (measured)</small></div></div>
+    <div class="card"><div class="big">≈ $0.001<small>for that call: tokens measured × price looked up</small></div></div>
+  </div>
+  <div class="diary"><span class="lab">From my notes</span>
+    <p>The small local model wrote "the database database" and "restaurant restaurant". Fast enough for a daily job, not good enough to write a letter to a vendor. The sponsor's view, when I showed both: "why deprive ourselves of a smart model?" (translated from French)</p>
+  </div>
+  <blockquote class="hers">
+    <p><b>Decision:</b> Model/endpoint: TC2 synthetic data on hosted <code>anthropic/claude-sonnet-4-6</code> (Anthropic API). Real contracts: a capable hosted model, once a route is approved</p>
+    <p><b>Rejected:</b> Local <code>LiquidAI/LFM2.5-350M</code> on my laptop CPU. A local model on the pilot VM</p>
+    <p><b>Why:</b> Measured on the S3 Task 9 fixed prompt ("The incident started when the database"; the hosted model also gets a one-line "continue the text" system instruction), 80-token budget: local LFM2.5-350M on Intel Core Ultra 5 335 (8 threads, 15 GiB RAM in WSL, CPU only) 15.13 s, with doubled words; hosted claude-sonnet-4-6 3.79 s, 58 in / 71 out tokens (measured). Price $3 / $15 per million input / output tokens (looked up, Oct 16 2026), so this call cost about $0.001 (computed from both). There is no approved LLM route yet: this is the first system of its kind at company level, so no one has asked for one. Until a route is approved, real contract data does not go to a hosted API (constraint, until approval). TC2 rows are synthetic with invented names, so they may go (constraint met). The agent must follow instructions and return the schema fields, and the 350M model cannot (constraint). A local model needs a vendor review first (security certification, third-party risk review), and this one's licence becomes paid above a company revenue threshold (constraint, expert review Oct 16). Faster replies (preference: the agent runs as a daily job, so 15 s is fine)</p>
+    <p><b>What would change my mind:</b> The route is approved: use it for real contracts. A similar AI integration with read-only access is already approved, which the request can build on. Anthropic now marks Sonnet 4.6 as legacy: re-run the goldens on its replacement before switching</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> · local model line: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">use_case/ecosystem.md · Week 2</a></p>
+</div>
+</section>
+
+<!-- ============ 7. SPONSOR REVIEW ============ -->
+<section id="review" data-label="Sponsor review" data-time="3:30">
+<div class="wrap">
+  <div class="cue"><b>3:30 to 4:15.</b> Two sessions with the sponsor, the person who signs these renewals. Tell the "two days" moment in one breath. Then the three answers, then the one change: complexity is about who must approve, and support and security are two separate add-ons.</div>
+  <p class="kicker"><span class="n">07</span> Shown to someone who knows the real data</p>
+  <span class="req">Demo to a real user, feedback in my own words</span>
+  <h2>"We are covered at 99%." The 1% taught me the most</h2>
+  <p class="intro">Invented cases only look real. The course asks to show them to someone who sees the real ones every day, and to ask three questions in a fixed order.</p>
+  <div class="diary"><span class="lab">How it went</span>
+    <p>My reviewer was the Head of IT infrastructure: the sponsor of this project, who owns about 80 to 100 contracts and renews them himself. Two screen-shares on the same day: about 50 minutes, then 35. I showed 14 cases, not 20. The others were near-copies, and he noticed it himself: "it's a copy of what you showed me before" (translated from French).</p>
+  </div>
+  <div class="statement">
+    <p class="lab">The moment that changed my <code style="background:transparent;border:0;color:var(--orange)">time_left</code> axis</p>
+    <p>The database said three months. Then the vendor wrote: renew within days, or the price goes up by about 8%. The real time left was two days.</p>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th style="width:24%">Question</th><th>What he said, in my words</th></tr></thead>
+    <tbody>
+      <tr><td><b>Which of these would never happen?</b></td><td>none. Every situation shown happens often (owner left and escalation, accept or refuse to continue, renegotiating a bundle): "we are covered at 99%". He first doubted a "terminate" decision on record when the owner has left, then agreed it happens: the owner had noted in advance that the contract would not be renewed. One wording never happens: "a paid security support line" does not exist in contracts; real contracts have a separate support add-on and security add-on.</td></tr>
+      <tr><td><b>What comes in that is not here at all?</b></td><td>a vendor whose contact people changed, with no new email in our files, which blocks the process; a deadline set by the vendor (an early-renewal price deadline before the end date, so the real time left is shorter than the database says); complexity defined by how many business units must approve and by internal plus customer use; complexity often found only at the first quote (bundled licences, a big price increase); the vendor's fiscal year as a pricing lever (not V1); tools bought without approval by people who then left; termination prerequisites (equipment return, decommission, data backup).</td></tr>
+      <tr><td><b>If this were public, what would worry you?</b></td><td>amounts and the technology stack: knowing which tools we use shows an attacker where to aim. The risk stays limited because access is already well protected.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <h3>What his feedback changed</h3>
+  <blockquote class="hers">
+    <p>Expert feedback (Oct 16): redefine <code>contract_complexity</code> for the next generation run: very complex = several business units must approve, or internal users and customers at once; complex = the vendor changed its licence model or bundles, often seen only at the first quote; both involve several departments, which must provide last year's usage and next year's forecast. Replace "a paid security support line" with two separate paid options: a software support add-on and a security add-on</p>
+  </blockquote>
+  <details>
+    <summary>Message changes he asked for, saved for the Week 4 goldens</summary>
+    <blockquote class="hers">
+      <p>escalation text "I can't start the review until an owner is assigned"; termination draft cites the notice period and asks for next steps (equipment return, decommission, data backup); review email offers "one year, three years, or both" and asks for the forecast; auto-renewal is never wanted; missing-file notice adds "if you do not have the contract, ask the vendor for the last signed copy"; when the decision is terminate, no complexity detail in the message; escalation asks for a new owner and says a new review cycle starts if the new owner does not terminate; review email asks per cloud instance whether it is still needed and which add-ons can be dropped; new case to cover: the vendor contact changed and the new email is unknown</p>
+    </blockquote>
+  </details>
+  <div class="diary"><span class="lab">My favourite tip</span>
+    <p>When nobody can find the signed contract, people go to legal, to finance, to the person who left. His answer: "ask the vendor". They always have it, and it is the shortcut that stops a case from sleeping for years.</p>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">use_case/stakeholders.md</a> (Week 2 row) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> (expert feedback row)</p>
+</div>
+</section>
+
+<!-- ============ 8. BRING IT TO WORK ============ -->
+<section id="work" data-label="Bring it to work" data-time="4:15">
+<div class="wrap">
+  <div class="cue"><b>4:15 to 4:30.</b> The project, then the three swaps in one sentence each. The blocker is the same as last week: no approved route, because nobody asked yet. Now the sponsor supports asking.</div>
+  <p class="kicker"><span class="n">08</span> Bring it to work</p>
+  <span class="req">What I would swap: data, model, approval</span>
+  <h2>The data is ready to be swapped; the approval is the next step</h2>
+  <p class="intro">What would change to run this on real contracts at the company: the data, the model, and the approval needed.</p>
+  <blockquote class="hers">
+    <p><b>Project:</b> the contract renewal agent cannot be tested on real IT contracts until a model route is approved for contract data. IT confirmed none exists yet (Oct 12), because no system like this has asked for one.</p>
+    <p><b>Data:</b> seed from masked copies of real IT contracts (vendor, contacts and amounts changed), generate from the schema and a written description, and keep the masked set in the private company repo as backtesting data, never in this public fork.</p>
+    <p><b>Model or endpoint:</b> a capable hosted model through a company account, set to keep no data. Only structured fields leave the network (dates, decision, flags), no vendor names.</p>
+    <p><b>Access or approval:</b> ask IT security, with the sponsor's support (he already prefers a capable hosted model), to approve a hosted model API route for contract data, building on a similar AI integration already approved with read-only access. A local model would need a third-party risk review of its vendor first.</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/02_Open_Weights/challenge/README.md#bring-it-to-work">02_Open_Weights/challenge/README.md · Bring it to work</a></p>
+</div>
+</section>
+
+<!-- ============ 9. FINAL PRODUCT ============ -->
+<section id="product" data-label="Final product" data-time="4:30">
+<div class="wrap">
+  <div class="cue"><b>4:30 to 4:45.</b> "This is where it goes." Step 2 is what TC1 built and what this data now tests. Step 3 is where real complexity comes in: the agent reads the contract. Then press → .</div>
+  <p class="kicker"><span class="n">09</span> The final product</p>
+  <h2>One renewal, from the first alert to the new contract</h2>
+  <p class="lead">TC1 built one step. TC2 gave that step 128 test cases. The review taught me which steps need the contract itself.</p>
+
+  <div class="flow6">
+    <div class="fstep">
+      <div class="fh"><span class="no">1</span><b>Alert</b><span class="tc">Next: step A</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Watches every contract date each day. Warns before the notice deadline, the end date, and <b>any deadline the vendor announces</b>.</div>
+      <div class="lane owner"><span class="who">Owner</span>Gets the alert with time to act, not after the date.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Not involved yet.</div>
+    </div>
+    <div class="fstep built">
+      <div class="fh"><span class="no">2</span><b>Decide</b><span class="tc">TC1 ✓ · TC2 test data ✓</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Drafts the right next message for the decision and the dates. Declines when the file or the owner is missing. 128 synthetic cases now cover this routing.</div>
+      <div class="lane owner"><span class="who">Owner</span>Says renew or terminate, in Claude or by email.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Gets a termination notice only after the owner approves it.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">3</span><b>Review</b><span class="tc">Builds in TC3</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Reads the contract: instances, add-ons, support and security options, quantities, price. Prepares review points for this contract.</div>
+      <div class="lane owner"><span class="who">Owner</span>Answers: duration (one year, three years, or both), forecast, what is used and what can be dropped.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Not involved yet.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">4</span><b>Ask</b><span class="tc">Scored in TC4</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Drafts the quote request from the review answers, with our target conditions.</div>
+      <div class="lane owner"><span class="who">Owner</span>Approves or rejects the draft. Nothing is sent before that.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Receives the request.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">5</span><b>Negotiate</b><span class="tc">Builds in TC5 to TC7</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Compares the first quote, last year's price and the target. Spots a new bundle or licence model. Remembers every round.</div>
+      <div class="lane owner"><span class="who">Owner</span>Picks the quote to keep, or asks for another round.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Sends quotes and counter-offers to the shared mailbox.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">6</span><b>Close</b><span class="tc">Runs in TC9 and TC10</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Records the new terms when the PO is issued, and sets next year's alerts.</div>
+      <div class="lane owner"><span class="who">Owner</span>Confirms. The PO goes out before the date, not after.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Confirms the new contract.</div>
+    </div>
+  </div>
+
+  <div class="guard">
+    <span class="lab">At every step</span>
+    <span>A human approves every send</span>
+    <span>Vendor email is untrusted input</span>
+    <span>Read-only access by default</span>
+    <span>Every decision has a named person</span>
+  </div>
+  <p class="help" style="margin-top:14px">New cases from the sponsor review: a deadline set by the vendor, not the database; a vendor contact that changed. They enter in steps 1 and 3.</p>
+</div>
+</section>
+
+<!-- ============ 10. THE PATH ============ -->
+<section id="path" data-label="How I get there" data-time="4:45">
+<div class="wrap">
+  <div class="cue"><b>4:45 to 5:00.</b> "Week 2 is done: the first block of the first step." Read the four step titles, end on the summit, then stop recording.</div>
+  <p class="kicker"><span class="n">10</span> How I get there</p>
+  <h2>Each course week builds one block of the real product</h2>
+  <p class="lead">Start small and ship every week, then climb toward the sponsor's bigger goal.</p>
+
+  <div class="stairs">
+    <div class="step s0">
+      <div class="lvl"><span class="ln">1</span><span><b>See every date</b><small>Never miss a deadline</small></span></div>
+      <div class="bk done"><div class="tcn"><span>TC2</span><span>Oct 21</span></div><h5>Synthetic cases and a datasheet</h5>128 fake renewal cases, three axes, and an honest list of what they cannot prove.</div>
+      <div class="bk done"><div class="tcn"><span>TC2</span><span>Oct 21</span></div><h5>A local open model, tested</h5>Runs on a laptop in 15 s. Needs a vendor review before the company could use it.</div>
+    </div>
+    <div class="step s1">
+      <div class="lvl"><span class="ln">2</span><span><b>Read the contract</b><small>Know what we signed</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC3</span><span>Oct 28</span></div><h5>Retrieval from contracts</h5>Instances, add-ons, support and security options, notice periods: the complexity the synthetic data could not carry.</div>
+      <div class="bk"><div class="tcn"><span>TC4</span><span>Nov 4</span></div><h5>Evals and a 5-minute demo</h5>The goldens become scored evals, with the sponsor's message changes. Demo to the sponsor.</div>
+    </div>
+    <div class="step s2">
+      <div class="lvl"><span class="ln">3</span><span><b>Negotiate, safely</b><small>More than an email writer</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC5</span><span>Nov 11</span></div><h5>Agent architecture</h5>Negotiation is the first part that may need a real agent: the vendor's reply decides the next step.</div>
+      <div class="bk mile"><div class="tcn"><span>Milestone</span><span>Nov 16 to 17</span></div><h5>Internal hackathon</h5>The project presented inside the company.</div>
+      <div class="bk"><div class="tcn"><span>TC6</span><span>Nov 18</span></div><h5>Guardrails</h5>Vendor emails can carry prompt injection: the sponsor named the mailbox as the entry point.</div>
+      <div class="bk"><div class="tcn"><span>TC7</span><span>Nov 25</span></div><h5>Memory</h5>Case history across months: alerts sent, quote rounds, what was agreed.</div>
+    </div>
+    <div class="step s3">
+      <div class="lvl"><span class="ln">4</span><span><b>Run it at the company</b><small>Inside their walls</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC8</span><span>Dec 9</span></div><h5>A negotiator, not an email writer</h5>Fine-tune an open model. Not on this data alone: it was grown from the goldens that will score it.</div>
+      <div class="bk"><div class="tcn"><span>TC9</span><span>Dec 16</span></div><h5>Deploy in IT's ecosystem</h5>With an approved model route. Secrets, network and login as IT requires.</div>
+      <div class="bk"><div class="tcn"><span>TC10</span><span>Dec 23</span></div><h5>Final report to the sponsor</h5>Dates caught, renewals on time, money saved.</div>
+    </div>
+    <div class="step s4">
+      <div class="lvl"><span class="ln">★</span><span><b>Tool governance</b><small>The sponsor's goal</small></span></div>
+      <div class="bk hot"><h5>One contract per tool</h5>No two contracts for the same tool across teams.</div>
+      <div class="bk hot"><h5>Consolidate similar tools</h5>Fewer tools that do the same job; one plan that covers two needs.</div>
+      <div class="bk hot"><h5>Better prices, measured savings</h5>First quote vs negotiated price vs last year's price, reported for every renewal.</div>
+    </div>
+  </div>
+
+  <div class="summit">
+    <span class="flag">Summit</span>
+    <p>Fewer tools, better prices, no missed dates: the owner sets the goal, the agent negotiates, a human approves.</p>
+  </div>
+  <p class="src">From: course agenda (TC2 to TC10) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> · sponsor review, Oct 16</p>
+</div>
+</section>
+
+</main>
+
+<script>
+/* Paste the video link between the quotes after recording. */
+const LOOM_URL = "https://drive.google.com/file/d/1ctamvxTuRSexI-NsS5ZqYpL64HhD81c1/view?usp=sharing";
+
+(function(){
+  /* cover decoration: rising pixel staircase, ink fading into orange */
+  const svg = document.getElementById('stairs');
+  if (svg) {
+    const N = 12, ns = 'http://www.w3.org/2000/svg';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (Math.floor(c / 3) + Math.floor((N - 1 - r) / 3) < 3) continue;   // 4 steps of 3x3 cells
+      const s = document.createElementNS(ns, 'rect');
+      s.setAttribute('x', c + .08); s.setAttribute('y', r + .08);
+      s.setAttribute('width', .84); s.setAttribute('height', .84); s.setAttribute('rx', .2);
+      const t = (c + (N - 1 - r)) / (2 * (N - 1));
+      s.setAttribute('fill', t > .55 ? '#F04B2A' : '#0E0E0E');
+      s.setAttribute('opacity', (0.25 + 0.75 * t).toFixed(2));
+      svg.appendChild(s);
+    }
+  }
+
+  const loom = document.getElementById('loomLink');
+  if (LOOM_URL) { loom.href = LOOM_URL; } else { loom.textContent = 'Video (link to be added)'; loom.removeAttribute('href'); }
+
+  /* build the sidebar list: every section, numbered, with video time or "doc" */
+  const sections = Array.from(document.querySelectorAll('main section'));
+  const nav = document.getElementById('nav');
+  const links = sections.map((s, i) => {
+    const a = document.createElement('a');
+    a.href = '#' + s.id;
+    const isDoc = s.classList.contains('doc-only');
+    const k = s.querySelector('.kicker .n');
+    const num = s.dataset.n || (k ? k.textContent : String(i).padStart(2, '0'));
+    a.innerHTML = '<span class="n">' + num + '</span><span>' + s.dataset.label + '</span>' +
+      (isDoc ? '<span class="doc">doc</span>' : '<span class="t">' + (s.dataset.time || '') + '</span>');
+    a.addEventListener('click', e => { e.preventDefault(); s.scrollIntoView({behavior:'smooth', block:'start'}); });
+    nav.appendChild(a);
+    return a;
+  });
+
+  const presenter = () => document.body.classList.contains('presenter');
+  const visibleIdx = () => sections.map((s, i) => i).filter(i => !(presenter() && sections[i].classList.contains('doc-only')));
+
+  /* current section = last visible one whose top has passed 35% of the window */
+  function currentIndex(){
+    const line = window.innerHeight * 0.35; let cur = visibleIdx()[0];
+    visibleIdx().forEach(i => { if (sections[i].getBoundingClientRect().top <= line) cur = i; });
+    return cur;
+  }
+
+  function update(){
+    const vis = visibleIdx(); const cur = currentIndex(); const pos = vis.indexOf(cur);
+    links.forEach((a, i) => {
+      a.classList.toggle('hide', !vis.includes(i));
+      a.classList.toggle('on', i === cur);
+      a.classList.toggle('done', vis.includes(i) && vis.indexOf(i) < pos);
+    });
+    document.getElementById('pos').textContent = pos + 1;
+    document.getElementById('tot').textContent = vis.length;
+    document.querySelector('#prog i').style.width = ((pos + 1) / vis.length * 100) + '%';
+    document.getElementById('modeLabel').textContent = presenter() ? 'Presenter' : 'Document';
+    /* keep the active item visible inside the sidebar only (never moves the page) */
+    const a = links[cur];
+    if (a && nav.scrollHeight > nav.clientHeight) {
+      if (a.offsetTop < nav.scrollTop) nav.scrollTop = a.offsetTop - 8;
+      else if (a.offsetTop + a.offsetHeight > nav.scrollTop + nav.clientHeight) nav.scrollTop = a.offsetTop + a.offsetHeight - nav.clientHeight + 8;
+    }
+  }
+
+  function go(step){
+    const vis = visibleIdx(); const pos = vis.indexOf(currentIndex());
+    const next = vis[Math.max(0, Math.min(vis.length - 1, pos + step))];
+    sections[next].scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  /* only ← → P A are used; mouse wheel, Space, PageDown and ↓ scroll normally */
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,textarea,select')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    else if (e.key === 'p' || e.key === 'P') {
+      const keep = sections[currentIndex()];
+      document.body.classList.toggle('presenter');
+      const target = (keep.offsetParent !== null) ? keep : sections[currentIndex()];
+      target.scrollIntoView({block:'start'});
+      update();
+    }
+    else if (e.key === 'a' || e.key === 'A') { window.open('http://localhost:7860', '_blank', 'noopener'); }
+  });
+
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(() => { update(); ticking = false; }); }
+  }, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
+</body>
+</html>
