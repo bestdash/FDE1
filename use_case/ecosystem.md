@@ -109,6 +109,10 @@ above.
 **Does this match what you were told in the table above?** Where it doesn't, that
 gap is worth chasing — it usually means a proxy nobody documented.
 
+## Week 2 — can a local model run here?
+
+Downloading open weights works: `LiquidAI/LFM2.5-350M` downloaded from Hugging Face and ran on my laptop CPU (Intel Core Ultra 5 335, 15 GiB RAM in WSL): 15.13 s for 80 tokens. Plausible at the firm only if: the model vendor passes a vendor review (security certification, third-party risk review), the licence fits (this one becomes paid above a company revenue threshold), and the pilot VM has enough CPU or a GPU for a 4 to 8B model. The expert's preference (Oct 16) is a capable hosted model through an approved route instead.
+
 ---
 
 ## Week 9 — the full checklist
