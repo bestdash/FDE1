@@ -1,4 +1,4 @@
-**My TC2 submission:** [submission page](https://raw.githack.com/bestdash/FDE1/main/02_Open_Weights/challenge/TC2_submission.html) · [video](VIDEO_LINK)
+**My TC2 submission:** [submission page](https://raw.githack.com/bestdash/FDE1/main/02_Open_Weights/challenge/TC2_submission.html) · [video](https://drive.google.com/file/d/1ctamvxTuRSexI-NsS5ZqYpL64HhD81c1/view?usp=sharing)
 
 ## Bring it to work
 
