@@ -30,4 +30,17 @@ Quicklinks are here to help you **easily navigate each week's materials** for th
 
 ---
 
+## [Week 3 - Retrieval](../03_Retrieval/)
+
+🔍 One agent, two corpus interfaces — and everything that is not text
+
+**👨‍💻 [Weekly Technical Challenge](../03_Retrieval/challenge)**
+
+| 🎓 Session | ⏺️ Recording |
+|:-----------|:-------------|
+| [Session 5 - Agentic Retrieval](../03_Retrieval/sessions/S5_Agentic_Retrieval.py) | Coming soon |
+| [Session 6 - Multimodal Retrieval](../03_Retrieval/sessions/S6_Multimodal_Retrieval.py) | Coming soon |
+
+---
+
 📖 Lost on a word? [`GLOSSARY.md`](../GLOSSARY.md) has every term the course has used so far, one sentence each, with the week it first comes up.
