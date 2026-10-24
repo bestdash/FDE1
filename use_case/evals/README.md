@@ -64,6 +64,14 @@ not "something relevant came back". At least one question is a `decline` — one
 your data cannot answer — so you find out whether the endpoint knows when its
 top *k* is the wrong answer.
 
+### My TC3 labels
+
+- **Corpus:** the 10 synthetic contracts in `use_case/data/contracts/`, not `synthetic_v1.jsonl` (reason in `decisions.md`, Week 3 corpus row). A gold record is `<file>#<section heading>`.
+- **Top-k floor: 3 of the 10 questions need two documents** (an order form that overrides the main terms, a renewal order that changes them, last year's price against this year's). So top-1 cannot pass them: k is at least 2.
+- **2 declines:** renewal terms that live in online terms not attached (SYN-03), and a security-incident clause that no document has.
+- **Sources:** my own questions as a contract owner; 4 also match a column of the sponsor's tracking sheet. Questions name the vendor, as owners do.
+- **Left out on purpose:** "which contracts should I renew in the next 3 months?" is a query over all contract records plus today's date, not a search: it belongs to the alert stage, answered from the Stage 1 records.
+
 | Week | What uses this file |
 | --- | --- |
 | 3 | Scores three or more retrieval techniques against each other. The decision in `decisions.md` cites the numbers. |
