@@ -5,8 +5,9 @@ from llm import stream_reply
 
 # Company policy: change these here if corporate policy changes.
 # They are the same for every contract, so they are not Request fields.
-AUTORENEW_LEAD_DAYS = 30   # decide-by is this many days before autorenew_date
-END_DATE_LEAD_DAYS = 90    # decide-by is this many days before end_date
+ALERT_LEAD_DAYS = 30        # the alert goes out this many days before decide-by
+AUTORENEW_BUFFER_DAYS = 7   # with auto-renewal: decide-by = autorenew_date minus this
+END_DATE_BUFFER_DAYS = 60   # without auto-renewal: decide-by = end_date minus this
 
 class Request(BaseModel):
     """What the user or system hands in."""
@@ -245,15 +246,16 @@ def solve(request: Request) -> Response:
        A terminate decision then gets a courtesy notice to the vendor,
        sent as termination_draft for the owner to review.
 
-    2. Decide-by date (internal): when "the date is approaching".
-       With auto-renewal: the earlier of (autorenew_date minus AUTORENEW_LEAD_DAYS)
-       and (end_date minus END_DATE_LEAD_DAYS), so the owner gets the most lead time.
-       Example with 30 and 90: autorenew_date 31 Oct 2026 gives 1 Oct,
-       end_date 31 Dec 2026 gives 2 Oct, so the decide-by date is 1 Oct 2026.
-       Without auto-renewal: end_date minus END_DATE_LEAD_DAYS.
-       Used from step A (reminders and escalation); TC1 does not need it yet.
+    2. Decide-by date (internal): when the owner must have decided.
+       With auto-renewal: autorenew_date minus AUTORENEW_BUFFER_DAYS.
+       Without auto-renewal: end_date minus END_DATE_BUFFER_DAYS.
+       The alert goes out ALERT_LEAD_DAYS before the decide-by date.
+       Example with 30, 7 and 60, end_date 31 Dec 2026:
+       90-day notice: autorenew_date 2 Oct, decide-by 25 Sep, alert 26 Aug 2026.
+       No auto-renewal: decide-by 1 Nov, alert 2 Oct 2026.
+       Used from the alert stage (Week 4 or 5); TC1 does not need it yet.
 
-    AUTORENEW_LEAD_DAYS and END_DATE_LEAD_DAYS are policy,
+    ALERT_LEAD_DAYS, AUTORENEW_BUFFER_DAYS and END_DATE_BUFFER_DAYS are policy,
     set once at the top of this file, not per contract.
     """
     message_type, act_by = route_request(request)

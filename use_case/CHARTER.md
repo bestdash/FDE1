@@ -54,10 +54,43 @@ Contracts renewed on time; one review meeting per quarter.
 
 **Your solution in one sentence.**
 
-A system that takes the owner’s renew or terminate decision plus the contract’s key dates and produces a draft or notice, which the owner approves before anything is sent.
+A system that reads each contract's documents and records its key terms with their source, computes the last day to say no, wakes the contract up a set time before that deadline to alert the owner with the terms to review, and turns the owner's renew or terminate decision into a draft or notice that the owner approves before anything is sent.
+
+**Stages.** Week 3 charter update: Stage 1 is added in front of step B. The problem and the success measures do not change. Reasons in `decisions.md`, Week 3 rows.
+
+1. **Record** (TC3): when a contract is signed, or once for all existing contracts at go-live, its key terms are read from its documents and stored with their source.
+2. **Dormant** (Week 4 or 5): the contract waits until its alert date.
+3. **Alert** (Week 4 or 5): the owner gets the deadline and the terms to review, and is asked: renew or terminate?
+4. **Draft** (step B, TC1): the decision becomes a draft or notice for the owner to approve.
 
 **Input → Output.** Be specific enough that someone could build it wrong and you
 would notice.
+
+### Stage 1: Record (TC3)
+
+| | |
+| --- | --- |
+| **In** | `contract_id` (for example `SYN-03`) |
+| **Out** | Each field below has a value with its source (document + section), or "not found" |
+
+| Field | Values | Spreadsheet column today |
+| --- | --- | --- |
+| `start_date` | date | starting date |
+| `term_months` | 12, 36, ... | contract duration |
+| `end_date` | date; computed from `start_date` + `term_months` when not stated | end date |
+| `renewal_type` | auto \| manual; "not found" when no document has a renewal clause (the system does not guess) | auto-renewal (Y/N) |
+| `notice_days` | days before the end date | cancellation period |
+| `annual_contract_value` (ACV) | amount per year | annual cost |
+| `total_contract_value` (TCV) | amount for the whole term | contract amount |
+| `pricing_model` | user-based \| package | (none) |
+| `price_per_user` | only when the contract states a price per user | price per licence per year |
+| `features` | list of short items as written in the contract ("350 users", "SSO", "AI credits") | licence number, description |
+
+Computed by code, never by the model: `end_date` when not stated (`start_date` + `term_months`); whichever of ACV or TCV is not stated (TCV = ACV × `term_months` / 12); `autorenew_date` = `end_date` minus `notice_days` (empty when `renewal_type` is manual); `file_exists` = documents found for this `contract_id`.
+
+Stage 1 feeds Stage 4: `end_date`, `autorenew_date` and `file_exists` come from Stage 1; `decision` and `owner_status` come from the owner and the owner record.
+
+### Stage 4: Draft (step B, TC1)
 
 | | |
 | --- | --- |
