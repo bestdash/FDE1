@@ -60,6 +60,7 @@ def schema(name, description, properties, required=()):
 RAG_TOOLS = [schema("search_chunks", "Search ranked corpus chunks. Search again with a new query when evidence is incomplete.",
                         {"query": {"type": "string"}, "k": {"type": "integer"}}, ["query"])]
 SAMPLER = {"temperature": 0}  # deterministic where the provider allows it
+PRICE_IN, PRICE_OUT = 2.0, 10.0  # USD per million tokens, Claude Sonnet 5.5 (looked up Oct 25, 2026). Change with the model.
 
 def ask_model(messages, tools):
     """One chat turn with tools offered. Every retrieval model call goes through here.
@@ -73,10 +74,10 @@ def ask_model(messages, tools):
     if llm.EXTRA_HEADERS:
         kwargs["extra_headers"] = llm.EXTRA_HEADERS
     try:
-        return litellm.completion(timeout=600, **SAMPLER, **kwargs).choices[0].message
+        return litellm.completion(timeout=600, **SAMPLER, **kwargs)
     except UnsupportedParamsError:
         SAMPLER.clear()  # some providers accept only their default temperature; run at it from now on
-        return litellm.completion(timeout=600, **kwargs).choices[0].message
+        return litellm.completion(timeout=600, **kwargs)
 
 SYSTEM = (
     "Answer questions about our contracts only from the search results. Do not make information up. "
@@ -93,13 +94,18 @@ SYSTEM = (
 def run_agent(question, tools, funcs, max_turns=6):
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, chars = [], 0
+    tokens = {"tokens_in": 0, "tokens_out": 0}  # summed over every model call for this question
     started = time.perf_counter()
     for _ in range(max_turns):
-        msg = ask_model(messages, tools)
+        response = ask_model(messages, tools)
+        usage = getattr(response, "usage", None)
+        tokens["tokens_in"] += getattr(usage, "prompt_tokens", 0) or 0
+        tokens["tokens_out"] += getattr(usage, "completion_tokens", 0) or 0
+        msg = response.choices[0].message
         calls = msg.tool_calls or []
         if not calls:
             return {"answer": (msg.content or "").strip(), "trace": trace, "evidence_chars": chars,
-                    "latency_s": time.perf_counter() - started, "stopped": "answer"}
+                    "latency_s": time.perf_counter() - started, "stopped": "answer", **tokens}
         shaped = [{"id": call.id, "type": "function", "function": {"name": call.function.name, "arguments": call.function.arguments}} for call in calls]
         messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": shaped})
         for call in shaped:
@@ -115,7 +121,7 @@ def run_agent(question, tools, funcs, max_turns=6):
             trace.append({"tool": name, "args": args, "chars": len(result)})
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
     return {"answer": "(max turns reached)", "trace": trace, "evidence_chars": chars,
-            "latency_s": time.perf_counter() - started, "stopped": "max_turns"}
+            "latency_s": time.perf_counter() - started, "stopped": "max_turns", **tokens}
 
 DECLINE_MARKERS = ("not ", "no ", "cannot", "can't", "unavailable", "does not", "doesn't", "isn't", "only covers", "no data")
 
@@ -134,6 +140,9 @@ def score(case, result):
         "evidence_chars": result["evidence_chars"],
         "latency_s": round(result["latency_s"], 2),
         "stopped": result["stopped"],
+        "tokens_in": result["tokens_in"],
+        "tokens_out": result["tokens_out"],
+        "cost_usd": (result["tokens_in"] * PRICE_IN + result["tokens_out"] * PRICE_OUT) / 1_000_000,
     }
 
 def yes(value):
@@ -143,13 +152,13 @@ def yes(value):
 def write_report(label, note, cases, results, rows):
     """One readable file per run, plus one comparison line in retrieval_results.md."""
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    lines = [f"# Run {label}", "", f"- Date: {date.today()}", f"- Model: {llm.MODEL}",
+    lines = [f"# Run {label}", "", f"- Date: {date.today()}", f"- Model: {llm.MODEL} (price used: ${PRICE_IN} in / ${PRICE_OUT} out per million tokens)",
              f"- Settings: {SETTINGS}; CHUNK_PREFIX={CHUNK_PREFIX}", f"- Change in this run: {note}", "",
-             "| # | Kind | Question | Pass | Cited all gold | Calls | Evidence chars | Latency s | Stopped |",
-             "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+             "| # | Kind | Question | Pass | Cited all gold | Calls | Evidence chars | Tokens in | Tokens out | Cost $ | Latency s | Stopped |",
+             "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for i, (case, row) in enumerate(zip(cases, rows), start=1):
         lines.append(f"| {i} | {case['kind']} | {case['question']} | {yes(row['pass'])} | {yes(row['cited_all_gold'])} "
-                     f"| {row['calls']} | {row['evidence_chars']:,} | {row['latency_s']} | {row['stopped']} |")
+                     f"| {row['calls']} | {row['evidence_chars']:,} | {row['tokens_in']:,} | {row['tokens_out']:,} | {row['cost_usd']:.3f} | {row['latency_s']} | {row['stopped']} |")
     lines += ["", "## Answers", ""]
     for i, (case, result) in enumerate(zip(cases, results), start=1):
         tools = " → ".join(f"{s['tool']}({', '.join(str(v) for v in s['args'].values())[:50]})" for s in result["trace"]) or "(none)"
@@ -163,11 +172,12 @@ def write_report(label, note, cases, results, rows):
     cited = sum(bool(r["cited_all_gold"]) for r in with_gold)
     if not RESULTS_FILE.exists():
         RESULTS_FILE.write_text("# Retrieval results\n\nOne line per run. Full answers in `runs/<run>.md`.\n\n"
-                                "| Run | Date | Change | Pass | Cited all gold | Calls | Evidence chars | Avg latency s | Hit max_turns |\n"
-                                "| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n", encoding="utf-8")
+                                "| Run | Date | Change | Pass | Cited all gold | Calls | Evidence chars | Tokens in | Tokens out | Cost $ | Avg latency s | Hit max_turns |\n"
+                                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n", encoding="utf-8")
     with RESULTS_FILE.open("a", encoding="utf-8") as f:
         f.write(f"| [{label}](runs/{label}.md) | {date.today()} | {note} | {passed}/{len(rows)} | {cited}/{len(with_gold)} "
                 f"| {sum(r['calls'] for r in rows)} | {sum(r['evidence_chars'] for r in rows):,} "
+                f"| {sum(r['tokens_in'] for r in rows):,} | {sum(r['tokens_out'] for r in rows):,} | {sum(r['cost_usd'] for r in rows):.2f} "
                 f"| {sum(r['latency_s'] for r in rows) / len(rows):.1f} | {sum(r['stopped'] == 'max_turns' for r in rows)} |\n")
     print(f"\nPass {passed}/{len(rows)}, cited {cited}/{len(with_gold)}. Report: {RUNS_DIR / (label + '.md')}")
 
