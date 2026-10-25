@@ -88,7 +88,9 @@ SYSTEM = (
     "If the contracts do not answer the question, say so. "
     "If the answer depends on a document that is referenced but not in the results "
     "(for example online terms or main terms), say which one is missing and suggest "
-    "asking the vendor for the last signed copy."
+    "asking the vendor for the last signed copy." \
+    " When the evidence comes from grep or a full page, cite the file plus the ## heading "
+    "the text sits under, in the same bracket format."
 )
 
 def run_agent(question, tools, funcs, max_turns=6):
@@ -148,12 +150,50 @@ def score(case, result):
 def yes(value):
     return "n/a" if value is None else ("yes" if value else "**no**")
 
+# DCI
+WIKI_INDEX = (CONTRACTS / "index.md").read_text(encoding="utf-8")
 
-def write_report(label, note, cases, results, rows):
+def list_pages() -> str:
+    return WIKI_INDEX
+
+def grep_wiki(pattern: str) -> str:
+    try:
+        rx = re.compile(pattern, re.I)
+    except re.error:
+        rx = re.compile(re.escape(pattern), re.I)
+    hits = []
+    for page, text in PAGES.items():
+        for number, line in enumerate(text.splitlines(), 1):
+            if rx.search(line):
+                hits.append(f"{page}:{number}: {line}")
+    return "\n".join(hits[:40]) or "(no matches)"
+
+def read_page(page: str) -> str:
+    if page not in PAGES:
+        return f"(unknown page: {page})"
+    return PAGES[page][:12000]
+
+DCI_FUNCS = {"list_pages": list_pages, "grep_wiki": grep_wiki, "read_page": read_page}
+
+DCI_TOOLS = [
+    schema("list_pages", "Read the wiki index and page map.", {}),
+    schema("grep_wiki", "Search exact text or a regular expression across wiki pages with line provenance.", {"pattern": {"type": "string"}}, ["pattern"]),
+    schema("read_page", "Read a complete wiki source page by stable name.", {"page": {"type": "string", "enum": sorted(PAGES)}}, ["page"]),
+]
+
+
+DCI_SETTINGS = "contracts/index.md via list_pages; grep_wiki max 40 lines; read_page max 12000 chars; max_turns 6"
+TECHNIQUES = {  # name -> (tools, funcs, settings line for the report)
+    "rag": (RAG_TOOLS, RAG_FUNCS, f"{SETTINGS}; CHUNK_PREFIX={CHUNK_PREFIX}"),
+    "dci": (DCI_TOOLS, DCI_FUNCS, DCI_SETTINGS),
+}
+
+
+def write_report(label, note, cases, results, rows, technique="rag", settings=None):
     """One readable file per run, plus one comparison line in retrieval_results.md."""
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     lines = [f"# Run {label}", "", f"- Date: {date.today()}", f"- Model: {llm.MODEL} (price used: ${PRICE_IN} in / ${PRICE_OUT} out per million tokens)",
-             f"- Settings: {SETTINGS}; CHUNK_PREFIX={CHUNK_PREFIX}", f"- Change in this run: {note}", "",
+             f"- Technique: {technique}", f"- Settings: {settings or SETTINGS}", f"- Change in this run: {note}", "",
              "| # | Kind | Question | Pass | Cited all gold | Calls | Evidence chars | Tokens in | Tokens out | Cost $ | Latency s | Stopped |",
              "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for i, (case, row) in enumerate(zip(cases, rows), start=1):
@@ -186,16 +226,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--label", required=True, help="short run name, for example rag-v1")
     parser.add_argument("--note", default="", help="what changed in this run")
+    parser.add_argument("--technique", choices=sorted(TECHNIQUES), default="rag",
+                        help="rag = search_chunks; dci = list_pages, grep_wiki, read_page")
     args = parser.parse_args()
+    tools, funcs, settings = TECHNIQUES[args.technique]
+    print(f"Technique: {args.technique}. {settings}")
 
     cases = [json.loads(line) for line in CASES_FILE.read_text(encoding="utf-8").splitlines() if line.strip()]
     results, rows = [], []
     for i, case in enumerate(cases, start=1):
         print(f"[{i}/{len(cases)}] {case['question']}")
-        result = run_agent(case["question"], RAG_TOOLS, RAG_FUNCS)
+        result = run_agent(case["question"], tools, funcs)
         results.append(result)
         rows.append(score(case, result))
-    write_report(args.label, args.note, cases, results, rows)
+    write_report(args.label, args.note, cases, results, rows, args.technique, settings)
 
 
 if __name__ == "__main__":

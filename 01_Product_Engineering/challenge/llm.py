@@ -14,21 +14,6 @@ from pathlib import Path
 
 from litellm import completion, token_counter
 
-# LiteLLM picks the provider from the model string:
-#   "gpt-4.1-mini"                    -> OpenAI
-#   "azure/my-deployment"             -> Azure OpenAI
-#   "anthropic/claude-sonnet-5"       -> Anthropic
-#   "ollama/llama3.2"                 -> a model running on your laptop
-#   "openai/my-model" + LLM_API_BASE  -> any OpenAI-compatible server (vLLM, LM Studio, ...)
-MODEL = os.getenv("LLM_MODEL", "gpt-4.1-mini")
-API_BASE = os.getenv("LLM_API_BASE")  # only needed for self-hosted / gateway endpoints
-EXTRA_HEADERS = json.loads(os.getenv("LLM_EXTRA_HEADERS") or "{}")
-
-SYSTEM_PROMPT = os.getenv(
-    "SYSTEM_PROMPT",
-    "You are a helpful assistant. Be concise and concrete.",
-)
-
 def _load_dotenv() -> None:
     """Read the repo root .env into os.environ, before the settings below are read.
 
@@ -48,6 +33,23 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
+
+
+# LiteLLM picks the provider from the model string:
+#   "gpt-4.1-mini"                    -> OpenAI
+#   "azure/my-deployment"             -> Azure OpenAI
+#   "anthropic/claude-sonnet-5"       -> Anthropic
+#   "ollama/llama3.2"                 -> a model running on your laptop
+#   "openai/my-model" + LLM_API_BASE  -> any OpenAI-compatible server (vLLM, LM Studio, ...)
+MODEL = os.getenv("LLM_MODEL", "gpt-4.1-mini")
+API_BASE = os.getenv("LLM_API_BASE")  # only needed for self-hosted / gateway endpoints
+EXTRA_HEADERS = json.loads(os.getenv("LLM_EXTRA_HEADERS") or "{}")
+
+SYSTEM_PROMPT = os.getenv(
+    "SYSTEM_PROMPT",
+    "You are a helpful assistant. Be concise and concrete.",
+)
+
 
 def stream_reply(message: str, history: list[dict] | None = None):
     """Yield the assistant's reply as it arrives, one growing string at a time.
