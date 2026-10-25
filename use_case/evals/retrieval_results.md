@@ -22,3 +22,4 @@ The endpoint will get today's date, and code, not the model, will calculate dead
 | [rag-v2](runs/rag-v2.md) | 2026-10-24 | file, vendor and title prefixed to every chunk | 10/10 | 9/9 | 34 | 72,791 | not logged | not logged | est. 0.12 to 0.27 | 7.2 | 0 |
 | [rag-v2b](runs/rag-v2b.md) | 2026-10-25 | rag-v2 repeat, tokens logged | 10/10 | 9/9 | 32 | 84,846 | 82,167 | 8,087 | 0.25 | 9.9 | 0 |
 | [dci-v1](runs/dci-v1.md) | 2026-10-25 | DCI: index + grep (40 lines) + read_page, no chunks | 10/10 | 9/9 | 40 | 127,172 | 104,067 | 7,916 | 0.29 | 8.6 | 0 |
+| [dense-v1](runs/dense-v1.md) | 2026-10-25 | dense: bge-small-en-v1.5 local, same chunks, cosine | 9/10 | 8/9 | 34 | 82,773 | 79,745 | 6,952 | 0.23 | 8.9 | 1 |

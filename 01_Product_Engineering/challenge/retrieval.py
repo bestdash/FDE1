@@ -8,6 +8,7 @@ from datetime import date
 
 
 import litellm
+import numpy as np
 import llm  
 from litellm.exceptions import UnsupportedParamsError
 from rank_bm25 import BM25Okapi
@@ -188,7 +189,49 @@ TECHNIQUES = {  # name -> (tools, funcs, settings line for the report)
     "dci": (DCI_TOOLS, DCI_FUNCS, DCI_SETTINGS),
 }
 
+# Dense retrival
 
+
+def l2_normalise(vectors) -> "np.ndarray":
+    """Unit length, so a dot product is a cosine and scores are comparable."""
+    matrix = np.asarray(vectors, dtype="float32")
+    return matrix / (np.linalg.norm(matrix, axis=-1, keepdims=True) + 1e-9)
+
+class TextEmbedder:
+    """Text in, unit vectors out. Local model only"""
+    model_id = "BAAI/bge-small-en-v1.5"
+    local_model = None           # loaded on first use
+    tokens = 0                   # stays 0: a local model reports none
+
+    def embed(self, texts: list[str]):
+        if self.local_model is None:
+            from fastembed import TextEmbedding
+            self.local_model = TextEmbedding(self.model_id, cache_dir=str(Path.home() / ".cache" / "fastembed"))
+        return l2_normalise(list(self.local_model.embed(texts)))
+
+EMBEDDER = TextEmbedder()
+CHUNK_VECTORS = None  # one row of 384 numbers per chunk, filled on the first dense search    
+
+def chunk_vectors():
+    """Embed every chunk once, the first time dense search needs them."""
+    global CHUNK_VECTORS
+    if CHUNK_VECTORS is None:
+        CHUNK_VECTORS = EMBEDDER.embed([chunk["text"] for chunk in chunks])
+    return CHUNK_VECTORS
+
+
+def search_dense(query: str, k: int = 4) -> str:
+    query_vector = EMBEDDER.embed([query])[0]   # the question as 384 numbers
+    scores = chunk_vectors() @ query_vector     # 173 cosines, one per chunk
+    order = sorted(range(len(chunks)), key=lambda index: scores[index], reverse=True)[: max(1, min(k, 8))]
+    return "\n\n---\n\n".join(f"[{chunks[index]['id']}]\n{chunks[index]['text'][:1000]}" for index in order)    
+
+DENSE_SETTINGS = ("bge-small-en-v1.5 via fastembed (local, 384 dims, embedding tokens 0: nothing sent); "
+                  "same ## chunks with prefix as rag (173); cosine; search_chunks k default 4, max 8; "
+                  "1000 chars shown; max_turns 6")
+TECHNIQUES["dense"] = (RAG_TOOLS, {"search_chunks": search_dense}, DENSE_SETTINGS)
+
+# Report
 def write_report(label, note, cases, results, rows, technique="rag", settings=None):
     """One readable file per run, plus one comparison line in retrieval_results.md."""
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
