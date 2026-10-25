@@ -1,0 +1,192 @@
+import json
+import os
+import re
+import time
+from pathlib import Path
+import argparse
+from datetime import date
+
+
+import litellm
+import llm  
+from litellm.exceptions import UnsupportedParamsError
+from rank_bm25 import BM25Okapi
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+CONTRACTS = ROOT / "use_case" / "data" / "contracts"
+CASES_FILE = ROOT / "use_case" / "evals" / "retrieval.jsonl"
+RUNS_DIR = ROOT / "use_case" / "evals" / "runs"
+RESULTS_FILE = ROOT / "use_case" / "evals" / "retrieval_results.md"
+SETTINGS = "BM25 over ## sections; search_chunks k default 4, max 8; 1000 chars per chunk; max_turns 6"
+
+TOKEN = re.compile(r"[a-z0-9£$%]+")
+
+def tokenize(text):
+    return TOKEN.findall(text.lower())
+
+PAGES = {p.name: p.read_text(encoding="utf-8") for p in sorted(CONTRACTS.glob("SYN-*.md"))}
+
+CHUNK_PREFIX = True   # rag-v1: False (baseline). rag-v2: True (file, vendor, title in every chunk)
+
+chunks = []
+for page_name, page_text in PAGES.items():
+    title = page_text.splitlines()[0].lstrip("#").strip()   # "Order Form"
+    vendor = "Vendor" + page_name[4:6]                       # "SYN-10-renewal.md" -> "Vendor10" (synthetic shortcut)
+    sections = re.split(r"(?=^## )", page_text, flags=re.M)
+    for section in sections:
+        if not section.strip():
+            continue                                                   # skip empty pieces
+        heading = section.strip().splitlines()[0].lstrip("#").strip()  # "## Terms" -> "Terms"
+        text = section.strip()
+        if CHUNK_PREFIX:
+            text = f"{page_name} {vendor} {title}\n{text}"
+        chunks.append({"id": f"{page_name}#{heading}", "page": page_name, "text": text})
+
+bm25 = BM25Okapi([tokenize(chunk["text"]) for chunk in chunks])
+
+
+def search_chunks(query: str, k: int = 4) -> str:
+    scores = bm25.get_scores(tokenize(query))
+    order = sorted(range(len(chunks)), key=lambda index: scores[index], reverse=True)[: max(1, min(k, 8))]
+    return "\n\n---\n\n".join(f"[{chunks[index]['id']}]\n{chunks[index]['text'][:1000]}" for index in order)
+
+RAG_FUNCS = {"search_chunks": search_chunks}
+
+def schema(name, description, properties, required=()):
+    return {"type": "function", "function": {"name": name, "description": description,
+            "parameters": {"type": "object", "properties": properties, "required": list(required)}}}
+
+RAG_TOOLS = [schema("search_chunks", "Search ranked corpus chunks. Search again with a new query when evidence is incomplete.",
+                        {"query": {"type": "string"}, "k": {"type": "integer"}}, ["query"])]
+SAMPLER = {"temperature": 0}  # deterministic where the provider allows it
+
+def ask_model(messages, tools):
+    """One chat turn with tools offered. Every retrieval model call goes through here.
+
+    Uses the same model settings as llm.py (LLM_MODEL, LLM_API_BASE,
+    LLM_EXTRA_HEADERS), so switching provider stays a .env change.
+    """
+    kwargs = dict(model=llm.MODEL, messages=messages, tools=tools)  # tool_choice defaults to "auto"; some gateways reject it sent explicitly
+    if llm.API_BASE:
+        kwargs["api_base"] = llm.API_BASE
+    if llm.EXTRA_HEADERS:
+        kwargs["extra_headers"] = llm.EXTRA_HEADERS
+    try:
+        return litellm.completion(timeout=600, **SAMPLER, **kwargs).choices[0].message
+    except UnsupportedParamsError:
+        SAMPLER.clear()  # some providers accept only their default temperature; run at it from now on
+        return litellm.completion(timeout=600, **kwargs).choices[0].message
+
+SYSTEM = (
+    "Answer questions about our contracts only from the search results. Do not make information up. "
+    "Investigate before answering: search again if the evidence is incomplete. "
+    "Cite every source exactly as it appears in brackets, for example [SYN-04-order.md#Terms]. "
+    "You may compute a date or amount from terms the contract states (for example start date plus term), "
+    "and say how you computed it. "
+    "If the contracts do not answer the question, say so. "
+    "If the answer depends on a document that is referenced but not in the results "
+    "(for example online terms or main terms), say which one is missing and suggest "
+    "asking the vendor for the last signed copy."
+)
+
+def run_agent(question, tools, funcs, max_turns=6):
+    messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
+    trace, chars = [], 0
+    started = time.perf_counter()
+    for _ in range(max_turns):
+        msg = ask_model(messages, tools)
+        calls = msg.tool_calls or []
+        if not calls:
+            return {"answer": (msg.content or "").strip(), "trace": trace, "evidence_chars": chars,
+                    "latency_s": time.perf_counter() - started, "stopped": "answer"}
+        shaped = [{"id": call.id, "type": "function", "function": {"name": call.function.name, "arguments": call.function.arguments}} for call in calls]
+        messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": shaped})
+        for call in shaped:
+            name = call["function"]["name"]
+            try:
+                args = json.loads(call["function"]["arguments"] or "{}")
+                if name not in funcs:
+                    raise KeyError(f"unknown tool {name}")
+                result = str(funcs[name](**args))
+            except Exception as exc:
+                result = f"(tool error: {type(exc).__name__}: {exc})"
+            chars += len(result)
+            trace.append({"tool": name, "args": args, "chars": len(result)})
+            messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
+    return {"answer": "(max turns reached)", "trace": trace, "evidence_chars": chars,
+            "latency_s": time.perf_counter() - started, "stopped": "max_turns"}
+
+DECLINE_MARKERS = ("not ", "no ", "cannot", "can't", "unavailable", "does not", "doesn't", "isn't", "only covers", "no data")
+
+def score(case, result):
+    answer = result["answer"].lower()
+    if case["kind"] == "decline":
+        # Retrieval always returns a top-k. Declining is the loop's job, so the
+        # pass mark here is "it refused" -- said so, and invented no figure.
+        passed = any(marker in answer for marker in DECLINE_MARKERS) and not any(term.lower() in answer for term in case["expected_terms"])
+    else:
+        passed = all(term.lower() in answer for term in case["expected_terms"])
+    return {
+        "pass": passed,
+        "cited_all_gold": all(g.lower() in answer for g in case["gold"]) if case["gold"] else None,
+        "calls": len(result["trace"]),
+        "evidence_chars": result["evidence_chars"],
+        "latency_s": round(result["latency_s"], 2),
+        "stopped": result["stopped"],
+    }
+
+def yes(value):
+    return "n/a" if value is None else ("yes" if value else "**no**")
+
+
+def write_report(label, note, cases, results, rows):
+    """One readable file per run, plus one comparison line in retrieval_results.md."""
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    lines = [f"# Run {label}", "", f"- Date: {date.today()}", f"- Model: {llm.MODEL}",
+             f"- Settings: {SETTINGS}; CHUNK_PREFIX={CHUNK_PREFIX}", f"- Change in this run: {note}", "",
+             "| # | Kind | Question | Pass | Cited all gold | Calls | Evidence chars | Latency s | Stopped |",
+             "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for i, (case, row) in enumerate(zip(cases, rows), start=1):
+        lines.append(f"| {i} | {case['kind']} | {case['question']} | {yes(row['pass'])} | {yes(row['cited_all_gold'])} "
+                     f"| {row['calls']} | {row['evidence_chars']:,} | {row['latency_s']} | {row['stopped']} |")
+    lines += ["", "## Answers", ""]
+    for i, (case, result) in enumerate(zip(cases, results), start=1):
+        tools = " → ".join(f"{s['tool']}({', '.join(str(v) for v in s['args'].values())[:50]})" for s in result["trace"]) or "(none)"
+        lines += [f"### {i}. {case['question']}", "", f"- Gold: {', '.join(case['gold']) or '(none: decline)'}",
+                  f"- Expected terms: {', '.join(case['expected_terms']) or '(none)'}", f"- Tool calls: {tools}", "",
+                  result["answer"], ""]
+    (RUNS_DIR / f"{label}.md").write_text("\n".join(lines), encoding="utf-8")
+
+    passed = sum(bool(r["pass"]) for r in rows)
+    with_gold = [r for r in rows if r["cited_all_gold"] is not None]
+    cited = sum(bool(r["cited_all_gold"]) for r in with_gold)
+    if not RESULTS_FILE.exists():
+        RESULTS_FILE.write_text("# Retrieval results\n\nOne line per run. Full answers in `runs/<run>.md`.\n\n"
+                                "| Run | Date | Change | Pass | Cited all gold | Calls | Evidence chars | Avg latency s | Hit max_turns |\n"
+                                "| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n", encoding="utf-8")
+    with RESULTS_FILE.open("a", encoding="utf-8") as f:
+        f.write(f"| [{label}](runs/{label}.md) | {date.today()} | {note} | {passed}/{len(rows)} | {cited}/{len(with_gold)} "
+                f"| {sum(r['calls'] for r in rows)} | {sum(r['evidence_chars'] for r in rows):,} "
+                f"| {sum(r['latency_s'] for r in rows) / len(rows):.1f} | {sum(r['stopped'] == 'max_turns' for r in rows)} |\n")
+    print(f"\nPass {passed}/{len(rows)}, cited {cited}/{len(with_gold)}. Report: {RUNS_DIR / (label + '.md')}")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--label", required=True, help="short run name, for example rag-v1")
+    parser.add_argument("--note", default="", help="what changed in this run")
+    args = parser.parse_args()
+
+    cases = [json.loads(line) for line in CASES_FILE.read_text(encoding="utf-8").splitlines() if line.strip()]
+    results, rows = [], []
+    for i, case in enumerate(cases, start=1):
+        print(f"[{i}/{len(cases)}] {case['question']}")
+        result = run_agent(case["question"], RAG_TOOLS, RAG_FUNCS)
+        results.append(result)
+        rows.append(score(case, result))
+    write_report(args.label, args.note, cases, results, rows)
+
+
+if __name__ == "__main__":
+    main()

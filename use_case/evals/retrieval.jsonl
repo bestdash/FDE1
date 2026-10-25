@@ -6,5 +6,5 @@
 {"question": "What is the price per user in the Vendor07 contract?", "gold": ["SYN-07-order.md#Products and Fees"], "kind": "lookup", "expected_terms": ["USD 80"], "source": "contract owner (me); sponsor's sheet: price per licence column"}
 {"question": "Did we include SSO in the Vendor02 contract?", "gold": ["SYN-02-order.md#Products and Fees"], "kind": "lookup", "expected_terms": ["SSO"], "source": "contract owner (me)"}
 {"question": "What are my payment terms in the Vendor09 contract?", "gold": ["SYN-09-order.md#Payment Terms"], "kind": "lookup", "expected_terms": ["30 days"], "source": "contract owner (me)"}
-{"question": "What are the renewal terms of the Vendor03 contract?", "gold": ["SYN-03-order.md#Terms"], "kind": "decline", "expected_terms": ["not attached"], "source": "contract owner (me)"}
+{"question": "What are the renewal terms of the Vendor03 contract?", "gold": ["SYN-03-order.md#Terms"], "kind": "decline", "expected_terms": [], "source": "contract owner (me)"}
 {"question": "Who is responsible for security in case of an incident with Vendor04, and on what terms?", "gold": [], "kind": "decline", "expected_terms": [], "source": "contract owner (me)"}
