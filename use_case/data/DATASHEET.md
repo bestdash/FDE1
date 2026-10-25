@@ -86,3 +86,40 @@ No: overlap. The goldens were written from memory, not from real contracts, but 
 
 **Overlap between `golden.jsonl` and this file, by the dedupe measure:** 
 122 of 128 rows within 0.5 of a golden. The number is inflated: every row shares the same field names, due to my input data structure, so it does not mean the content was copied.
+
+## Corpus 2: synthetic contracts (TC3)
+
+### What this data is
+
+19 Markdown documents for 10 invented vendors (`SYN-01` to `SYN-10`): order forms, master terms and some renewal orders. `contracts/index.md` lists them. Gitignored, in `use_case/data/contracts/`. It is the retrieval corpus for the 10 questions in `use_case/evals/retrieval.jsonl`.
+
+### How it was generated
+
+- **Outline:** headings, 5 to 8 fields (including renewal date and notice period), value ranges and odd cases. Extracted with Claude Opus 5.5 from expired contracts I manage for my team, in a memory-off chat that was then deleted. Only the outline was kept, no contract text.
+- **Generation:** Oct 24, `01_Product_Engineering/challenge/make_contracts.py`, with `anthropic/claude-sonnet-5-5` (set in `.env`; the script does not record the model). Vendors, products and prices are invented.
+- **Checks:** 18 of 19 documents were fine on the first run. SYN-08 was regenerated without a divisions clause. I did a 5-point check on SYN-04, SYN-08 and SYN-10.
+
+### What it can validate
+
+Retrieval over realistic contract shapes: a notice period instead of a last day to say no, an order form that overrides the master terms (SYN-04: 90 days, not 60), a linked document that is missing (SYN-03 online terms: the agent must decline), and answers that need two documents (order + renewal).
+
+### What it cannot validate
+
+- Signatures: every signature block is blank, so answers often warn that the contract may be unsigned.
+- Contract identity: the vendor is named only in the Parties section. The rag-v2 prefix takes the vendor from the file name; in production it comes from the contract record. Real PDFs may also name the vendor in headers and footers, and real names can collide or be abbreviated.
+- Approval complexity: internal knowledge, never written in a contract.
+- Variety: payment terms are only net 30 or net 45, and the documents are clean Markdown, not scanned PDFs.
+
+### What it must never be compared against
+
+Real contracts and what owners decided: they stay in the company's private system. Scores on this corpus say nothing about accuracy on real contracts.
+
+### Why not the TC2 rows
+
+TC2 rows are the output of this stage: values already extracted from a contract (renewal date, notice period, owner) that the agent turns into an alert or a vendor email. They contain no contract text, so they cannot test retrieval. Details in `use_case/decisions.md` (corpus row).
+
+### Leakage check
+
+- [X] No real vendor, product, price or person name.
+- [X] Outline only: no contract text copied.
+- [X] The questions in `retrieval.jsonl` were written by me as contract owner, using the sponsor's sheet, not generated from the contracts.
