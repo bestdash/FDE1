@@ -18,7 +18,6 @@ class Request(BaseModel):
     owner_status: Literal["active", "left"]  # active or left
     file_exists: bool = Field(description="True if the contract file exists")
 
-
 class Response(BaseModel):
     """What comes back."""
 
@@ -39,6 +38,18 @@ class Response(BaseModel):
     # contract_status is left out on purpose: today it follows one-to-one from
     # message_type, so it adds no information. Add it back when the same
     # message_type can lead to different statuses (e.g. reminders in step A).
+
+class ContractAnswer(BaseModel):
+    """What answer_contract_question returns."""
+    answer: str = Field(description="the answer text, with contract [id] citations inline")
+    sources: list[str] = Field(
+        default_factory=list,   # an empty list when nothing was cited
+        description="the document name with sections the answer used, e.g. 'SYN-04-order.md#Terms'",
+    )
+    unknown_citations: list[str] = Field(
+        default_factory=list,
+        description="ids the answer cited that match no document section",
+    )
 
 def route_request(request: Request) -> tuple[str, date | None]:
     """Return (message_type, act_by). Rules follow the solve() docstring order.
@@ -257,7 +268,7 @@ def solve(request: Request) -> Response:
 
     ALERT_LEAD_DAYS, AUTORENEW_BUFFER_DAYS and END_DATE_BUFFER_DAYS are policy,
     set once at the top of this file, not per contract.
-    """
+    """         
     message_type, act_by = route_request(request)
     message = ""
     for message in stream_reply(build_prompt(request, message_type)):   # each value is the text so far

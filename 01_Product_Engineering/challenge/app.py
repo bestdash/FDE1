@@ -6,14 +6,18 @@ split is the point: the API is the product, the UI is disposable.
 """
 
 import os
+import re
 from pathlib import Path
 
 from fastapi.responses import HTMLResponse
 from gradio import Server
 
 
-from schema import Request, build_prompt, route_request, solve
+from schema import Request, ContractAnswer, build_prompt, route_request, solve
 from llm import stream_reply
+from retrieval import run_agent, RAG_TOOLS, RAG_FUNCS, chunks, WIKI_INDEX
+CITATION = re.compile(r"\[(SYN-[^\]]+)\]")        # finds [SYN-12.md#Order.md] in the text
+KNOWN_IDS = {s["id"] for s in chunks}         # every section id that really exists
 
 app = Server()
 
@@ -92,6 +96,39 @@ def show_prompt_for_renew_or_terminate(
     message_type, _ = route_request(request)
     return build_prompt(request, message_type)
 
+# --- Retrieval from the documents ------------------------------------------------------------
+
+@app.api(name="answer_contract_question")
+def answer_contract_question(question: str) -> str:
+
+    """ Answer one question about our contracts, asked in plain words.
+    Searches the contract documents and answers only from what it finds.
+    Returns the answer with [file#section] citations inline, then a last line
+    "sources: <file#section>, ..." or "sources: none". 
+    A "warning:" line lists citations that match no document section.
+    If the contracts do not cover the question, it says so, names the document
+    that seems missing, and suggests asking the vendor for the last signed copy.
+    Dates computed from stated terms (for example start date plus term) come
+    with the terms used: check them before acting on a deadline.
+    Read-only: sends nothing, writes nothing, never guesses a figure."""
+
+    result = run_agent(question, RAG_TOOLS, RAG_FUNCS)
+
+    if result["stopped"] != "answer":                     # the loop ran out of turns
+        reply = ContractAnswer(answer="I searched the contracts and found no answer. Either they do not cover "
+                                "this topic, or the document that covers it is missing: if you think it is missing, "
+                                "ask the vendor for the last signed copy of the relevant terms.", sources=[])
+    else:
+        cited = CITATION.findall(result["answer"])        # ["SYN-04-order.md#Terms", "SYN-04-order.md#Order"..."]
+        unique = list(dict.fromkeys(cited))               # drop repeats, keep the order
+        sources = [s for s in unique if s in KNOWN_IDS]        # real sections only
+        unknown = [s for s in unique if s not in KNOWN_IDS]    # cited, but no such section
+        reply = ContractAnswer(answer=result["answer"], sources=sources, unknown_citations=unknown)
+
+    text = reply.answer + "\n\nsources: " + (", ".join(reply.sources) or "none")
+    if reply.unknown_citations:                                # an empty list counts as False
+        text += "\nwarning: cited but not found: " + ", ".join(reply.unknown_citations)
+    return text
 
 # --- The frontend ------------------------------------------------------------
 # Defining a route at "/" replaces Gradio's default UI with ours.
@@ -99,6 +136,27 @@ def show_prompt_for_renew_or_terminate(
 @app.get("/", response_class=HTMLResponse)
 def homepage() -> str:
     return FRONTEND.read_text(encoding="utf-8")
+
+
+def contracts_from_index(index_md: str) -> list[dict]:
+    """Group the rows of the index.md table by contract, in file order."""
+    rows = [line for line in index_md.splitlines() if line.startswith("|")]
+    header = [cell.strip() for cell in rows[0].strip("|").split("|")]
+    col = {name: i for i, name in enumerate(header)}
+    grouped = {}                                      # dict keeps the file order
+    for line in rows[2:]:                             # skip the header and the --- row
+        cells = [cell.strip().strip("`") for cell in line.strip("|").split("|")]
+        contract = cells[col["Contract"]]
+        entry = grouped.setdefault(contract, {"contract": contract, "vendor": cells[col["Vendor"]], "documents": []})
+        entry["documents"].append(cells[col["Document"]])
+    return list(grouped.values())
+
+
+@app.get("/contracts")
+def contracts() -> list[dict]:
+    """The contracts in the demo corpus, for the page's side table."""
+    # Read-only: parses the index text retrieval.py already loaded, writes nothing.
+    return contracts_from_index(WIKI_INDEX)
 
 
 @app.get("/health")
