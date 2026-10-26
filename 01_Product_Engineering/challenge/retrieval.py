@@ -14,8 +14,11 @@ from litellm.exceptions import UnsupportedParamsError
 from rank_bm25 import BM25Okapi
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-CONTRACTS = ROOT / "use_case" / "data" / "contracts"
+# Local runs: the repo root is two folders up (challenge/ -> 01_Product_Engineering/ -> FDE1/).
+# In Docker the app sits alone in /app, so ROOT falls back to /app (only the eval files use it)
+# and the contracts come from CONTRACTS_DIR, a folder mounted read-only at run time.
+ROOT = HERE.parents[1] if len(HERE.parents) > 1 else HERE
+CONTRACTS = Path(os.getenv("CONTRACTS_DIR") or ROOT / "use_case" / "data" / "contracts")
 CASES_FILE = ROOT / "use_case" / "evals" / "retrieval.jsonl"
 RUNS_DIR = ROOT / "use_case" / "evals" / "runs"
 RESULTS_FILE = ROOT / "use_case" / "evals" / "retrieval_results.md"
@@ -27,6 +30,8 @@ def tokenize(text):
     return TOKEN.findall(text.lower())
 
 PAGES = {p.name: p.read_text(encoding="utf-8") for p in sorted(CONTRACTS.glob("SYN-*.md"))}
+if not PAGES:  # fail here with a clear message, not later inside BM25 with a ZeroDivisionError
+    raise SystemExit(f"No SYN-*.md contracts in {CONTRACTS}: set CONTRACTS_DIR or mount the folder")
 
 CHUNK_PREFIX = True   # rag-v1: False (baseline). rag-v2: True (file, vendor, title in every chunk)
 

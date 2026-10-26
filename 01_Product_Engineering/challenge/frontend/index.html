@@ -29,7 +29,7 @@
       /* ---------- TC2 classes, as defined there ---------- */
       .kicker{display:flex; align-items:baseline; gap:10px; margin:0 0 10px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gray)}
       .kicker .n{font-family:var(--display); font-size:26px; font-weight:800; letter-spacing:0; color:var(--orange); line-height:1}
-      .card{background:var(--white); border-radius:var(--r); padding:18px 20px; min-width:0; overflow-wrap:anywhere}
+      .card{background:var(--white); border-radius:var(--r); padding:20px 24px; min-width:0; overflow-wrap:anywhere}
       .tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap}
       .t-base{background:var(--paper); color:var(--ink); border:1px solid var(--stone)}
       .t-edge{background:var(--orange); color:var(--ink)}
@@ -48,20 +48,35 @@
       tr:last-child td, tr:last-child th{border-bottom:0}
       .tablewrap{overflow-x:auto; border-radius:var(--r); background:var(--white)}
       .card table{background:transparent}
-      .card table td{padding:8px 10px 8px 0}
-      .placeholder{outline:2px dashed var(--ink); outline-offset:3px; border-radius:4px}
 
-      /* ---------- page layout ---------- */
-      .wrap{max-width:1040px; margin:0 auto; padding:0 24px}
+      /* ---------- page layout: one column ---------- */
+      .wrap{max-width:880px; margin:0 auto; padding:0 24px}
       header.wrap{padding-top:40px; padding-bottom:24px}
+      main.wrap{display:flex; flex-direction:column; gap:14px}
+      main.wrap > *{min-width:0}
       h1{font-family:var(--display); font-weight:800; font-size:56px; line-height:.88; letter-spacing:-.01em; text-transform:uppercase; margin:6px 0 16px}
       .meta{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px}
-      .cols{display:grid; gap:14px; grid-template-columns:minmax(0,1fr); align-items:start}
-      @media (min-width:901px){ .cols{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} }
       .card h2{font-family:var(--display); font-weight:700; font-size:24px; line-height:1.05; margin:4px 0 10px}
-      .lead{font-weight:500; font-size:18px; line-height:1.4; margin:0 0 14px}
+      .lead{font-weight:500; font-size:18px; line-height:1.4; margin:0 0 6px}
+      .lead + .help{margin:0 0 16px}
       .lab{display:block; font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin:0 0 6px}
       footer.wrap{padding-top:28px; padding-bottom:40px}
+
+      /* ---------- toggles: same box as .card, the whole row is the summary ---------- */
+      details.toggle{margin:0; padding:20px 24px}
+      details.toggle > summary{
+        display:flex; align-items:center; gap:12px; min-height:84px; /* a 44px row plus the 20px padding */
+        margin:-20px -24px; padding:20px 24px; border-radius:var(--r);
+        font-family:var(--display); font-size:18px; font-weight:700; line-height:1.2; list-style:none;
+      }
+      details.toggle > summary::-webkit-details-marker{display:none}
+      /* display:flex drops the native marker, so this draws the orange one */
+      details.toggle > summary::before{
+        content:""; flex:none; border-style:solid; border-width:6px 0 6px 9px;
+        border-color:transparent transparent transparent var(--orange); transition:transform .15s;
+      }
+      details.toggle[open] > summary{margin-bottom:0}
+      details.toggle[open] > summary::before{transform:rotate(90deg)}
 
       /* the TC2 .btn is written for links; these make it work on a <button> */
       button.btn{border:0; font:inherit; font-weight:600; cursor:pointer}
@@ -70,17 +85,24 @@
 
       /* inputs */
       textarea, input:not([type="checkbox"]), select{
-        width:100%; font:inherit; color:var(--ink); background:var(--white);
+        width:100%; font:inherit; color:var(--ink); background-color:var(--white);
         border:1px solid var(--stone); border-radius:12px; padding:10px 12px;
       }
-      textarea{resize:vertical; display:block}
+      textarea{resize:vertical; display:block; min-height:96px}
+      select, input[type="date"]{height:44px; font-size:16px; padding-top:0; padding-bottom:0}
+      select{
+        appearance:none; -webkit-appearance:none; padding-right:40px; cursor:pointer;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4.5l4 4 4-4' fill='none' stroke='%230E0E0E' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:right 14px center; background-size:12px 12px;
+      }
+      textarea:hover, input:not([type="checkbox"]):hover, select:hover{border-color:var(--gray)}
       textarea:focus, input:focus, select:focus{outline:2px solid var(--orange); outline-offset:1px}
       button:focus-visible, summary:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
-      input[type="checkbox"]{accent-color:var(--orange); width:18px; height:18px}
+      input[type="checkbox"]{accent-color:var(--orange); width:18px; height:18px; margin:0; flex:none}
 
-      /* ---------- Ask panel ---------- */
-      .ask-row{display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; margin-top:4px}
-      .ask-row .btn{margin:6px 0 0}
+      /* ---------- Ask card ---------- */
+      .ask-row{display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin-top:12px}
+      .ask-row .btn{margin:0}
       #ask-status{margin-top:14px}
       #ask-status p{margin:0 0 8px}
       /* the look of #prog in TC2, moving because the wait has no known length */
@@ -102,23 +124,30 @@
       .errbox{background:var(--ink); color:var(--white); border-radius:12px; padding:12px 14px; margin-top:14px; overflow-wrap:anywhere}
       .errbox .lab, #decision-error::before{color:var(--orange)}
 
-      /* ---------- Contracts panel ---------- */
+      /* ---------- Contracts toggle ---------- */
       #contracts-card table{font-size:14px}
-      /* whole words only: the narrow column must not split "Contract" or a vendor name */
-      #contracts-card th, #contracts-card td{overflow-wrap:normal}
-      #contracts-card th{padding:6px 10px 6px 0; white-space:nowrap}
-      #contracts-card td{padding:7px 10px 7px 0; line-height:1.35}
-      #contracts-card td:first-child{white-space:nowrap; font-weight:600}
-      #contracts-card td:last-child{color:var(--gray)}
+      /* no rounded corner here: it would clip the header row, which has no top padding */
+      #contracts-card .tablewrap{border-radius:0}
+      /* whole words only: a vendor name must never split across lines */
+      #contracts-card th, #contracts-card td{overflow-wrap:normal; padding:10px 14px 10px 0; line-height:24px}
+      #contracts-card th{white-space:nowrap; padding-top:0; line-height:1.5}
+      #contracts-card th:first-child, #contracts-card td:first-child{width:90px; white-space:nowrap}
+      #contracts-card td:first-child{font-weight:600}
+      #contracts-card td:nth-child(2){white-space:nowrap}
+      #contracts-card .chips{gap:4px 6px}
+      #contracts-card .chips .tag{line-height:1.5}
 
       /* ---------- TC1 form ---------- */
-      #tc1{margin-top:14px; padding:14px 20px}
-      #tc1[open] summary{margin-bottom:14px}
-      label{display:block; font-weight:600; font-size:15px; margin-bottom:4px}
-      .field{margin-bottom:14px}
-      .field.check label{display:flex; align-items:center; gap:8px; margin:0}
-      .fields{display:grid; grid-template-columns:repeat(auto-fit, minmax(15rem, 1fr)); column-gap:18px}
-      #decision-result{margin-top:14px; white-space:pre-wrap; background:var(--paper); border-radius:12px; padding:14px 16px}
+      label{display:block; font-weight:600; font-size:15px; line-height:22px; margin-bottom:4px; white-space:nowrap}
+      .fields{display:grid; grid-template-columns:minmax(0,1fr); gap:16px 18px; align-items:start}
+      @media (min-width:700px){ .fields{grid-template-columns:repeat(3, minmax(0,1fr))} }
+      .field .help{margin:4px 0 0; line-height:1.35}
+      /* one label line (22px + 4px) above, so the box sits level with the selects */
+      .field.check{padding-top:26px}
+      @media (max-width:699px){ .field.check{padding-top:0} }
+      .field.check label{display:flex; align-items:center; gap:10px; height:44px; margin:0}
+      #decision-form .btn{margin:16px 0 0}
+      #decision-result{margin-top:8px; white-space:pre-wrap; background:var(--paper); border-radius:12px; padding:14px 16px}
       #decision-result:empty{display:none}
       #prompt-box{background:var(--paper); padding:10px 14px}
       #prompt-box summary{font-size:15px}
@@ -140,59 +169,64 @@
     </header>
 
     <main class="wrap">
-      <div class="cols">
-        <section class="card" id="ask-card">
-          <h2>Ask about a contract</h2>
-          <p class="lead"><span class="placeholder">[DARYA: scenario sentence, see chat]</span></p>
-          <form id="ask-form">
-            <label for="question" class="lab">Your question</label>
-            <textarea id="question" rows="3" placeholder="For example: When does the Vendor05 contract end?"></textarea>
-            <div class="ask-row">
-              <button type="submit" class="btn" id="ask-button">Ask</button>
-              <span class="help">Enter to ask, Shift+Enter for a new line</span>
-            </div>
-          </form>
-          <div id="ask-status" hidden>
-            <p class="help">Searching the contracts, usually 10 to 30 seconds</p>
-            <div class="prog"><i></i></div>
+      <section class="card" id="ask-card">
+        <h2>Ask about a contract</h2>
+        <p class="lead">Imagine one of these contracts comes up for renewal next month. Ask what you would want to know before deciding, in your own words.</p>
+        <p class="help">10 invented contracts shaped like ours: order forms, master agreements, two renewals. Contract documents only: no usage data, invoices or emails.</p>
+        <form id="ask-form">
+          <label for="question" class="lab">Your question</label>
+          <textarea id="question" rows="3" placeholder="Type your question in your own words"></textarea>
+          <div class="ask-row">
+            <button type="submit" class="btn" id="ask-button">Ask</button>
+            <span class="help">Enter to ask, Shift+Enter for a new line</span>
           </div>
-          <div id="ask-result"></div>
-        </section>
+        </form>
+        <div id="ask-status" hidden>
+          <p class="help">Searching the contracts, usually 10 to 30 seconds</p>
+          <div class="prog"><i></i></div>
+        </div>
+        <div id="ask-result"></div>
+      </section>
 
-        <section class="card" id="contracts-card">
-          <h2>Contracts in this demo</h2>
-          <p class="help"><span class="placeholder">[DARYA: scope sentence, see chat]</span></p>
-          <div class="tablewrap">
-            <table>
-              <thead><tr><th>Contract</th><th>Vendor</th><th>Documents</th></tr></thead>
-              <tbody id="contracts-body"></tbody>
-            </table>
-          </div>
-          <p id="contracts-error" class="help" hidden>Contract list unavailable</p>
-        </section>
-      </div>
+      <details class="toggle" id="contracts-card">
+        <summary><span>Contracts in this demo <span id="contracts-count"></span></span></summary>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Contract</th><th>Vendor</th><th>Documents</th></tr></thead>
+            <tbody id="contracts-body"></tbody>
+          </table>
+        </div>
+        <p id="contracts-error" class="help" hidden>Contract list unavailable</p>
+      </details>
 
-      <details id="tc1">
+      <details class="toggle" id="tc1">
         <summary>Draft a message after a renew or terminate decision (TC1)</summary>
         <form id="decision-form">
           <div class="fields">
             <div class="field">
               <label for="decision">Decision</label>
               <select id="decision" name="decision">
-                <option value="renew">renew</option>
-                <option value="terminate">terminate</option>
+                <option value="renew">Renew</option>
+                <option value="terminate">Terminate</option>
               </select>
             </div>
             <div class="field">
               <label for="owner_status">Owner status</label>
               <select id="owner_status" name="owner_status">
-                <option value="active">active</option>
-                <option value="left">left</option>
+                <option value="active">Active</option>
+                <option value="left">Left</option>
               </select>
             </div>
+            <div class="field check">
+              <label for="file_exists">
+                <input type="checkbox" id="file_exists" name="file_exists" checked />
+                Signed contract file found
+              </label>
+            </div>
             <div class="field">
-              <label for="autorenew_date">Notice deadline before auto-renewal (leave empty if none)</label>
-              <input type="date" id="autorenew_date" name="autorenew_date" />
+              <label for="autorenew_date">Last day to say no</label>
+              <input type="date" id="autorenew_date" name="autorenew_date" aria-describedby="autorenew-help" />
+              <p class="help" id="autorenew-help">Leave empty if the contract has no auto-renewal</p>
             </div>
             <div class="field">
               <label for="end_date">End date</label>
@@ -200,14 +234,9 @@
             </div>
             <div class="field">
               <label for="today">Today</label>
-              <input type="date" id="today" name="today" required />
+              <input type="date" id="today" name="today" required aria-describedby="today-help" />
+              <p class="help" id="today-help">Fixed date for testing, defaults to today</p>
             </div>
-          </div>
-          <div class="field check">
-            <label for="file_exists">
-              <input type="checkbox" id="file_exists" name="file_exists" checked />
-              Signed contract file found
-            </label>
           </div>
           <button type="submit" class="btn">Draft message</button>
         </form>
@@ -254,10 +283,15 @@
           const body = document.getElementById("contracts-body");
           for (const c of list) {
             const row = body.insertRow();
-            for (const text of [c.contract, c.vendor, c.documents.join(" · ")]) {
-              row.insertCell().textContent = text;
-            }
+            row.insertCell().textContent = c.contract;
+            row.insertCell().textContent = c.vendor;
+            const docs = document.createElement("div");
+            docs.className = "chips";
+            c.documents.forEach((doc) => docs.append(chip(doc, "t-base")));
+            row.insertCell().append(docs);
           }
+          // Only once the list is in: a number shown while loading would be a guess.
+          document.getElementById("contracts-count").textContent = `(${list.length})`;
         })
         .catch(() => {
           document.querySelector("#contracts-card .tablewrap").hidden = true;
