@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TC3 · Contract Retrieval</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Same system as TC2_submission.html. Palette: paper 45% · ink 35% · white 10% · orange 10% (accent only) */
+:root{
+  --paper:#F3F1EC; --white:#FFFFFF; --ink:#0E0E0E; --orange:#F04B2A;
+  --stone:#D6D2C9; --gray:#5B5852; --tint:#FBE2DA;
+  --display:"Schibsted Grotesk", "Segoe UI", system-ui, Arial, sans-serif;
+  --body:"Archivo", "Segoe UI", system-ui, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --r:16px; --side:260px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.5}
+a{color:var(--ink); text-decoration:underline; text-decoration-color:var(--orange); text-decoration-thickness:2px; text-underline-offset:3px}
+a:hover{color:var(--orange)}
+code{font-family:var(--mono); font-size:.86em; background:var(--paper); border:1px solid var(--stone); padding:.02em .35em; border-radius:6px; overflow-wrap:anywhere}
+mark{background:var(--tint); color:var(--ink); padding:0 .15em; border-radius:3px}
+
+/* ---------- left sidebar ---------- */
+#side{position:fixed; top:16px; left:16px; bottom:16px; width:var(--side); z-index:10;
+  background:var(--white); border-radius:var(--r); padding:18px 12px 12px; display:flex; flex-direction:column}
+#side .brand{font-family:var(--display); font-weight:800; text-transform:uppercase; font-size:16px; display:flex; align-items:center; gap:8px; padding:0 8px}
+#side .count{display:flex; justify-content:space-between; align-items:baseline; margin:18px 8px 8px;
+  font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray)}
+#side .count b{font-family:var(--display); font-size:20px; letter-spacing:0; color:var(--ink)}
+#prog{height:6px; background:var(--paper); border-radius:3px; overflow:hidden; margin:0 8px 12px}
+#prog i{display:block; height:100%; width:0; background:var(--orange); border-radius:3px; transition:width .25s}
+#nav{flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:2px}
+#nav a{display:grid; grid-template-columns:30px 1fr auto; gap:6px; align-items:center; padding:7px 8px; border-radius:10px;
+  text-decoration:none; color:var(--gray); font-size:14px; line-height:1.2}
+#nav a:hover{background:var(--paper); color:var(--ink)}
+#nav a .n{font-family:var(--display); font-weight:800; font-size:14px; color:var(--stone)}
+#nav a .t{font-family:var(--mono); font-size:11px; color:var(--gray)}
+#nav a .doc{font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--stone); border-radius:999px; padding:1px 6px; color:var(--gray)}
+#nav a.done{color:var(--ink)}
+#nav a.done .n{color:var(--orange)}
+#nav a.on{background:var(--orange); color:var(--ink); font-weight:600}
+#nav a.on .n, #nav a.on .t{color:var(--ink)}
+#nav a.on .doc{border-color:var(--ink); color:var(--ink)}
+#nav a.hide{display:none}
+#mode{font-size:12px; color:var(--gray); line-height:2; margin:10px 8px 0; padding-top:10px; border-top:1px solid var(--stone)}
+main{margin-left:calc(var(--side) + 32px)}
+
+/* ---------- sections ---------- */
+section{min-height:100vh; padding:44px 24px 64px 0}
+.wrap{max-width:1120px}
+.kicker{display:flex; align-items:baseline; gap:10px; margin:0 0 10px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gray)}
+.kicker .n{font-family:var(--display); font-size:26px; font-weight:800; letter-spacing:0; color:var(--orange); line-height:1}
+h1{font-family:var(--display); font-weight:800; font-size:64px; line-height:.9; letter-spacing:-.01em; text-transform:uppercase; margin:6px 0 20px}
+h2{font-family:var(--display); font-weight:700; font-size:36px; line-height:1.02; letter-spacing:-.01em; margin:0 0 18px; max-width:980px}
+h3{font-family:var(--display); font-weight:700; font-size:24px; line-height:1.05; margin:32px 0 12px}
+.lead{font-weight:500; font-size:22px; line-height:1.4; max-width:820px; margin:0 0 8px}
+.intro{font-size:18px; margin:0 0 16px; max-width:900px}
+.req{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink); background:var(--white); border-radius:999px; padding:5px 12px 5px 8px; margin:0 0 16px}
+.req::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--orange)}
+.src{font-size:14px; color:var(--gray); margin-top:16px}
+
+.grid{display:grid; gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--white); border-radius:var(--r); padding:18px 20px; min-width:0; overflow-wrap:anywhere}
+.card h4{font-family:var(--display); font-weight:700; margin:0 0 8px; font-size:19px; line-height:1.1}
+.card.accent{background:var(--orange); color:var(--ink)}
+.card.accent small{color:var(--ink)}
+.card.inkc{background:var(--ink); color:var(--white)}
+.card.inkc small{color:var(--stone)}
+.big{font-family:var(--display); font-size:46px; font-weight:800; line-height:.95; letter-spacing:-.01em}
+.big small{display:block; font-family:var(--body); font-size:15px; font-weight:500; letter-spacing:0; color:var(--gray); margin-top:10px; line-height:1.35}
+
+blockquote.hers{margin:12px 0; padding:16px 20px; background:var(--white); border-radius:var(--r); position:relative; font-size:17px}
+blockquote.hers::before{content:""; position:absolute; left:0; top:18px; bottom:18px; width:4px; border-radius:0 3px 3px 0; background:var(--orange)}
+blockquote.hers p{margin:0 0 10px} blockquote.hers p:last-child{margin:0}
+blockquote.hers ol, blockquote.hers ul{margin:0; padding-left:22px} blockquote.hers li{margin:0 0 10px} blockquote.hers li:last-child{margin:0}
+
+.statement{background:var(--ink); color:var(--white); border-radius:var(--r); padding:26px 28px; margin:14px 0}
+.statement .lab{font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin:0 0 12px}
+.statement p{font-family:var(--display); font-weight:700; font-size:30px; line-height:1.12; margin:0}
+
+table{border-collapse:collapse; width:100%; background:var(--white); font-size:16px}
+th,td{text-align:left; vertical-align:top; padding:11px 14px; border-bottom:1px solid var(--stone); overflow-wrap:anywhere}
+th{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--gray)}
+thead th{border-bottom:1px solid var(--ink)}
+tr:last-child td, tr:last-child th{border-bottom:0}
+.tablewrap{overflow-x:auto; border-radius:var(--r); background:var(--white)}
+.num td{white-space:nowrap} .num td:nth-child(3){white-space:normal; min-width:220px}
+tr.ship td{background:var(--tint)}
+tr.ship td:first-child{box-shadow:inset 4px 0 0 var(--orange)}
+.gold code{font-size:.78em; white-space:nowrap}
+
+.tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap}
+.t-base{background:var(--paper); color:var(--ink); border:1px solid var(--stone)}
+.t-edge{background:var(--orange); color:var(--ink)}
+.t-decline{background:var(--ink); color:var(--white)}
+
+.flow{display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; margin:10px 0 4px}
+.flow .step{background:var(--white); border-radius:12px; padding:10px 14px; font-size:16px; max-width:260px}
+.flow .step small{display:block; color:var(--gray); font-size:14px}
+.flow .step.now{box-shadow:0 0 0 3px var(--orange)}
+.flow .step.todo{background:transparent; border:2px dashed var(--stone)}
+.flow .arrow{align-self:center; color:var(--orange); font-weight:800; font-size:22px}
+
+pre.msg{white-space:pre-wrap; font-family:var(--mono); font-size:14px; background:var(--white); border-radius:12px; padding:14px 16px; margin:10px 0 0}
+details{background:var(--white); border-radius:var(--r); padding:12px 18px; margin-top:12px}
+details summary{cursor:pointer; font-weight:600; font-size:16px}
+details summary::marker{color:var(--orange)}
+details pre.msg{background:var(--paper)}
+
+.diary{background:transparent; border:1px dashed var(--gray); border-radius:var(--r); padding:14px 18px; margin:16px 0; font-size:17px}
+.diary .lab{display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin-bottom:6px}
+.diary p{margin:0 0 8px} .diary p:last-child{margin:0}
+.placeholder{outline:2px dashed var(--ink); outline-offset:3px; border-radius:4px}
+.todo{background:var(--white); border:2px dashed var(--ink); border-radius:var(--r); padding:16px 20px; margin:12px 0}
+.todo .lab{display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin-bottom:8px}
+.todo ol{margin:0; padding-left:22px} .todo li{margin:0 0 6px}
+
+/* final product: lifecycle with lanes (TC2), seven steps since TC3 */
+.flow6{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:10px; margin-top:20px}
+.fstep{background:var(--white); border-radius:var(--r); overflow:hidden; display:flex; flex-direction:column; min-width:0}
+.fh{padding:12px 14px 10px; border-bottom:1px solid var(--stone)}
+.fh .no{font-family:var(--display); font-weight:800; font-size:24px; line-height:1; color:var(--orange)}
+.fh b{display:block; font-family:var(--display); font-size:18px; line-height:1.05; margin-top:4px}
+.fh .tc{display:inline-block; margin-top:8px; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; border:1px solid var(--stone); border-radius:999px; padding:2px 8px; color:var(--gray)}
+.fstep.built{box-shadow:0 0 0 3px var(--orange)}
+.fstep.built .fh{background:var(--orange); border-bottom-color:var(--orange)}
+.fstep.built .fh .no{color:var(--ink)}
+.fstep.built .fh .tc{border-color:var(--ink); color:var(--ink); background:var(--white)}
+.fstep.done .fh .tc{border-color:var(--ink); color:var(--ink)}
+.lane{padding:10px 14px; font-size:14px; line-height:1.35; border-bottom:1px solid var(--paper)}
+.lane:last-child{border-bottom:0}
+.lane.agent{min-height:150px} .lane.owner{min-height:88px} .lane.vendor{min-height:60px}
+.lane .who{display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gray); margin-bottom:4px}
+.lane .who::before{content:""; width:8px; height:8px; border-radius:2px}
+.lane.agent .who::before{background:var(--orange)}
+.lane.owner .who::before{background:var(--ink)}
+.lane.vendor .who::before{background:var(--stone)}
+.lane.none{color:var(--stone)}
+.guard{display:flex; flex-wrap:wrap; gap:8px 22px; align-items:center; background:var(--ink); color:var(--white); border-radius:var(--r); padding:14px 20px; margin-top:12px; font-size:15px}
+.guard .lab{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--orange)}
+@media (max-width:1400px){ .flow6{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@media (max-width:900px){ .flow6{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:600px){ .flow6{grid-template-columns:1fr} .lane{min-height:0!important} }
+
+/* Step 6 screenshots (PDF screen captures) */
+.pdfshot{display:block; width:100%; height:1150px; margin-top:10px; border:1px solid var(--stone); border-radius:12px; background:var(--white)}
+.pdfshot.short{height:560px}
+
+/* presenter cues */
+.cue{display:none; margin:0 0 18px; padding:10px 16px; border-radius:12px; background:var(--ink); color:var(--white); font-size:16px}
+.cue b{color:var(--orange)}
+.cue kbd{color:var(--ink)}
+body.presenter .cue{display:block}
+body.presenter section.doc-only{display:none}
+
+.btn{display:inline-block; text-decoration:none; font-weight:600; background:var(--orange); color:var(--ink); padding:12px 22px; border-radius:999px; margin:6px 8px 0 0}
+.btn:hover{color:var(--ink); filter:brightness(1.05)}
+.btn.ghost{background:var(--white); color:var(--ink)}
+.help{font-size:14px; color:var(--gray)}
+kbd{font-family:var(--mono); font-size:12px; border:1px solid var(--stone); border-bottom-width:2px; border-radius:5px; padding:0 5px; background:var(--white); color:var(--ink)}
+
+/* cover */
+.cover-grid{display:grid; grid-template-columns:1fr auto; gap:24px; align-items:end}
+
+/* story */
+/* sized so the whole story fits one screen (1080p and most laptops) */
+#story{padding-top:28px}
+.story-h{font-family:var(--display); font-weight:800; font-size:58px; line-height:.9; letter-spacing:-.015em; margin:6px 0 10px}
+.story-h em{font-style:normal; color:var(--orange)}
+.byline{font-size:15px; color:var(--gray); margin:0 0 18px; max-width:900px}
+.beats{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; counter-reset:beat}
+.beat{background:var(--white); border-radius:var(--r); padding:14px 16px 16px; font-size:15.5px; line-height:1.38}
+.beat::before{counter-increment:beat; content:"0" counter(beat); display:block; font-family:var(--display); font-weight:800; font-size:18px; color:var(--orange); margin-bottom:6px}
+.beat.hit{background:var(--orange)}
+.beat.hit::before{color:var(--ink)}
+.beat .amt{display:block; font-family:var(--display); font-weight:800; font-size:34px; line-height:1; margin:4px 0 6px}
+.moral{font-family:var(--display); font-weight:700; font-size:26px; line-height:1.12; margin:20px 0 8px; max-width:900px}
+#story .lead{font-size:17px; font-weight:500}
+.moral span{color:var(--orange)}
+
+/* roadmap */
+.stairs{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; align-items:start; margin-top:22px}
+.stair{display:flex; flex-direction:column; gap:8px}
+.s0{margin-top:200px} .s1{margin-top:150px} .s2{margin-top:100px} .s3{margin-top:50px} .s4{margin-top:0}
+.lvl{display:flex; align-items:center; gap:10px; border-radius:12px; padding:10px 12px; background:var(--white); border:2px solid var(--ink)}
+.lvl .ln{font-family:var(--display); font-weight:800; font-size:30px; line-height:1; color:var(--orange)}
+.lvl b{display:block; font-family:var(--display); font-size:17px; line-height:1.05}
+.lvl small{display:block; font-size:12px; color:var(--gray); margin-top:2px}
+.s4 .lvl{background:var(--orange); border-color:var(--orange)} .s4 .lvl .ln, .s4 .lvl small{color:var(--ink)}
+.bk{background:var(--white); border-radius:12px; padding:12px 13px; font-size:14.5px; line-height:1.38; display:flex; flex-direction:column}
+.bk h5{font-family:var(--display); font-weight:700; font-size:16px; line-height:1.1; margin:0 0 6px}
+.bk .tcn{display:flex; justify-content:space-between; gap:8px; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--orange); margin-bottom:4px}
+.bk .tcn span:last-child{color:var(--gray)}
+.bk.done{background:transparent; border:1px dashed var(--stone)}
+.bk.done h5::before{content:"✓ "; color:var(--orange)}
+.bk.now{box-shadow:0 0 0 3px var(--orange)}
+.bk.mile{background:var(--ink); color:var(--white)} .bk.mile .tcn{color:var(--orange)} .bk.mile .tcn span:last-child{color:var(--stone)}
+.bk.hot{background:var(--tint)}
+.summit{display:flex; align-items:center; gap:16px; background:var(--ink); color:var(--white); border-radius:var(--r); padding:18px 22px; margin-top:16px}
+.summit .flag{flex:none; background:var(--orange); color:var(--ink); font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; border-radius:999px; padding:5px 12px}
+.summit p{margin:0; font-family:var(--display); font-weight:700; font-size:22px; line-height:1.2}
+@media (max-width:1250px){ .stairs{grid-template-columns:1fr 1fr} .stair{margin-top:0!important} }
+@media (max-width:620px){ .stairs{grid-template-columns:1fr} .summit{flex-direction:column; align-items:flex-start} }
+@media (max-width:760px){ .story-h{font-size:40px} .moral{font-size:21px} .beat .amt{font-size:30px} }
+
+/* narrow screens: sidebar becomes a block at the top */
+@media (max-width:900px){
+  #side{position:static; width:auto; margin:16px 16px 0}
+  #nav{overflow:visible}
+  main{margin-left:0}
+  section{padding:36px 16px 56px}
+}
+@media (max-width:760px){
+  body{font-size:16px}
+  h1{font-size:44px} h2{font-size:30px} h3{font-size:21px} .lead{font-size:18px}
+  .statement p{font-size:22px} .big{font-size:34px}
+  .cover-grid{grid-template-columns:1fr} .pixels{display:none}
+}
+@media print{
+  #side,.cue{display:none!important}
+  main{margin-left:0}
+  section{min-height:0; page-break-inside:avoid; padding:20px 0}
+  section.doc-only{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<aside id="side">
+  <span class="brand"><svg width="16" height="16" viewBox="0 0 4 4" aria-hidden="true"><rect x="3" y="0" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="0" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/></svg>Contract Agent</span>
+  <div class="count"><span id="modeLabel">Document</span><span><b id="pos">1</b> / <span id="tot">12</span></span></div>
+  <div id="prog"><i></i></div>
+  <nav id="nav"></nav>
+  <div id="mode"><kbd>P</kbd> presenter mode<br><kbd>←</kbd> <kbd>→</kbd> previous / next section<br><kbd>A</kbd> open the app</div>
+</aside>
+
+<main>
+
+<!-- ============ STORY ============ -->
+<section id="story" data-label="My path" data-time="0:00" data-n="→">
+<div class="wrap">
+  <div class="cue"><b>0:00 to 0:30.</b> Tell it as a diary: four cards, one sentence each. Pause on the orange card. End on the last line, then press → .</div>
+  <p class="kicker">Week 3 of the project, told as it happened</p>
+  <h1 class="story-h">The search found the words.<br>It lost <em>the contract.</em></h1>
+  <p class="byline">I'm building an agent that helps IT contract owners renew or stop software contracts on time. This week: teaching it to read the contracts. 10 questions labelled before any code, 3 ways to search measured, 1 endpoint that names its sources.</p>
+  <div class="beats">
+    <div class="beat"><b>The need.</b> Owners ask contract questions in their own words: when can we stop it, what did we pay. The answer sits in one section of one of 19 documents.</div>
+    <div class="beat"><b>The trick.</b> I cut every document into its sections and let the model search them with BM25: word matching, the simplest search there is.</div>
+    <div class="beat hit"><b>The surprise.</b> First run:<span class="amt">7 of 10</span>Only the Parties section names the vendor; every other section says "the Vendor". Asked for a notice period, it answered 60 days. The order form said 90.</div>
+    <div class="beat"><b>The fix.</b> I added the contract's identity (file, vendor, document title) to every section: 10 of 10, on two runs, with half the text read.</div>
+  </div>
+  <p class="moral">The search did not fail on words.<br>It failed on <span>knowing which contract a paragraph belongs to.</span></p>
+  <p class="lead">An alert built on that 60-day answer would have been 30 days late. This page follows the path: the questions, the measurements, the endpoint, and the decision.</p>
+</div>
+</section>
+
+<!-- ============ 0. COVER ============ -->
+<section id="cover" data-label="Overview" data-time="0:30">
+<div class="wrap">
+  <div class="cue"><b>0:30 to 0:35.</b> One line: "Every TC3 deliverable is on this page; the table shows where." Then press → .</div>
+  <p class="kicker"><span class="n">00</span> AI Forward-Deployed Engineer · Technical Challenge 3</p>
+  <div class="cover-grid">
+    <div>
+      <h1>Contract<br>Retrieval</h1>
+      <p class="lead">An endpoint that answers contract questions from 10 synthetic contracts (19 documents) and names the section behind every answer. Three retrieval techniques (ways to search) were measured against 10 labelled questions before choosing one. No real contract was used.</p>
+    </div>
+    <svg class="pixels" id="stairs" width="240" height="240" viewBox="0 0 12 12" aria-hidden="true"></svg>
+  </div>
+  <p>
+    <a class="btn" href="https://github.com/bestdash/FDE1/tree/main">Repository</a>
+    <a class="btn" id="loomLink" href="#" target="_blank" rel="noopener">▶ Watch the video (5 min)</a>
+    <a class="btn ghost" href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/retrieval_results.md">Results table</a>
+  </p>
+
+  <h3>Where each required item is answered</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Required item</th><th>On this page</th><th>Source in the repo</th></tr></thead>
+    <tbody>
+      <tr><td>Video (5 minutes or less): the endpoint answering two questions with sources, and the results table</td><td>Button above</td><td><a href="https://drive.google.com/file/d/1JnVHIY7dDuY6hDq1leRBKpm2KDQF78MO/view?usp=sharing" target="_blank" rel="noopener">Google Drive</a></td></tr>
+      <tr><td>Step 1: ten labelled questions and the top-k floor</td><td><a href="#labels">01 Questions</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/retrieval.jsonl">retrieval.jsonl</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/README.md#my-tc3-labels">evals README · My TC3 labels</a></td></tr>
+      <tr><td>Step 2: the schema, with <code>sources</code></td><td><a href="#schema">02 Schema</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 3 schema row), <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a> (Stage 1)</td></tr>
+      <tr><td>Step 3: three techniques, results table with settings, embedding token count (measured)</td><td><a href="#results">03 Measured</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/retrieval_results.md">retrieval_results.md</a>, <a href="https://github.com/bestdash/FDE1/tree/main/use_case/evals/runs">runs/</a></td></tr>
+      <tr><td>Step 4: the endpoint running, its docstring, what it does on the decline question</td><td><a href="#endpoint">04 The endpoint</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/app.py">app.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/endpoint-v1.md">endpoint-v1.md</a>, <a href="https://github.com/bestdash/FDE1/blob/main/03_Retrieval/challenge/README.md">challenge README</a></td></tr>
+      <tr><td>Step 5: the retrieval row, all four columns</td><td><a href="#decision">05 Decision</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 3 retrieval row)</td></tr>
+      <tr><td>Step 5: the four non-text answers</td><td><a href="#nontext">06 Non-text content</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a></td></tr>
+      <tr><td>Step 6: shown to a contract owner, their five questions, what it changed</td><td><a href="#review">07 Owner review</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/retrieval.jsonl">retrieval.jsonl</a></td></tr>
+      <tr><td>Step 7: what I would swap to run this at work</td><td><a href="#work">08 Bring it to work</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/03_Retrieval/challenge/README.md#bring-it-to-work">challenge README · Bring it to work</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">ecosystem.md</a></td></tr>
+      <tr><td>Code</td><td><a href="#endpoint">04 The endpoint</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/retrieval.py">retrieval.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/app.py">app.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/schema.py">schema.py</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">All data on this page is synthetic: every vendor, price and date is invented. Roles, not names. TC = the course's weekly technical challenge. Press <kbd>P</kbd> for presenter mode (cues on, document-only sections hidden).</p>
+  <details>
+  <summary>Words on this page</summary>
+  <div class="tablewrap" style="margin-top:10px">
+  <table>
+    <thead><tr><th>Term</th><th>Plain meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Retrieval</td><td>Finding the parts of the documents that answer a question</td></tr>
+      <tr><td>Section / chunk</td><td>One titled part of a contract document, for example "Payment Terms": what the search returns</td></tr>
+      <tr><td>BM25 (rag)</td><td>Keyword search: ranks sections by the question's words, and rarer words count more</td></tr>
+      <tr><td>DCI</td><td>Read whole pages: the model lists the documents, searches exact words and reads full pages, with no index</td></tr>
+      <tr><td>Dense</td><td>Search by meaning: each section becomes a list of numbers (an embedding), so similar meanings match even with different words</td></tr>
+      <tr><td>Embedding tokens</td><td>Text sent to an embedding model: 0 here, because it ran on the laptop</td></tr>
+      <tr><td>Gold sections</td><td>The sections that answer a question, written by me before testing</td></tr>
+      <tr><td>Multi-hop / lookup / decline</td><td>Needs 2 documents / one section is enough / the documents don't answer, so the right answer says so</td></tr>
+      <tr><td>Top-k floor</td><td>k = how many sections the search returns. The floor = the smallest k that can pass every question (here 2)</td></tr>
+      <tr><td>Endpoint</td><td>The app's question service, which other programs (later, an AI agent) call</td></tr>
+      <tr><td>Docstring</td><td>The description inside the code that tells a caller what the service does</td></tr>
+      <tr><td>Schema</td><td>The exact format the agent accepts and returns</td></tr>
+      <tr><td>Turn / max turns</td><td>One round of search, read, decide. The model may do at most 6</td></tr>
+      <tr><td>Fallback</td><td>The standard "no answer found" message when the rounds run out</td></tr>
+      <tr><td>Identity prefix</td><td>The contract's file, vendor and document title added to the top of every section</td></tr>
+      <tr><td>Hybrid</td><td>Keyword search and meaning search combined</td></tr>
+      <tr><td>Vector database</td><td>A database built for meaning search: not needed for 19 documents</td></tr>
+      <tr><td>Model route</td><td>An approved way to send company data to an AI model</td></tr>
+      <tr><td>OCR</td><td>Text recognition on a scanned image</td></tr>
+      <tr><td>SYN-04 / Vendor04</td><td>Synthetic (invented) contract 4, and its invented vendor</td></tr>
+      <tr><td>Stage 1 / alert stage / step B</td><td>Charter names for step 1 (read the contract and save its record), step 2 (alert the owner) and step 3 (decide and draft) in the Final product</td></tr>
+      <tr><td>Measured / looked up</td><td>A number I produced by running something / a number copied from a public source, such as a price list</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </details>
+</div>
+</section>
+
+<!-- ============ 1. QUESTIONS ============ -->
+<section id="labels" data-label="Ten questions" data-time="0:35">
+<div class="wrap">
+  <div class="cue"><b>0:35 to 1:00.</b> Real questions, labelled before any code. Point at the three multi-hop rows: one section is not enough, so the search must return at least 2. Then the two declines.</div>
+  <p class="kicker"><span class="n">01</span> Questions</p>
+  <span class="req">Ten labelled questions and the top-k floor</span>
+  <h2>Ten questions an owner asks, each labelled with the sections that answer it</h2>
+  <p class="intro">Before testing any search, I wrote down ten real questions and, for each, the exact sections that answer it: a gold label (the sections that answer a question, written before testing) looks like <code>&lt;file&gt;#&lt;section heading&gt;</code>. It lists every section needed, because the measure is a complete answer, not "something relevant came back". Names: <code>SYN-04</code> is synthetic (invented) contract 4, and Vendor04 is its invented vendor.</p>
+  <div class="tablewrap">
+  <table class="gold">
+    <thead><tr><th>#</th><th>Question</th><th>Kind</th><th>Gold sections (the sections that answer it)</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>What's the cancellation period for the Vendor04 contract?</td><td><span class="tag t-edge">multi-hop</span></td><td><code>SYN-04-order.md#Terms</code><br><code>SYN-04-terms.md#8. Term and Termination</code></td></tr>
+      <tr><td>2</td><td>What are the renewal terms of the Vendor10 contract?</td><td><span class="tag t-edge">multi-hop</span></td><td><code>SYN-10-renewal.md#Purchase Terms</code><br><code>SYN-10-terms.md#8. Term and Termination</code></td></tr>
+      <tr><td>3</td><td>How much did we pay for the Vendor10 product last year?</td><td><span class="tag t-edge">multi-hop</span></td><td><code>SYN-10-order.md#Products and Fees</code><br><code>SYN-10-renewal.md#Products and Fees</code></td></tr>
+      <tr><td>4</td><td>When does the Vendor05 contract end?</td><td><span class="tag t-base">lookup</span></td><td><code>SYN-05-renewal.md#Renewal Term</code></td></tr>
+      <tr><td>5</td><td>When does the Vendor02 contract end?</td><td><span class="tag t-base">lookup</span></td><td><code>SYN-02-order.md#Subscription Term</code></td></tr>
+      <tr><td>6</td><td>What is the price per user in the Vendor07 contract?</td><td><span class="tag t-base">lookup</span></td><td><code>SYN-07-order.md#Products and Fees</code></td></tr>
+      <tr><td>7</td><td>Did we include SSO in the Vendor02 contract?</td><td><span class="tag t-base">lookup</span></td><td><code>SYN-02-order.md#Products and Fees</code></td></tr>
+      <tr><td>8</td><td>What are my payment terms in the Vendor09 contract?</td><td><span class="tag t-base">lookup</span></td><td><code>SYN-09-order.md#Payment Terms</code></td></tr>
+      <tr><td>9</td><td>What are the renewal terms of the Vendor03 contract?</td><td><span class="tag t-decline">decline</span></td><td><code>SYN-03-order.md#Terms</code> (points to online terms that are not attached)</td></tr>
+      <tr><td>10</td><td>Who is responsible for security in case of an incident with Vendor04, and on what terms?</td><td><span class="tag t-decline">decline</span></td><td>none: no document has a security-incident clause</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">Kind: multi-hop = needs 2 documents · lookup = one section is enough · decline = the documents don't answer, so the right answer says so.</p>
+  <h3>My labelling notes</h3>
+  <blockquote class="hers">
+    <ul>
+      <li><b>Top-k floor: 3 of the 10 questions need two documents</b> (an order form that overrides the main terms, a renewal order that changes them, last year's price against this year's). So top-1 cannot pass them: k is at least 2.</li>
+      <li><b>2 declines:</b> renewal terms that live in online terms not attached (SYN-03), and a security-incident clause that no document has.</li>
+      <li><b>Sources:</b> my own questions as a contract owner; 4 also match a column of the sponsor's tracking sheet. Questions name the vendor, as owners do.</li>
+      <li><b>Left out on purpose:</b> "which contracts should I renew in the next 3 months?" is a query over all contract records plus today's date, not a search: it belongs to the alert stage, answered from the Stage 1 records.</li>
+    </ul>
+  </blockquote>
+  <p class="help">Top-k floor = the fewest sections the search must return · top-1 = returning only the single best section · alert stage = step 2 in the Final product · Stage 1 records = the saved contract records (step 1).</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/retrieval.jsonl">use_case/evals/retrieval.jsonl</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/README.md#my-tc3-labels">use_case/evals/README.md · My TC3 labels</a></p>
+</div>
+</section>
+
+<!-- ============ 2. SCHEMA ============ -->
+<section id="schema" data-label="Schema" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">02</span> Schema</p>
+  <span class="req">The schema, with sources</span>
+  <h2>Every field the agent keeps, and every answer it gives, carries the section it came from</h2>
+  <p class="intro">A schema is the exact format the agent accepts and returns. This week adds a contract record in front of the drafting step built in TC1, and a small answer format for the question service. The data moves like this:</p>
+  <div class="flow">
+    <div class="step now"><b>Read the contract</b><small>TC3 · first part built</small></div><span class="arrow">→</span>
+    <div class="step todo"><b>Save the record</b><small>10 fields with sources · not built yet</small></div><span class="arrow">→</span>
+    <div class="step todo"><b>Alert the owner</b><small>Week 4 or 5</small></div><span class="arrow">→</span>
+    <div class="step"><b>Decide and draft</b><small>TC1 · built: takes the end date, the last day to say no and the file status</small></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h4>The contract record (the charter calls it Stage 1)</h4>
+      <p style="margin:0 0 8px"><b>In:</b> a contract, for example <code>SYN-03</code><br><b>Out:</b> 10 fields, each with its source (document and section) or "not found"</p>
+      <p style="margin:0 0 8px"><code>start_date</code> <code>term_months</code> <code>end_date</code> <code>renewal_type</code> <code>notice_days</code> <code>annual_contract_value</code> <code>total_contract_value</code> <code>pricing_model</code> <code>price_per_user</code> <code>features</code></p>
+      <p class="help" style="margin:0">Computed by code, never by the model: the end date when not stated, the missing contract value, the last day to say no.</p>
+    </div>
+    <div class="card">
+      <h4>What the endpoint (the app's question service) returns today</h4>
+      <table>
+        <tbody>
+          <tr><td><code>answer</code></td><td>the answer text, with <code>[file#section]</code> after each claim</td></tr>
+          <tr><td><code>sources</code></td><td>the sections the answer used, checked against the real sections</td></tr>
+          <tr><td><code>unknown_citations</code></td><td>citations that match no section: shown as a warning, never dropped</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <h3>The schema decision, as written in my decision log</h3>
+  <blockquote class="hers">
+    <p><b>Decision:</b> Stage 1 has its own schema: In <code>contract_id</code>; Out 10 fields, each with its source or "not found" (see <code>CHARTER.md</code>). Step B's <code>Request</code>/<code>Response</code> stay as they are. The question endpoint has its own small answer model, <code>ContractAnswer</code> (answer, sources, unknown_citations)</p>
+    <p><b>What I rejected:</b> Contract fields inside step B's <code>Request</code>; one field per feature or price line; price per user for every contract; a users count parsed from the text; the model computing dates</p>
+    <p><b>Why:</b> Features differ per vendor (free user tiers, SSO, security and support add-ons, AI credits), so one field per feature would make the schema grow with every vendor. A <code>features</code> list keeps one shape for all vendors; evals count how many expected features are found. <code>price_per_user</code> is filled only when the contract states a price per user, and it is the comparison metric across years and vendors. No users count: a number of users in a contract may not mean our staff (one counted people we train), so it stays as text in <code>features</code>. Dates and the missing contract value are computed by code. A silent contract gives <code>renewal_type</code> "not found": the system does not guess. In = <code>contract_id</code>, so the retrieval is finding the right section across a contract's documents; grouping real files into contracts is a production step. <code>sources</code> lives in <code>ContractAnswer</code>, not in step B's <code>Response</code>: sources belong to the answer that retrieved them, and step B retrieves nothing. The endpoint takes a free question, not <code>contract_id</code>: people ask in their own words, and finding the right contract is part of the test. Stage 1's 10-field extraction reuses the same retrieval later</p>
+    <p><b>What would change my mind:</b> Owners need to compare one feature across vendors (for example, what SSO costs): then that feature gets its own field, as <code>price_per_user</code> already is for user-based contracts</p>
+  </blockquote>
+  <p class="help">Stage 1 = step 1 in the Final product (read the contract and save its record) · step B = the TC1 drafting step (step 3) · evals = automatic scoring against labelled answers.</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 3 schema row) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a> (Stage 1) · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/schema.py">schema.py</a></p>
+</div>
+</section>
+
+<!-- ============ 3. RESULTS ============ -->
+<section id="results" data-label="Three techniques" data-time="1:00">
+<div class="wrap">
+  <div class="cue"><b>1:00 to 2:00.</b> Read the table top to bottom: rag-v1 to rag-v2 is the identity fix. Then DCI: same score, more evidence, more cost. Dense: cheapest, but one decline lost. Point at "embedding tokens 0".</div>
+  <p class="kicker"><span class="n">03</span> Measured</p>
+  <span class="req">Three techniques, results table with settings, embedding tokens</span>
+  <h2>Same questions, same labels, three ways to search</h2>
+  <p class="intro">Keyword search (BM25, the "rag" runs), read whole pages (DCI) and search by meaning (dense). Each searched the same 19 documents for the same 10 questions; the same answer model then wrote the answers.</p>
+  <div class="tablewrap">
+  <table class="num">
+    <thead><tr><th>Run</th><th>Date</th><th>Change</th><th>Pass</th><th>All gold cited</th><th>Calls</th><th>Evidence chars</th><th>Answer model cost $ (10 q.)</th><th>Avg s</th><th>Max turns hit</th></tr></thead>
+    <tbody>
+      <tr><td>rag-v1</td><td>Oct 24</td><td>baseline: chunks per section, vendor named only in Parties</td><td>7/10</td><td>5/9</td><td>60</td><td>146,122</td><td>est. 0.17 to 0.50</td><td>10.1</td><td>2</td></tr>
+      <tr class="ship"><td><b>rag-v2</b></td><td>Oct 24</td><td>file, vendor and title added to every chunk</td><td><b>10/10</b></td><td><b>9/9</b></td><td>34</td><td>72,791</td><td>est. 0.12 to 0.27</td><td>7.2</td><td>0</td></tr>
+      <tr class="ship"><td><b>rag-v2b</b></td><td>Oct 25</td><td>rag-v2 repeat, tokens logged</td><td><b>10/10</b></td><td><b>9/9</b></td><td>32</td><td>84,846</td><td>0.25</td><td>9.9</td><td>0</td></tr>
+      <tr><td>dci-v1</td><td>Oct 25</td><td>DCI: index, grep (40 lines), read page, no chunks</td><td>10/10</td><td>9/9</td><td>40</td><td>127,172</td><td>0.29</td><td>8.6</td><td>0</td></tr>
+      <tr><td>dense-v1</td><td>Oct 25</td><td>dense: bge-small-en-v1.5 local, same chunks, cosine</td><td>9/10</td><td>8/9</td><td>34</td><td>82,773</td><td>0.23</td><td>8.9</td><td>1</td></tr>
+      <tr><td>endpoint-v1</td><td>Oct 26</td><td>rag-v2 through the endpoint</td><td>not scored</td><td>8/9</td><td colspan="4">not logged</td><td>0</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">Pass = correct answer · All gold cited = named every section that answers it (9 questions have gold sections) · Calls = searches the model made · Evidence chars = text the model read · Avg s = seconds per question · Max turns hit = questions where it ran out of its 6 rounds · v1, v2 = versions; v2b = a repeat of v2 · endpoint-v1: sources checked by hand, answers not scored.</p>
+  <div class="grid g4" style="margin-top:14px">
+    <div class="card accent"><div class="big">7 → 10<small>of 10 passed, after adding the contract's identity (file, vendor, title) to every chunk (section), on 2 runs</small></div></div>
+    <div class="card"><div class="big">60 → 34<small>search calls, with half the evidence read (146,122 to 72,791 chars)</small></div></div>
+    <div class="card"><div class="big">$0.025<small>per question for the shipped technique, measured on rag-v2b (Sonnet 5.5, $2 in / $10 out per million tokens, looked up)</small></div></div>
+    <div class="card inkc"><div class="big">0<small>embedding tokens, measured: BM25 and DCI embed nothing; dense ran locally, so nothing was sent</small></div></div>
+  </div>
+  <details>
+  <summary>Settings, for engineers</summary>
+  <div class="tablewrap" style="margin-top:10px">
+  <table>
+    <tbody>
+      <tr><td><b>rag</b> (BM25)</td><td>BM25 over <code>##</code> sections; <code>search_chunks</code> k default 4, max 8; 1000 chars per chunk; max_turns 6; <code>CHUNK_PREFIX=True</code> from rag-v2</td></tr>
+      <tr><td><b>dci</b></td><td><code>contracts/index.md</code> via <code>list_pages</code>; <code>grep_wiki</code> max 40 lines; <code>read_page</code> max 12000 chars; max_turns 6</td></tr>
+      <tr><td><b>dense</b></td><td>bge-small-en-v1.5 via fastembed (local, 384 dims, embedding tokens 0: nothing sent); same <code>##</code> chunks with prefix as rag (173); cosine; k default 4, max 8; 1000 chars shown; max_turns 6</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </details>
+  <div class="diary"><span class="lab">What the numbers say</span>
+    <p><b>The most important fix is Q1.</b> rag-v1 answered 60 days with confidence, but the order form overrides the agreement to 90 days, and the override section was never retrieved (found by the search). An alert built on that answer would be 30 days late.</p>
+    <p><b>Declines (questions it should say no to) are the most expensive answer.</b> Measured in rag-v2b, Q10 used 39% of the run's input tokens (text sent to the model) and 33% of its cost: every turn (round) sends all earlier evidence again. DCI (read whole pages) declined in 4 calls for $0.033, against 6 calls for $0.081.</p>
+    <p><b>Dense (search by meaning) is weak on exact names:</b> for "cancellation period Vendor04" its top hit was the empty title chunk (a section with only a title) and its third hit another vendor. Its decline question hit the turn limit.</p>
+    <p><b>Same code, different scores:</b> an earlier run of the same baseline gave 5/10. Cost moved 15 to 20% between two runs of rag-v2 even at temperature 0 (the model's most repeatable setting). Only rag-v2 has two runs.</p>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/retrieval_results.md">use_case/evals/retrieval_results.md</a> · full answers in <a href="https://github.com/bestdash/FDE1/tree/main/use_case/evals/runs">use_case/evals/runs/</a> · code in <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/retrieval.py">retrieval.py</a></p>
+</div>
+</section>
+
+<!-- ============ 4. ENDPOINT ============ -->
+<section id="endpoint" data-label="The endpoint" data-time="2:00">
+<div class="wrap">
+  <div class="cue"><b>2:00 to 3:10.</b> Press <kbd>A</kbd> to open the app. Ask Q1 ("What's the cancellation period for the Vendor04 contract?"): it must find the 90-day override. Then Q4 (Vendor05 end date). Point at the source chips. Come back and open the docstring toggle.</div>
+  <p class="kicker"><span class="n">04</span> The endpoint</p>
+  <span class="req">The endpoint running, its docstring, the decline</span>
+  <h2>One question in, the answer and the sections it came from out</h2>
+  <p class="intro">The endpoint is the app's question service: an owner uses it through the demo page today, and an AI agent will call it from Week 5.</p>
+  <div class="flow">
+    <div class="step"><b>Question</b><small>in plain words, no contract to pick</small></div><span class="arrow">→</span>
+    <div class="step"><b>Search</b><small>BM25 (keyword search) over sections, as many searches as needed, max 6 turns (rounds)</small></div><span class="arrow">→</span>
+    <div class="step"><b>Answer</b><small>with <code>[file#section]</code> after each claim</small></div><span class="arrow">→</span>
+    <div class="step"><b>Check</b><small>every citation against the real sections</small></div><span class="arrow">→</span>
+    <div class="step"><b>Return</b><small><code>sources:</code> line, and a <code>warning:</code> line for any citation that matches nothing</small></div>
+  </div>
+  <details>
+  <summary>The docstring (the instructions an AI agent will read to use this service)</summary>
+  <pre class="msg">@app.api(name="answer_contract_question")
+def answer_contract_question(question: str) -> str:
+    """Answer one question about our contracts, asked in plain words.
+    Searches the contract documents and answers only from what it finds.
+    Returns the answer with [file#section] citations inline, then a last line
+    "sources: &lt;file#section&gt;, ..." or "sources: none".
+    A "warning:" line lists citations that match no document section.
+    If the contracts do not cover the question, it says so, names the document
+    that seems missing, and suggests asking the vendor for the last signed copy.
+    Dates computed from stated terms (for example start date plus term) come
+    with the terms used: check them before acting on a deadline.
+    Read-only: sends nothing, writes nothing, never guesses a figure."""</pre>
+  </details>
+  <h3>What it does on the decline question</h3>
+  <blockquote class="hers">
+    <p><b>On the decline question (Q10):</b> two behaviours seen. In its first run the endpoint hit the 6-turn limit and returned the fallback (no answer, no sources): the turn limit stopped the model before it could follow the decline instruction. The fallback now says it found no answer, that the topic may not be covered or a document may be missing, and to ask the vendor. In endpoint-v1 it gave an explained decline: what the contracts do say about security, no invented figure, and a suggestion to ask the vendor about the security add-on.</p>
+  </blockquote>
+  <p class="help">Q10 = the security question no document answers · 6-turn limit = at most 6 search rounds · fallback = the standard "no answer found" message.</p>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h4>The 10 questions through the endpoint</h4>All gold sections cited on 8 of 9 answerable questions. No invented citation. Q2 missed the master agreement and told the user to ask the vendor for it, although it is in the corpus (the 19 documents): a quiet failure, because the advice sounds reasonable.</div>
+    <div class="card"><h4>Runs where the app runs</h4>Locally and in Docker, with the contracts mounted read-only (the container can read them, never change them, and they are never copied into the image).</div>
+  </div>
+  <div class="diary"><span class="lab">A date that was one day late</span>
+    <p>The model computes deadlines from the stated terms and labels them as its own calculation. For 90 days before 30 June 2028 it once wrote "roughly 2 April 2028". The right date is 1 April: a notice sent on 2 April is only 89 days before the end, so too late, and the contract renews for another 24 months. In the next run it gave 1 April.</p>
+    <p>The charter already says code computes dates. I kept the model's calculation for TC3 so the endpoint is the setup I measured, and a code date tool comes in Week 4, measured as its own run.</p>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/app.py">app.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/endpoint-v1.md">runs/endpoint-v1.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/03_Retrieval/challenge/README.md">03_Retrieval/challenge/README.md · My TC3 endpoint</a></p>
+</div>
+</section>
+
+<!-- ============ 5. DECISION ============ -->
+<section id="decision" data-label="Decision" data-time="3:10">
+<div class="wrap">
+  <div class="cue"><b>3:10 to 3:40.</b> Read the statement. Then only the orange card: the three conditions that would change my mind.</div>
+  <p class="kicker"><span class="n">05</span> Decision</p>
+  <span class="req">The retrieval row: decision, rejected, why, what would change my mind</span>
+  <h2>Ship BM25 with the contract's identity in every chunk</h2>
+  <p class="intro">The course asks for one decision row: what I chose, what I rejected, why, and what would make me switch. The last column is what turns a preference into an engineering position.</p>
+  <div class="statement"><p class="lab">Decision, in short</p><p>Keyword search over each document's sections, with the contract's name and vendor on every section. Same accuracy as reading whole pages, cheaper, and no model to approve for the search.</p></div>
+  <div class="grid g2">
+    <div class="card"><h4>What I rejected, in short</h4><b>DCI</b> (read whole pages): the same 10/10, but it read 50% more text and cost more.<br><br><b>Dense</b> (search by meaning, run locally): 9/10, weak on exact vendor names. Its $0.23 is the answer model reading the found sections and writing the answer; the local embeddings cost nothing.</div>
+    <div class="card accent"><h4>What would change my mind, in short</h4><b>DCI</b> if declines go above about 20% of questions.<br><br><b>Dense or hybrid</b> (keyword plus meaning search) if owners often ask by product name instead of vendor name.<br><br><b>No identity prefix</b> (the contract's name on every section) if the vendor-to-contract mapping cannot come from the contract record.</div>
+  </div>
+  <h3>The row, as written in my decision log</h3>
+  <blockquote class="hers">
+    <p><b>Decision:</b> Retrieval: BM25 over the <code>##</code> sections of each document, with the contract's identity (file, vendor, document title) added to every chunk, in a tool loop (rag-v2). The endpoint <code>answer_contract_question</code> ships exactly this setup (k 4, max 8 per search, 6 turns)</p>
+    <p><b>What I rejected:</b> DCI (index, grep, read page): 10/10 and 9/9 cited, but 127,172 evidence chars and $0.29 for the 10 questions, against 84,846 and $0.25. Dense (bge-small-en-v1.5, local): 9/10 and 8/9, $0.23, weak on exact vendor names, and its decline question hit the turn limit</p>
+    <p><b>Why:</b> Small corpus (19 documents, 173 sections), so no vector database. The questions name the vendor and exact contract terms, where word matching is strong. Every answer names its file and section: Stage 1 extraction needs a source for every field, and Week 4 needs to know which passage caused a wrong answer. BM25 is word counting in code, so the retrieval step needs no model and no model approval; dense needs an embedding model, which would go through the same vendor review as any model (Week 2 model row). The fix that mattered: a section cut out of a contract loses which contract it belongs to; the identity prefix took rag-v1 from 7/10 to 10/10 (calls 60 to 34, evidence halved), on 2 runs. Known limits: one run per technique except rag-v2, and the same baseline code gave 5/10 and 7/10 on two runs; in the endpoint run, Q2 missed the master agreement and told the user to ask the vendor for a document already in the corpus; the model still computes dates (a notice deadline one day late in 1 of 2 runs), moving to code in Week 4</p>
+    <p><b>What would change my mind:</b> Switch to DCI if declines go above about 20% of questions: it declined in 4 calls for $0.033, against 6 calls for $0.081. 20% is my starting threshold to measure, not an industry standard. Add dense or hybrid if owners often ask by product name instead of vendor name, which word matching on the vendor misses: Step 6 is the first check. Drop the identity prefix if the vendor-to-contract mapping cannot come from the contract record (here it comes from the synthetic file name)</p>
+  </blockquote>
+  <p class="help">Tool loop = the model searches, reads and decides whether to search again · vector database = a database built for meaning search · embedding model = turns text into numbers · Stage 1 extraction = step 1 in the Final product.</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> (Week 3 retrieval row) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a> (Decisions made later)</p>
+</div>
+</section>
+
+<!-- ============ 6. NON-TEXT ============ -->
+<section id="nontext" data-label="Non-text content" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">06</span> Non-text content</p>
+  <span class="req">The four non-text answers</span>
+  <h2>Real contracts are text; scans are rare, and recordings are not the ground truth</h2>
+  <p class="intro">Contracts are not always clean text. The course asks four questions about scans, images and recordings, even when the answer is "there are almost none".</p>
+  <blockquote class="hers">
+    <ol>
+      <li><b>Visual, or text as pixels?</b> Text. The contracts are mostly vendor PDFs with real text; scanned paper is rare and almost gone, and new contracts arrive as e-signature PDFs. A scan, when there is one, is text rendered as pixels.</li>
+      <li><b>A number only in the pixels?</b> Rarely. Price tables come as text. The usual image is a scanned signature page, and an unsigned text version of the same contract usually exists, so the terms are read from the text and the scan only shows the signature.</li>
+      <li><b>Descriptions, or one parse per image?</b> No descriptions today. Any scan found (most likely an old contract) gets OCR once, in a batch job on the pilot VM inside the network, and the extracted terms are checked against the text version when there is one.</li>
+      <li><b>Video or audio?</b> Recordings of vendor calls can exist. A transcript does not answer the question: people discuss terms they did not agree to, so the signed contract stays the ground truth.</li>
+    </ol>
+  </blockquote>
+  <p class="help">OCR = text recognition on a scanned image · batch job = run once for all files · pilot VM = our test server inside the company network · ground truth = the reference.</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> (Non-text content)</p>
+</div>
+</section>
+
+<!-- ============ 7. OWNER REVIEW ============ -->
+<section id="review" data-label="Owner review" data-time="3:40">
+<div class="wrap">
+  <div class="cue"><b>3:40 to 4:10.</b> Who she is (role, not name). Her first question and what came back. Then her one sentence about trust, and what it changes.</div>
+  <p class="kicker"><span class="n">07</span> Shown to a contract owner</p>
+  <span class="req">Their five questions, three answers, what it changed</span>
+  <h2>She trusts what the contract says, and wants the system's own calculations set apart</h2>
+  <p class="intro">Only someone who asks these questions for real can say whether an answer is worth acting on. So on Oct 27 a contract owner outside IT typed her own questions into the demo, and I asked her three things about the answers.</p>
+  <div class="grid g2">
+    <div class="card"><h4>Who</h4>The head of the local HR team in France. She manages the local vendor contracts, mostly French, and some international ones, and not only IT (for example building services). Recorded Zoom screen-share, 21 minutes, in French and English.</div>
+    <div class="card"><h4>How</h4>Demo page with the 10 synthetic contracts, a scenario instead of example questions. She typed 3 questions, not the 5 the course asks for.</div>
+  </div>
+  <h3>Her questions, and what the endpoint did</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>#</th><th>Her question, as typed</th><th>What came back</th><th>Against my labels</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>"if we are going to be stuck or not with the company after 3 years"</td><td>No vendor named, so it answered for all 10 contracts: which renew automatically (stuck unless notice is given in time), which do not, and 2 it cannot tell because their online terms are not attached. 20 sources</td><td>All 11 gold sections cited</td></tr>
+      <tr><td>2</td><td>"do vendor 05 and vendor 10 have a non competitors clause ?"</td><td>The standard "no answer found" message, no sources: it used all 6 search rounds</td><td>Correct: no document has such a clause. But a fallback, not an explained decline</td></tr>
+      <tr><td>3</td><td>"Could you list all the costs for the company indicated in the contract Vendor10 ?"</td><td>Original and renewal fees (USD 16,000, then 18,000), the USD 2,000 increase, taxes and payment terms, the total over two terms, and no setup fees found</td><td>All 3 gold sections cited; the figures match the documents</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">Question 1 is entirely hers. For question 2 she raised non-competition clauses and I suggested the wording; for question 3 she wrote it after I suggested asking about costs. "The company" means the vendor. Gold sections = the sections that answer it · fallback = the standard "no answer found" message.</p>
+  <details><summary>Screen 1: "stuck or not after 3 years" and the answer</summary><object class="pdfshot" type="application/pdf" data="step6/q1-stuck-after-3-years.pdf"><a href="step6/q1-stuck-after-3-years.pdf">Open the screenshot (PDF)</a></object></details>
+  <details><summary>Screen 2: the non-competition question and the answer</summary><object class="pdfshot short" type="application/pdf" data="step6/q2-non-competition.pdf"><a href="step6/q2-non-competition.pdf">Open the screenshot (PDF)</a></object></details>
+  <details><summary>Screen 3: "list all the costs" for Vendor10 and the answer</summary><object class="pdfshot" type="application/pdf" data="step6/q3-vendor10-costs.pdf"><a href="step6/q3-vendor10-costs.pdf">Open the screenshot (PDF)</a></object></details>
+
+  <h3>Her answers to my three questions</h3>
+  <div class="grid g2">
+    <div class="card"><h4>1. Would you act on that answer?</h4>On the costs: "I will reach out directly to the company to ask for this increase and try to negotiate. So the next step for me would be to set up the meeting with the vendor." She would like the agent to draft that email, and to benchmark the price "on our behalf" to challenge the vendor "on the proposal".</div>
+    <div class="card"><h4>2. Does the source convince you, or would you go check?</h4>"I like to see that we see information directly coming from the document, that it's like, we are not going to contest this information, but after, when it's making calculation and comparison, it's from the system." She asked for the price difference "as a conclusion", and for "less words".</div>
+    <div class="card"><h4>3. What did you want to ask that you didn't?</h4>"The only things that I'm checking: installation, the service, the price, comparing the price, what we are paying and what we were paying before", and tacit renewal ("tacite reconduction"). Also not being stuck with a vendor after a divestiture, takeover or bankruptcy: for her, a clause to add to the next contract, not something to look up.</div>
+    <div class="card accent"><h4>What it changes</h4>Answers will show what the documents say, with their sources, apart from what the system calculated or compared, with the comparison as a short conclusion at the end. Planned for Week 4, together with the date tool. Her 3 questions are added to the labelled set (11 to 13).</div>
+  </div>
+  <p class="help">Her words from the recording, filler words removed; French words kept and translated. Zoom labelled both speakers as me, so I separated her words from mine by context.</p>
+  <div class="diary"><span class="lab">What surprised me</span>
+    <p>Her first question named no vendor: she asked about all contracts at once. My labels assumed one contract per question ("k is at least 2"); this answer needed 11 sections. And 1 of her 3 questions was a decline, above my 20% threshold for switching to read-whole-pages search, on only 3 questions.</p>
+  </div>
+  <p class="help"><b>Follow-up:</b> share the questions used in the session with her; she suggested other owners with larger contracts to try it next (not contacted yet).</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">use_case/stakeholders.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/retrieval.jsonl">retrieval.jsonl</a></p>
+</div>
+</section>
+
+<!-- ============ 8. BRING IT TO WORK ============ -->
+<section id="work" data-label="Bring it to work" data-time="4:10">
+<div class="wrap">
+  <div class="cue"><b>4:10 to 4:25.</b> Where at work, then the three swaps in one sentence each. New this week: contract text, not only fields, would reach the model.</div>
+  <p class="kicker"><span class="n">08</span> Bring it to work</p>
+  <span class="req">What I would swap: data, model, approval</span>
+  <h2>Retrieval (the search step) needs no approval; the answer model still does, now for contract text</h2>
+  <p class="intro">What would change to run this on our real contracts: where at work it helps, the data, the model, and the approval needed.</p>
+  <blockquote class="hers">
+    <p><b>Where at work:</b> contract owners open contract files by hand to find how to stop or close a contract (notice period, last day to say no) and to recall what we paid last time.</p>
+    <p><b>Data:</b> our IT contracts: mostly vendor PDFs with real text, a few old scans (OCR once in a batch job inside the network), new ones as e-signature PDFs. No recordings in the corpus: call recordings are not the ground truth.</p>
+    <p><b>Model or endpoint:</b> BM25 needs no embedding model. <b>Embedding tokens: 0, measured</b> (the dense test used a local model). The answer model reads contract sections, not only the structured fields planned in TC2: a capable hosted model on an approved route, ideally a private endpoint in our own cloud under an SLA.</p>
+    <p><b>Access or approval:</b> the model-route approval from TC2 (IT security, with the sponsor), now for contract text, plus read-only access to the contract folders. Open question for the sponsor and IT security: may contract text go to a private endpoint in our cloud under an SLA? My view: it is no less secure than the spreadsheets already in our document store.</p>
+  </blockquote>
+  <p class="help">Route = an approved way to send company data to an AI model · SLA = service agreement.</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/03_Retrieval/challenge/README.md#bring-it-to-work">03_Retrieval/challenge/README.md · Bring it to work</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">ecosystem.md</a></p>
+</div>
+</section>
+
+<!-- ============ 9. FINAL PRODUCT ============ -->
+<section id="product" data-label="Final product" data-time="4:25">
+<div class="wrap">
+  <div class="cue"><b>4:25 to 4:40.</b> "This is where it goes." Step 1 is new this week: reading the contract now comes before the alert, because every date the alert uses is written in the contract. Step 3 is what TC1 built. Then press → .</div>
+  <p class="kicker"><span class="n">09</span> The final product</p>
+  <h2>One renewal, from reading the contract to the new contract</h2>
+  <p class="intro">TC1 built the decision step. TC3 adds a new first step: the agent reads the contract before anything else, because the alert date, the review points and the quote all come from it.</p>
+
+  <div class="flow6">
+    <div class="fstep built">
+      <div class="fh"><span class="no">1</span><b>Read</b><span class="tc">TC3 · first part built</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Finds the sections that answer a question and names them. Next: pulls 10 key fields from every contract and saves them as its record, each with its source.</div>
+      <div class="lane owner"><span class="who">Owner</span>Asks questions in plain words and sees where each answer comes from.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Not involved.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">2</span><b>Alert</b><span class="tc">Week 4 or 5</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Watches every contract date each day, from the saved record. With auto-renewal, warns 37 days before the last day to say no; without, 90 days before the end date.</div>
+      <div class="lane owner"><span class="who">Owner</span>Gets the alert with time to decide, not after the date.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Not involved yet.</div>
+    </div>
+    <div class="fstep done">
+      <div class="fh"><span class="no">3</span><b>Decide</b><span class="tc">TC1 ✓ · TC2 test data ✓</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Drafts the right next message for the decision and the dates. Declines when the file or the owner is missing. 128 synthetic cases cover this routing.</div>
+      <div class="lane owner"><span class="who">Owner</span>Says renew or terminate, in Claude or by email.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Gets a termination notice only after the owner approves it.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">4</span><b>Review</b><span class="tc">Uses step 1's fields</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Reads the contract record: instances, add-ons, support and security options, quantities, price. Prepares review points for this contract.</div>
+      <div class="lane owner"><span class="who">Owner</span>Answers: duration (one year, three years, or both), forecast, what is used and what can be dropped.</div>
+      <div class="lane vendor none"><span class="who">Vendor</span>Not involved yet.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">5</span><b>Ask</b><span class="tc">Scored in TC4</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Drafts the quote request from the review answers, with our target conditions.</div>
+      <div class="lane owner"><span class="who">Owner</span>Approves or rejects the draft. Nothing is sent before that.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Receives the request.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">6</span><b>Negotiate</b><span class="tc">Builds in TC5 to TC7</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Compares the first quote, last year's price and the target. Spots a new bundle or licence model. Remembers every round.</div>
+      <div class="lane owner"><span class="who">Owner</span>Picks the quote to keep, or asks for another round.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Sends quotes and counter-offers to the shared mailbox.</div>
+    </div>
+    <div class="fstep">
+      <div class="fh"><span class="no">7</span><b>Close</b><span class="tc">Runs in TC9 and TC10</span></div>
+      <div class="lane agent"><span class="who">Agent</span>Records the new terms when the PO is issued, and sets next year's alerts.</div>
+      <div class="lane owner"><span class="who">Owner</span>Confirms. The PO goes out before the date, not after.</div>
+      <div class="lane vendor"><span class="who">Vendor</span>Confirms the new contract.</div>
+    </div>
+  </div>
+
+  <div class="guard">
+    <span class="lab">At every step</span>
+    <span>A human approves every send</span>
+    <span>Vendor email is untrusted input</span>
+    <span>Read-only access by default</span>
+    <span>Every decision has a named person</span>
+  </div>
+  <p class="help" style="margin-top:14px">Changed this week: reading the contract moved from step 3 (inside the review) to step 1, before the alert. PO = purchase order.</p>
+</div>
+</section>
+
+<!-- ============ 10. THE PATH ============ -->
+<section id="path" data-label="How I get there" data-time="4:40">
+<div class="wrap">
+  <div class="cue"><b>4:40 to 5:00.</b> "Week 3 is done: the product can now read a contract and say where each answer came from." End on the summit, then stop recording.</div>
+  <p class="kicker"><span class="n">10</span> How I get there</p>
+  <h2>Each course week builds one block of the real product</h2>
+  <p class="lead">Start small and ship every week, then climb toward the sponsor's bigger goal.</p>
+
+  <div class="stairs">
+    <div class="stair s0">
+      <div class="lvl"><span class="ln">1</span><span><b>See every date</b><small>Never miss a deadline</small></span></div>
+      <div class="bk done"><div class="tcn"><span>TC2</span><span>Oct 21</span></div><h5>Synthetic cases and a datasheet</h5>128 fake renewal cases, three axes, and an honest list of what they cannot prove.</div>
+      <div class="bk done"><div class="tcn"><span>TC2</span><span>Oct 21</span></div><h5>A local open model, tested</h5>Runs on a laptop in 15 s. Needs a vendor review before the company could use it.</div>
+    </div>
+    <div class="stair s1">
+      <div class="lvl"><span class="ln">2</span><span><b>Read the contract</b><small>Know what we signed</small></span></div>
+      <div class="bk done now"><div class="tcn"><span>TC3</span><span>Oct 28</span></div><h5>Retrieval from contracts</h5>10 synthetic contracts, 3 techniques measured, an endpoint that names the section behind every answer.</div>
+      <div class="bk"><div class="tcn"><span>TC4</span><span>Nov 4</span></div><h5>Evals and a 5-minute demo</h5>The goldens become scored evals. Code, not the model, counts the days to every deadline. Demo to the sponsor.</div>
+    </div>
+    <div class="stair s2">
+      <div class="lvl"><span class="ln">3</span><span><b>Negotiate, safely</b><small>More than an email writer</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC5</span><span>Nov 11</span></div><h5>Agent architecture</h5>This endpoint becomes a tool; negotiation is the first part that may need a real agent.</div>
+      <div class="bk"><div class="tcn"><span>TC6</span><span>Nov 18</span></div><h5>Guardrails</h5>Vendor emails and retrieved text can carry prompt injection.</div>
+      <div class="bk"><div class="tcn"><span>TC7</span><span>Nov 25</span></div><h5>Memory</h5>Case history across months: alerts sent, quote rounds, what was agreed.</div>
+    </div>
+    <div class="stair s3">
+      <div class="lvl"><span class="ln">4</span><span><b>Run it at the company</b><small>Inside their walls</small></span></div>
+      <div class="bk"><div class="tcn"><span>TC8</span><span>Dec 9</span></div><h5>A negotiator, not an email writer</h5>Fine-tune an open model, scored against the evals from TC4.</div>
+      <div class="bk"><div class="tcn"><span>TC9</span><span>Dec 16</span></div><h5>Deploy in IT's ecosystem</h5>With an approved model route. Secrets, network and login as IT requires.</div>
+      <div class="bk"><div class="tcn"><span>TC10</span><span>Dec 23</span></div><h5>Final report to the sponsor</h5>Dates caught, renewals on time, money saved.</div>
+      <div class="bk mile"><div class="tcn"><span>Milestone</span><span>January</span></div><h5>Internal hackathon</h5>The project presented inside the company.</div>
+    </div>
+    <div class="stair s4">
+      <div class="lvl"><span class="ln">★</span><span><b>Tool governance</b><small>The sponsor's goal</small></span></div>
+      <div class="bk hot"><h5>One contract per tool</h5>No two contracts for the same tool across teams.</div>
+      <div class="bk hot"><h5>Consolidate similar tools</h5>Fewer tools that do the same job; one plan that covers two needs.</div>
+      <div class="bk hot"><h5>Better prices, measured savings</h5>First quote vs negotiated price vs last year's price, reported for every renewal.</div>
+    </div>
+  </div>
+
+  <div class="summit">
+    <span class="flag">Summit</span>
+    <p>Fewer tools, better prices, no missed dates: the owner sets the goal, the agent negotiates, a human approves.</p>
+  </div>
+  <p class="src">From: course agenda (TC2 to TC10) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a></p>
+</div>
+</section>
+
+</main>
+
+<script>
+/* Paste the video link between the quotes after recording. */
+const LOOM_URL = "https://drive.google.com/file/d/1JnVHIY7dDuY6hDq1leRBKpm2KDQF78MO/view?usp=sharing";
+
+(function(){
+  /* cover decoration: rising pixel staircase, ink fading into orange */
+  const svg = document.getElementById('stairs');
+  if (svg) {
+    const N = 12, ns = 'http://www.w3.org/2000/svg';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (Math.floor(c / 3) + Math.floor((N - 1 - r) / 3) < 3) continue;
+      const s = document.createElementNS(ns, 'rect');
+      s.setAttribute('x', c + .08); s.setAttribute('y', r + .08);
+      s.setAttribute('width', .84); s.setAttribute('height', .84); s.setAttribute('rx', .2);
+      const t = (c + (N - 1 - r)) / (2 * (N - 1));
+      s.setAttribute('fill', t > .55 ? '#F04B2A' : '#0E0E0E');
+      s.setAttribute('opacity', (0.25 + 0.75 * t).toFixed(2));
+      svg.appendChild(s);
+    }
+  }
+
+  const loom = document.getElementById('loomLink');
+  if (LOOM_URL) { loom.href = LOOM_URL; } else { loom.textContent = 'Video (link to be added)'; loom.removeAttribute('href'); }
+
+  /* sidebar: every section, numbered, with video time or "doc" */
+  const sections = Array.from(document.querySelectorAll('main section'));
+  const nav = document.getElementById('nav');
+  const links = sections.map((s, i) => {
+    const a = document.createElement('a');
+    a.href = '#' + s.id;
+    const isDoc = s.classList.contains('doc-only');
+    const k = s.querySelector('.kicker .n');
+    const num = s.dataset.n || (k ? k.textContent : String(i).padStart(2, '0'));
+    a.innerHTML = '<span class="n">' + num + '</span><span>' + s.dataset.label + '</span>' +
+      (isDoc ? '<span class="doc">doc</span>' : '<span class="t">' + (s.dataset.time || '') + '</span>');
+    a.addEventListener('click', e => { e.preventDefault(); s.scrollIntoView({behavior:'smooth', block:'start'}); });
+    nav.appendChild(a);
+    return a;
+  });
+
+  const presenter = () => document.body.classList.contains('presenter');
+  const visibleIdx = () => sections.map((s, i) => i).filter(i => !(presenter() && sections[i].classList.contains('doc-only')));
+
+  function currentIndex(){
+    const line = window.innerHeight * 0.35; let cur = visibleIdx()[0];
+    visibleIdx().forEach(i => { if (sections[i].getBoundingClientRect().top <= line) cur = i; });
+    return cur;
+  }
+
+  function update(){
+    const vis = visibleIdx(); const cur = currentIndex(); const pos = vis.indexOf(cur);
+    links.forEach((a, i) => {
+      a.classList.toggle('hide', !vis.includes(i));
+      a.classList.toggle('on', i === cur);
+      a.classList.toggle('done', vis.includes(i) && vis.indexOf(i) < pos);
+    });
+    document.getElementById('pos').textContent = pos + 1;
+    document.getElementById('tot').textContent = vis.length;
+    document.querySelector('#prog i').style.width = ((pos + 1) / vis.length * 100) + '%';
+    document.getElementById('modeLabel').textContent = presenter() ? 'Presenter' : 'Document';
+    const a = links[cur];
+    if (a && nav.scrollHeight > nav.clientHeight) {
+      if (a.offsetTop < nav.scrollTop) nav.scrollTop = a.offsetTop - 8;
+      else if (a.offsetTop + a.offsetHeight > nav.scrollTop + nav.clientHeight) nav.scrollTop = a.offsetTop + a.offsetHeight - nav.clientHeight + 8;
+    }
+  }
+
+  function go(step){
+    const vis = visibleIdx(); const pos = vis.indexOf(currentIndex());
+    const next = vis[Math.max(0, Math.min(vis.length - 1, pos + step))];
+    sections[next].scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,textarea,select')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    else if (e.key === 'p' || e.key === 'P') {
+      const keep = sections[currentIndex()];
+      document.body.classList.toggle('presenter');
+      const target = (keep.offsetParent !== null) ? keep : sections[currentIndex()];
+      target.scrollIntoView({block:'start'});
+      update();
+    }
+    else if (e.key === 'a' || e.key === 'A') { window.open('http://localhost:7860', '_blank', 'noopener'); }
+  });
+
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(() => { update(); ticking = false; }); }
+  }, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
+</body>
+</html>

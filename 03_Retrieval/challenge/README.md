@@ -1,3 +1,20 @@
+**My TC3 submission:** [submission page](https://raw.githack.com/bestdash/FDE1/main/03_Retrieval/challenge/TC3_submission.html) · [video](https://drive.google.com/file/d/1JnVHIY7dDuY6hDq1leRBKpm2KDQF78MO/view?usp=sharing)
+
+## My TC3 endpoint
+
+- **Endpoint:** `answer_contract_question` in `01_Product_Engineering/challenge/app.py`. In: one question in plain words. Out: the answer with `[file#section]` citations, a `sources:` line, and a `warning:` line for any citation that matches no section. The 10 labelled questions through it: `use_case/evals/runs/endpoint-v1.md`. Decision and rejected options: `use_case/decisions.md`, Week 3 retrieval row.
+- **On the decline question (Q10):** two behaviours seen. In its first run the endpoint hit the 6-turn limit and returned the fallback (no answer, no sources): the turn limit stopped the model before it could follow the decline instruction. The fallback now says it found no answer, that the topic may not be covered or a document may be missing, and to ask the vendor. In endpoint-v1 it gave an explained decline: what the contracts do say about security, no invented figure, and a suggestion to ask the vendor about the security add-on.
+- **Dates:** the model computes dates from the stated terms and labels them as its own calculation, while `use_case/CHARTER.md` says code computes dates. Kept for TC3 so the endpoint is the measured rag-v2 setup; a code date tool comes in Week 4. Seen once: a notice deadline one day late (2 April 2028 instead of 1 April).
+
+## Bring it to work
+
+- **Where at work:** contract owners open contract files by hand to find how to stop or close a contract (notice period, last day to say no) and to recall what we paid last time.
+- **Data:** our IT contracts: mostly vendor PDFs with real text, a few old scans (OCR once in a batch job inside the network), new ones as e-signature PDFs. No recordings in the corpus: call recordings are not the ground truth.
+- **Model or endpoint:** BM25 needs no embedding model. **Embedding tokens: 0, measured** (the dense test used a local model). The answer model reads contract sections, not only the structured fields planned in TC2: a capable hosted model on an approved route, ideally a private endpoint in our own cloud under an SLA.
+- **Access or approval:** the model-route approval from TC2 (IT security, with the sponsor), now for contract text, plus read-only access to the contract folders. Open question for the sponsor and IT security: may contract text go to a private endpoint in our cloud under an SLA? My view: it is no less secure than the spreadsheets already in our document store.
+
+---
+
 <div align="center">
   <img
     src="https://github.com/AI-Maker-Space/LLM-Dev-101/assets/37101144/d1343317-fa2f-41e1-8af1-1dbb18399719"

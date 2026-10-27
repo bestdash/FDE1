@@ -19,7 +19,10 @@ COPY pyproject.toml uv.lock ./
 RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt \
  && uv pip install --system --no-cache -r requirements.txt
 
-COPY llm.py app.py schema.py ./
+COPY llm.py app.py schema.py retrieval.py ./
+# The contracts are NOT copied into the image: they are mounted read-only at run time
+# (-v <contracts folder>:/data/contracts:ro), so the image holds code only.
+ENV CONTRACTS_DIR=/data/contracts
 COPY frontend/ ./frontend/
 
 # Don't run as root. Your security review will ask about this.

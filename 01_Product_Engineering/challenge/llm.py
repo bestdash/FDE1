@@ -10,8 +10,30 @@ That property matters more than it looks like it does right now -- see the
 
 import json
 import os
+from pathlib import Path
 
 from litellm import completion, token_counter
+
+def _load_dotenv() -> None:
+    """Read the repo root .env into os.environ, before the settings below are read.
+
+    Local runs only. In Docker there is no .env file (keys arrive via --env-file),
+    so this does nothing. A value already set in the environment always wins.
+    """
+    parents = Path(__file__).resolve().parents
+    if len(parents) < 3:          # in Docker, /app/llm.py has no repo root above it
+        return
+    env = parents[2] / ".env"     # challenge/ -> 01_Product_Engineering/ -> FDE1/
+    if not env.exists():
+        return
+    for line in env.read_text(encoding="utf-8").splitlines():
+        key, sep, value = line.partition("=")
+        if sep and not line.lstrip().startswith("#"):
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
 
 # LiteLLM picks the provider from the model string:
 #   "gpt-4.1-mini"                    -> OpenAI
