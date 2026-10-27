@@ -71,6 +71,7 @@ top *k* is the wrong answer.
 - **2 declines:** renewal terms that live in online terms not attached (SYN-03), and a security-incident clause that no document has.
 - **Sources:** my own questions as a contract owner; 4 also match a column of the sponsor's tracking sheet. Questions name the vendor, as owners do.
 - **Left out on purpose:** "which contracts should I renew in the next 3 months?" is a query over all contract records plus today's date, not a search: it belongs to the alert stage, answered from the Stage 1 records.
+- **Step 6 (Oct 27):** questions 11 to 13 come from a contract owner outside IT. Question 11 names no vendor and asks about all contracts at once: its 11 gold sections are far above the k = 2 floor, a kind of question the first ten did not have. Questions 12 and 13 were partly worded by me (see `source`).
 
 | Week | What uses this file |
 | --- | --- |

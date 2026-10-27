@@ -113,6 +113,10 @@ gap is worth chasing — it usually means a proxy nobody documented.
 
 Downloading open weights works: `LiquidAI/LFM2.5-350M` downloaded from Hugging Face and ran on my laptop CPU (Intel Core Ultra 5 335, 15 GiB RAM in WSL): 15.13 s for 80 tokens. Plausible at the firm only if: the model vendor passes a vendor review (security certification, third-party risk review), the licence fits (this one becomes paid above a company revenue threshold), and the pilot VM has enough CPU or a GPU for a 4 to 8B model. The expert's preference (Oct 16) is a capable hosted model through an approved route instead.
 
+## Week 3: what retrieval needs approved
+
+BM25 needs no model and no index service, so the retrieval step needs no approval. Dense was measured with a local embedding model (bge-small-en-v1.5 through fastembed): embedding tokens 0, measured, nothing sent. At work it would need the same vendor review as any local model (Week 2). Still blocked: the answer model route (Week 1, question 8). New this week: retrieval sends contract sections to the answer model, not only structured fields, so the route request must cover contract text. Open with the sponsor and IT security after about Nov 4: may contract text go to a private endpoint in our own cloud under an SLA?
+
 ---
 
 ## Week 9 — the full checklist

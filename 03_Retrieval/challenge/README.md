@@ -1,3 +1,5 @@
+**My TC3 submission:** [submission page](https://raw.githack.com/bestdash/FDE1/main/03_Retrieval/challenge/TC3_submission.html) · [video](https://drive.google.com/file/d/1JnVHIY7dDuY6hDq1leRBKpm2KDQF78MO/view?usp=sharing)
+
 ## My TC3 endpoint
 
 - **Endpoint:** `answer_contract_question` in `01_Product_Engineering/challenge/app.py`. In: one question in plain words. Out: the answer with `[file#section]` citations, a `sources:` line, and a `warning:` line for any citation that matches no section. The 10 labelled questions through it: `use_case/evals/runs/endpoint-v1.md`. Decision and rejected options: `use_case/decisions.md`, Week 3 retrieval row.
