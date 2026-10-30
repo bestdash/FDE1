@@ -33,3 +33,4 @@ Group 3 fix: today's date and all date calculations in code, not by the model.
 - The drafted messages were judged against the current goldens. The goldens change in Step 2 from the sponsor review (`decisions.md` line 23), before the baseline.
 - Q3 was scored on the old wording ("last year"); the question is reworded and its label expects 16,000 and 18,000 for the baseline.
 - Q8 gold also accepts SYN-09-terms#3 from the baseline on.
+- Labels changed on 30 Oct, after Step 1, for the baseline: notice dates added to Q1, Q2, Q4; end_date added to Q4, Q5; term dates added to Q3.
