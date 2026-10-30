@@ -1,0 +1,205 @@
+{
+  "name": "endpoint",
+  "fingerprint": "f2e46d41db41f2c2",
+  "n": 13,
+  "means": {
+    "no_answer": 1.0,
+    "dates": 0.9230769230769231,
+    "missing_document": 0.8461538461538461,
+    "other_vendors": 0.8461538461538461
+  },
+  "errors": 0,
+  "seconds": 147.15699875001155,
+  "meta": {
+    "scorers": [
+      "dates",
+      "missing_document",
+      "no_answer",
+      "other_vendors"
+    ]
+  },
+  "results": [
+    {
+      "index": 0,
+      "input": "What's the cancellation period for the Vendor04 contract?",
+      "expected": "90 days\n31 December 2026\n[SYN-04-order.md#Terms]\n[SYN-04-terms.md#8. Term and Termination]",
+      "actual": "The Vendor04 contract doesn't give a right to cancel mid-term. It has a non-renewal notice period, and that period is **90 days**.\n\n- **Order Form:** It says it prevails over the Master Subscription Agreement if they conflict. It also says \"Notwithstanding the Agreement, notice of non-renewal must be given at least 90 days before the end of the current term\" [SYN-04-order.md#Terms].\n- **Master Subscription Agreement:** Subscriptions renew automatically for successive 12-month periods unless a party gives written notice of non-renewal at least 60 days before the end of the term [SYN-04-terms.md#8. Term and Termination]. The Order Form's 90 days overrides this 60-day period.\n- **Current term:** It runs from 1 April 2026 to 31 March 2027 (12 months) [SYN-04-order.md#Subscription Term].\n- **Latest notice date:** 31 March 2027 minus 90 days is 31 December 2026. I calculated this myself, and the contract doesn't state the date. To be safe, send written notice before that date.\n\nThe only other way out is termination for material breach. Either party can terminate the Agreement or an affected Order Form by written notice if the other party materially breaches it and doesn't fix the breach within a reasonable period after being notified [SYN-04-terms.md#8. Term and Termination].\n\nThe signature blocks in the Order Form are blank in the version I found [SYN-04-order.md#Signatures]. The Agreement's start date is the date of the last signature. You may want to confirm you have the signed copy.\n\nsources: SYN-04-order.md#Terms, SYN-04-terms.md#8. Term and Termination, SYN-04-order.md#Subscription Term, SYN-04-order.md#Signatures",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 15.22107506399334
+    },
+    {
+      "index": 1,
+      "input": "What are the renewal terms of the Vendor10 contract?",
+      "expected": "automatically\n90 days\nCustomer\n1 September 2027\n[SYN-10-renewal.md#Purchase Terms]\n[SYN-10-terms.md#8. Term and Termination]",
+      "actual": "The Vendor10 Renewal Order Form sets these renewal terms:\n\n- **Renewal term:** It starts on 1 December 2026 and ends on 30 November 2027, which is 12 months [SYN-10-renewal.md#Renewal Term].\n- **Automatic renewal:** The subscription renews automatically for successive 12-month periods. This does not happen if the Customer gives written notice of non-renewal at least 90 days before the end of the current term [SYN-10-renewal.md#Purchase Terms].\n- **Notice deadline for the current renewal term:** I calculated this from the 30 November 2027 end date, counting back 90 days. The notice would be due around 1 September 2027. Please check the exact date against the notice provisions.\n- **Fees:** The Customer subscribes to 400 user licences at USD 45 per user per year, which is USD 18,000 a year. The introductory discount no longer applies [SYN-10-renewal.md#Products and Fees].\n- **Payment:** The annual fee is invoiced in advance and invoices are due within 30 days of the invoice date. Fees exclude taxes [SYN-10-renewal.md#Payment Terms].\n- **Amendments:** The form can only be amended in writing signed by both parties [SYN-10-renewal.md#Purchase Terms].\n- **Relationship to the main agreement:** The terms of the underlying Agreement continue to apply unless the renewal form says otherwise. If the two conflict, the renewal form prevails for the renewal [SYN-10-renewal.md#Renewal Summary].\n\n**Missing document:** The renewal form refers to an existing \"Agreement\" between Vendor10 Design Ltd. and Customer Co, and that Agreement is not in the search results. Any renewal terms in it, such as price changes at renewal, can't be checked. Ask the vendor for the last signed copy. The signature blocks in the copy I found are also blank, so confirm that you have a signed version.\n\nsources: SYN-10-renewal.md#Renewal Term, SYN-10-renewal.md#Purchase Terms, SYN-10-renewal.md#Products and Fees, SYN-10-renewal.md#Payment Terms, SYN-10-renewal.md#Renewal Summary",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 0.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 6.178848996001761
+    },
+    {
+      "index": 2,
+      "input": "How much did we pay for the Vendor10 product last year?",
+      "expected": "16,000\n1 December 2025\n30 November 2026\n[SYN-10-order.md#Products and Fees]\n[SYN-10-renewal.md#Products and Fees]",
+      "actual": "The contracts show what you were *billed for* under the Vendor10 order. They don't show what you actually *paid*, and I don't know which year \"last year\" means for you.\n\n**What the contracts say**\n- The original Vendor10 Order Form covers 400 user licences at USD 40 per user per year, with an introductory discount. The annual fee is USD 16,000, exclusive of taxes. [SYN-10-order.md#Products and Fees]\n- The subscription term runs from 1 December 2025 to 30 November 2026. [SYN-10-order.md#Subscription Term]\n- The renewal covers 400 licences at USD 45 per user per year, and the introductory discount no longer applies. The annual fee is USD 18,000. [SYN-10-renewal.md#Products and Fees]\n- The renewal term runs from 1 December 2026 to 30 November 2027. [SYN-10-renewal.md#Renewal Term]\n\n**How this maps to \"last year\"**\n- If you mean the 12-month term from 1 Dec 2025 to 30 Nov 2026, the contracted fee is **USD 16,000**, plus any applicable taxes. I got this from 400 × USD 40.\n- The renewal fee of USD 18,000 applies only to the term starting 1 Dec 2026. It would apply to \"last year\" only if that term is the one you mean.\n- A single calendar year can include parts of two terms. Only the term-by-term figures above are stated in the contracts.\n\n**What I can't confirm**\n- The contracts don't include invoices or payment records. They also don't say whether the USD 16,000 was invoiced or paid in full, or whether there were disputes, credits or taxes. Please check your finance or accounts-payable records for the amounts paid.\n- The original order says the Vendor will invoice for the annual fee, with invoices due within 30 days. It doesn't say when the invoice is issued. [SYN-10-order.md#Payment Terms] The renewal says the fee is invoiced in advance. [SYN-10-renewal.md#Payment Terms]\n\nsources: SYN-10-order.md#Products and Fees, SYN-10-order.md#Subscription Term, SYN-10-renewal.md#Products and Fees, SYN-10-renewal.md#Renewal Term, SYN-10-order.md#Payment Terms, SYN-10-renewal.md#Payme",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 13.405685350997373
+    },
+    {
+      "index": 3,
+      "input": "When does the Vendor05 contract end?",
+      "expected": "30 June 2028\n30 June 2028\n1 April 2028\n[SYN-05-renewal.md#Renewal Term]",
+      "actual": "The Vendor05 contract currently ends on **30 June 2028**, based on the renewal order.\n\n- The original Order Form ran from 1 July 2025 to 30 June 2026 (12 months) [SYN-05-order.md#Subscription Term].\n- The Renewal Order Form then sets a 24-month renewal term from 1 July 2026 to 30 June 2028. It replaces the previous order form for that period [SYN-05-renewal.md#Renewal Term].\n\nThe Master Subscription Agreement continues for as long as any Order remains in effect [SYN-05-terms.md#8. Term and Termination].\n\nEach order renews automatically for a period equal to its current term. That doesn't happen if either party gives written notice of non-renewal at least 90 days before the end of the current term [SYN-05-terms.md#8. Term and Termination].\n\nIf neither party gives notice, the 24-month renewal term would roll over for another 24 months, to 30 June 2030. I worked that out from the 24-month term and the auto-renewal clause. The notice deadline is 90 days before 30 June 2028, which falls on about 1 April 2028. I counted that date myself, so check it before relying on it.\n\nThe renewal order's text doesn't say whether it changes the auto-renewal terms. I found no signature or date information for either order in the results.\n\nsources: SYN-05-order.md#Subscription Term, SYN-05-renewal.md#Renewal Term, SYN-05-terms.md#8. Term and Termination",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 0.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 8.312444028997561
+    },
+    {
+      "index": 4,
+      "input": "When does the Vendor02 contract end?",
+      "expected": "28 February 2029\n1 March 2026\n36 months\n28 February 2029\n[SYN-02-order.md#Subscription Term]",
+      "actual": "The Vendor02 subscription ends on **28 February 2027**.\n\nI calculated this from the Order Form. It says the term starts on 1 March 2026 and runs for 36 months. [SYN-02-order.md#Subscription Term] Thirty-six months from 1 March 2026 ends after 29 February 2028. 2028 is a leap year, so the last day is 29 February 2028.\n\nCorrection: I wrote the wrong year above. The 36-month term runs from 1 March 2026 to **29 February 2029**. Counting forward, 12 months ends 28 February 2027, 24 months ends 29 February 2028, and 36 months ends 28 February 2029.\n\nI've now given three different dates, so here is the final answer. 36 months from 1 March 2026 is 3 years. The term therefore ends on **28 February 2029**. 2029 is not a leap year.\n\nOther points from the Master Services Agreement:\n- The agreement continues for the term stated in the Order Form. [SYN-02-terms.md#8. Term and Termination]\n- A renewal needs a new written agreement signed by both parties. It does not renew automatically. [SYN-02-terms.md#8. Term and Termination]\n- Either party can give written notice of non-renewal at least 30 days before the end of the term. [SYN-02-terms.md#8. Term and Termination]\n- Either party can end the agreement early for a material breach that the other party doesn't remedy after a reasonable opportunity. [SYN-02-terms.md#8. Term and Termination]\n\nThe search results show no renewal or amendment for Vendor02 that would change this date.\n\nsources: SYN-02-order.md#Subscription Term, SYN-02-terms.md#8. Term and Termination",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 0.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 7.080372570999316
+    },
+    {
+      "index": 5,
+      "input": "What is the price per user in the Vendor07 contract?",
+      "expected": "USD 80\n[SYN-07-order.md#Products and Fees]",
+      "actual": "The Vendor07 Order Form prices user licences at **USD 80 per user per year**. It covers 250 licences, which comes to USD 20,000 a year (250 × 80). [SYN-07-order.md#Products and Fees]\n\nThat USD 80 is only for the user licences. The order form also lists two add-ons that aren't priced per user:\n- Security add-on: USD 5,000 per year\n- Support SLA add-on: USD 5,000 per year\n\nThe total annual fee is USD 30,000. [SYN-07-order.md#Products and Fees]\n\nIf you divide the total by the 250 users, you get USD 120 per user. That figure is my own calculation, and the contract doesn't state it.\n\nsources: SYN-07-order.md#Products and Fees",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 4.842227936998825
+    },
+    {
+      "index": 6,
+      "input": "Did we include SSO in the Vendor02 contract?",
+      "expected": "SSO\n[SYN-02-order.md#Products and Fees]",
+      "actual": "Yes. The Vendor02 Order Form includes SSO. It says the Customer is subscribing to \"the Platform package including SSO, AI credits (50,000 per year) and unlimited projects\" [SYN-02-order.md#Products and Fees].\n\n- **Term and fee:** The subscription starts on 1 March 2026 and runs for 36 months [SYN-02-order.md#Subscription Term]. The total fee for the 36-month term is USD 90,000 [SYN-02-order.md#Products and Fees].\n- **Signatures:** The signature blocks in the copy I found are blank, so I can't confirm it was signed [SYN-02-order.md#Signatures]. Check that you have the signed version.\n- **Master Services Agreement:** I only found the title and parties section of the Vendor02 Master Services Agreement [SYN-02-terms.md#Master Services Agreement]. I didn't see any SSO terms there, such as service levels or technical specifications.\n\nsources: SYN-02-order.md#Products and Fees, SYN-02-order.md#Subscription Term, SYN-02-order.md#Signatures, SYN-02-terms.md#Master Services Agreement",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 5.36552227800712
+    },
+    {
+      "index": 7,
+      "input": "What are my payment terms in the Vendor09 contract?",
+      "expected": "30 days\n[SYN-09-order.md#Payment Terms]",
+      "actual": "Under the Vendor09 contract, the Vendor invoices you for the annual fee, and each invoice is due within 30 days of the invoice date.\n\n- **Invoicing and due date:** The Order Form and the Master Subscription Agreement both set 30 days from the invoice date [SYN-09-order.md#Payment Terms] [SYN-09-terms.md#3. Fees and Payment].\n- **Fee:** The annual fee is USD 12,000 [SYN-09-order.md#Products and Fees].\n- **Payment method:** You pay in USD by bank transfer to the account stated on the invoice [SYN-09-order.md#Payment Terms].\n- **Taxes:** The fee excludes applicable taxes. These are added to the invoice where the law requires [SYN-09-order.md#Products and Fees]. Under the Master Subscription Agreement you pay these taxes, except taxes based on the Vendor's income [SYN-09-terms.md#3. Fees and Payment].\n- **Disputes:** If you dispute an invoice in good faith, you must notify the Vendor. The Order Form says to do this \"promptly\", and the Master Subscription Agreement says to do it in writing. You must pay the undisputed portion on time [SYN-09-order.md#Payment Terms] [SYN-09-terms.md#3. Fees and Payment].\n- **Non-cancellable fees:** Fees can't be cancelled except as the Master Subscription Agreement expressly allows [SYN-09-terms.md#3. Fees and Payment].\n\nThe Vendor09 documents I found don't mention late payment charges or interest.\n\nsources: SYN-09-order.md#Payment Terms, SYN-09-terms.md#3. Fees and Payment, SYN-09-order.md#Products and Fees",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 5.553127550010686
+    },
+    {
+      "index": 8,
+      "input": "What are the renewal terms of the Vendor03 contract?",
+      "expected": "Missing document.\n[SYN-03-order.md#Terms]",
+      "actual": "The Vendor03 order form doesn't state any renewal terms. The documents I found don't answer the question.\n\n- **Term:** The subscription runs from 1 February 2026 to 31 January 2027 [SYN-03-order.md#Subscription Term].\n- **Renewal:** The order form has no clause on automatic renewal, renewal pricing, or a notice period for non-renewal. Its sections cover the order summary, the term, payment, and governing terms. None of them mention renewal [SYN-03-order.md#Order Summary] [SYN-03-order.md#Payment Terms].\n- **Missing document:** The order form says it is governed by the Vendor's online Terms of Service, \"as updated from time to time\". It also says those terms \"are not attached to this order form\" [SYN-03-order.md#Terms]. Any renewal mechanics are probably in those terms, and I don't have them.\n- **Conflicts:** If the order form and the online terms conflict, the order form prevails for the products and fees it describes [SYN-03-order.md#Terms]. The order form says nothing about renewal, so the online terms would probably apply to it.\n\nI can't tell you whether the subscription renews automatically, or what notice you would need to give. Ask Vendor03 for the last signed copy of its Terms of Service, or the version in force on the order date. Until you have it, check the contract end date of 31 January 2027 and don't assume the subscription lapses or renews.\n\nThe other renewal clauses in the results belong to other vendors, such as Vendor04, Vendor06, Vendor09 and Vendor10. They don't apply to Vendor03.\n\nsources: SYN-03-order.md#Subscription Term, SYN-03-order.md#Order Summary, SYN-03-order.md#Payment Terms, SYN-03-order.md#Terms",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 0.0
+      },
+      "error": null,
+      "seconds": 12.678082035999978
+    },
+    {
+      "index": 9,
+      "input": "Who is responsible for security in case of an incident with Vendor04, and on what terms?",
+      "expected": "Missing document.",
+      "actual": "The Vendor04 contracts don't say who is responsible for security in an incident. They have no security-incident clause, no breach-notification duty, no security standards, and no data-processing terms.\n\nWhat the contracts do say that bears on security:\n\n- **Customer:** It is responsible for the acts of its authorised users and for keeping their access credentials secure [SYN-04-terms.md#2. Services]. It also warrants that it has the right to submit the Customer Data to the Services [SYN-04-terms.md#6. Warranties].\n- **Vendor:** It warrants that it will provide the Services with \"reasonable skill and care\" [SYN-04-terms.md#6. Warranties]. Other than that, the Services are provided \"as is\", and other warranties are disclaimed to the extent the law permits [SYN-04-terms.md#6. Warranties]. The Services are \"hosted security software services\" [SYN-04-terms.md#1. Definitions], and the Order Form includes a security add-on and premium support [SYN-04-order.md#Products and Fees]. Neither document says what security commitments come with them.\n- **Both parties, for confidential information:** Each party must protect the other's Confidential Information with at least reasonable care. Disclosure is limited to personnel and advisers who need to know it and are bound by confidentiality duties. Disclosure required by law is allowed, with notice where legally permitted [SYN-04-terms.md#5. Confidentiality]. Unlike some other vendors' terms in the results, the Vendor04 terms do not say Customer Data is the Customer's Confidential Information. Whether Customer Data counts depends on the general definition in [SYN-04-terms.md#1. Definitions].\n- **Liability:** Neither party is liable for indirect or consequential damages, or for loss of profits, revenue or data [SYN-04-terms.md#7. Limitation of Liability]. Each party's total liability is capped at the Fees paid under the Order Form giving rise to the claim. Liability that cannot be limited by law, such as fraud, is not limited. The Cus",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 0.0
+      },
+      "error": null,
+      "seconds": 20.930696691997582
+    },
+    {
+      "index": 10,
+      "input": "if we are going to be stuck or not with the company after 3 years",
+      "expected": "notice\n[SYN-01-terms.md#8. Term and Termination]\n[SYN-02-terms.md#8. Term and Termination]\n[SYN-03-order.md#Terms]\n[SYN-04-order.md#Terms]\n[SYN-04-terms.md#8. Term and Termination]\n[SYN-05-terms.md#8. Term and Termination]\n[SYN-06-order.md#Terms]\n[SYN-07-terms.md#8. Term and Termination]\n[SYN-08-order.md#Terms]\n[SYN-09-terms.md#8. Term and Termination]\n[SYN-10-renewal.md#Purchase Terms]",
+      "actual": "You didn't say which contract you mean. Two of them have a 3-year (36-month) term, Vendor02 and Vendor08, so I've covered both.\n\n**Vendor02: you wouldn't be stuck.**\n- The order form says the term starts on 1 March 2026 and runs for 36 months [SYN-02-order.md#Subscription Term]. By my calculation, that ends on 28 February 2029.\n- The agreement says a subscription \"may be renewed only by a new written agreement signed by both parties\" [SYN-02-terms.md#8. Term and Termination]. So it doesn't renew automatically, and the contract simply ends unless you both sign a new agreement.\n- Either party may also give written notice of non-renewal at least 30 days before the end of the term [SYN-02-terms.md#8. Term and Termination]. That is the same clause, section 8.3.\n- The agreement begins when both parties sign and continues for the term in the order form, \"unless terminated earlier in accordance with this Agreement\" [SYN-02-terms.md#8. Term and Termination]. The only early-termination right I found is for an uncured material breach. I found no right to leave early for convenience.\n\n**Vendor08: I can't tell from the documents.**\n- The order says the services start on 1 November 2025 and continue for 36 months [SYN-08-order.md#Subscription Term]. By my calculation, that ends on 31 October 2028.\n- The order says it is governed by \"the Vendor's standard terms published online. They are not attached to this order\" [SYN-08-order.md#Terms].\n- Those online terms aren't in the documents I searched. So I can't say whether the contract auto-renews, what notice you'd need to give, or whether you can terminate early.\n- Ask Vendor08 for the last signed copy of those terms, or the version in force when the order was signed. Until you have them, assume it might auto-renew.\n\nIf you meant a different vendor, tell me which one and I'll check it. The other contracts I found have 12-month terms, apart from Vendor05's 24-month renewal.\n\nsources: SYN-02-order.md#Subscription Term, SYN-02-terms.md#",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 19.47022033299436
+    },
+    {
+      "index": 11,
+      "input": "do vendor 05 and vendor 10 have a non competitors clause ?",
+      "expected": "Missing document.",
+      "actual": "I found no non-compete clause for Vendor05 or Vendor10 in the passages I retrieved. I didn't see every section of either agreement, so I can't fully rule one out.\n\n**Vendor05**\n- Section 2 only restricts the Customer from reselling or sublicensing the Services, reverse engineering them, or using them to infringe others' rights [SYN-05-terms.md#2. Services]. That is a usage restriction, not a ban on dealing with competitors.\n- I also read the fees, warranties, liability, term and termination, and general sections. None contains a non-compete or exclusivity term [SYN-05-terms.md#3. Fees and Payment] [SYN-05-terms.md#6. Warranties] [SYN-05-terms.md#7. Limitation of Liability] [SYN-05-terms.md#8. Term and Termination] [SYN-05-terms.md#10. General].\n- The Order Form and Renewal Order Form extracts show only parties, term, signatures and a statement that the other terms of the Master Subscription Agreement continue to apply. Neither contains such a clause [SYN-05-order.md#Subscription Term] [SYN-05-renewal.md#Purchase Terms].\n\n**Vendor10**\n- Section 2 gives a non-exclusive right to use the Services and restricts only resale, reverse engineering and use that breaks the law [SYN-10-terms.md#2. Services].\n- I also read the support, liability, term and termination, and general sections. None contains a non-compete or exclusivity term [SYN-10-terms.md#4. Support] [SYN-10-terms.md#7. Limitation of Liability] [SYN-10-terms.md#8. Term and Termination] [SYN-10-terms.md#10. General].\n- The Order Form and Renewal Order Form extracts say only that the Master Subscription Agreement governs [SYN-10-order.md#Terms] [SYN-10-renewal.md#Renewal Summary]. They add no non-compete.\n\n**Not reviewed:** I didn't retrieve some sections of these agreements, such as Confidentiality (section 5) and any others not listed above. A restriction could in theory sit there, though nothing suggests it does. The order forms' product and fee sections also weren't returned. If this matters for a decision, chec",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 18.110903950000647
+    },
+    {
+      "index": 12,
+      "input": "Could you list all the costs for the company indicated in the contract Vendor10 ?",
+      "expected": "16,000\n18,000\n[SYN-10-order.md#Products and Fees]\n[SYN-10-renewal.md#Products and Fees]\n[SYN-10-terms.md#3. Fees and Payment]",
+      "actual": "The Vendor10 contracts state the costs below. They are for Customer Co, the customer, under the subscription with Vendor10 Design Ltd.\n\n**Initial Order Form (1 Dec 2025 – 30 Nov 2026, 12 months)**\n- The Customer orders 400 user licences at USD 40 per user per year, with an introductory discount. The annual fee is USD 16,000. [SYN-10-order.md#Products and Fees]\n- The term is 1 December 2025 to 30 November 2026. [SYN-10-order.md#Subscription Term]\n\n**Renewal Order Form (1 Dec 2026 – 30 Nov 2027, 12 months)**\n- The renewal covers 400 user licences at USD 45 per user per year. The introductory discount no longer applies. The annual fee is USD 18,000. [SYN-10-renewal.md#Products and Fees]\n- The renewal term is 1 December 2026 to 30 November 2027. [SYN-10-renewal.md#Renewal Term]\n- The subscription renews automatically for successive 12-month periods. It does not renew if the Customer gives written notice of non-renewal at least 90 days before the end of the current term. [SYN-10-renewal.md#Purchase Terms]\n- The contracts don't state a price for any renewal after November 2027. I can't say what a later renewal would cost.\n\n**Other cost terms**\n- Fees exclude taxes. The Customer pays all applicable sales, use, value-added and similar taxes, except taxes based on the Vendor's income. [SYN-10-terms.md#3. Fees and Payment] The order form and renewal say the same. [SYN-10-order.md#Products and Fees] [SYN-10-renewal.md#Payment Terms]\n- The renewal invoices the annual fee in advance. Invoices are due within 30 days of the invoice date. [SYN-10-renewal.md#Payment Terms]\n- The Customer must pay undisputed amounts. A good-faith invoice dispute must be notified in writing. [SYN-10-terms.md#3. Fees and Payment]\n\n**Total over the two terms:** USD 16,000 + USD 18,000 = USD 34,000, before taxes. I added the two annual fees myself. The contracts don't state this total.\n\n**What the contracts don't state**\n- The amount of any taxes.\n- Any late-payment charges, setup fees, or other charges.",
+      "scores": {
+        "no_answer": 1.0,
+        "dates": 1.0,
+        "missing_document": 1.0,
+        "other_vendors": 1.0
+      },
+      "error": null,
+      "seconds": 10.00379846499709
+    }
+  ]
+}

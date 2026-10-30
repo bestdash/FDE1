@@ -1,3 +1,17 @@
+## Step 2: model-free scorers, echo and oracle
+
+13 contract questions (`use_case/evals/retrieval.jsonl`). Each scorer traces to a line in `use_case/evals/failures.md`. Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/harness.py --endpoint`
+
+| System | dates (rank 3) | missing_document (rank 1) | no_answer (rank 4) | other_vendors (rank 2) | mean |
+| --- | --- | --- | --- | --- | --- |
+| echo | 0.615 | 0.769 | 1.000 | 1.000 | 0.846 |
+| oracle | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| endpoint | 0.923 | 0.846 | 1.000 | 0.846 | 0.904 |
+
+Endpoint run of 30 Oct, answers in `use_case/evals/runs/endpoint-step2.json`. 5 of 13 questions failed at least one scorer. Not in this table yet: the 9 drafting goldens (`golden.jsonl`).
+
+---
+
 <div align="center">
   <img
     src="https://github.com/AI-Maker-Space/LLM-Dev-101/assets/37101144/d1343317-fa2f-41e1-8af1-1dbb18399719"
