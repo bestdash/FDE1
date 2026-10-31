@@ -115,8 +115,8 @@ def build_facts(r: Request) -> str:
 # Rules for every message. Each one comes from a "why" note in golden.jsonl.
 MESSAGE_RULES = """\
 - Write only the message text. Plain text, no markdown, no comments around it.
-- Invent nothing that is not in facts or database. Keep [Product], [Vendor contact] and
-  [Owner] as placeholders.
+- Invent nothing that is not in facts or database. Keep [Product], [Vendor contact],
+  [Owner] and [notice period] as placeholders.
 - The agent has not read the contract clauses, so never state a legal rule as
   fact: write "may not have to accept", never "does not have to accept".
 - The agent prepares drafts; it never sends anything to the vendor.
@@ -134,20 +134,21 @@ TYPE_RULES = {
     "termination_draft": """\
 Write a draft from the owner to the vendor. Greet "Hello [Vendor contact],".
 End with "Best regards," and then "[Owner]", not Contract agent: the owner sends it.
-Do not say that the owner reviews it first. Give no notice period, clause or price.
+Do not say that the owner reviews it first. Give no clause or price.
 If the facts give a notice deadline:
 - First line: "Subject: Notice of non-renewal: [Product]", then a blank line.
-- Write as “we” (the company), not “I”
-- Say we will not renew [Product], this is our notice of non-renewal, and the
-  contract should end on its current end date and not renew automatically.
+- Write as "we" (the company), not "I".
+- Say we will not renew [Product], this is our notice of non-renewal under the
+  [notice period] notice period in the contract, and the contract should end on
+  its current end date and not renew automatically.
 - Ask them to confirm in writing that they received this notice.
 If the facts say there is no auto-renewal:
 - This is a courtesy notice. First line: "Subject: [Product]: end of contract on <end date>".
 - Say the contract ends on its end date and we will not continue after it.
-  We tell them in good time so they can plan.
-- Ask them to confirm that service and billing stop on the end date, and whether
-  they need anything from us before then.
-- Do not mention auto-renewal, a notice deadline or "non-renewal": none of them exists.""",
+- Do not mention auto-renewal, a notice deadline, a notice period or
+  "non-renewal": none of them exists.
+In both cases, ask them to let us know if they need anything else from us,
+beyond this notice, to close the contract.""",
 
     # golden 3
     "late_notice_to_owner": """\
@@ -156,63 +157,81 @@ Write to the owner. Greet "Hello [Owner],".
 - Say the last day to give notice has passed (give the date), so the contract will
   renew on its current terms at its end date (give the date). Never say or imply
   that the contract is terminated.
-- Say they have not sent a termination notice to the vendor.
 - Ask if they still want to ask the vendor to end the contract. After the deadline
   it would be a request, not a notice, and the vendor may not have to accept.
 - Reply yes: I prepare a draft request for them to review. Reply no: the contract
   renews as it is. The owner decides, not the agent.""",
 
-    # goldens 2, 9
+    # goldens 2, 9, 12
     "renewal_review_email": """\
 Write to the owner, not to the vendor. Greet "Hello [Owner],".
-Thank them for confirming that they want to renew [Product].
+Name [Product] in the first sentence.
 If the notice deadline is still open:
 - Say the contract ends on its end date and renews automatically on its current
   terms unless notice is given by the notice deadline, so the review must be
   finished before that date. Give both dates.
-- Say: before I draft the quote request for the vendor, please check the four items.
+- Say company policy is not to keep auto-renewal clauses, so they should plan to
+  ask the vendor to remove it in this renewal.
+- Say: before I draft the quote request for the vendor, please check the six items.
 If the notice deadline has passed:
 - Say the last day to change the terms before the automatic renewal has passed
   (give the date), so the contract renews on its current terms at its end date
   (give the date). Do not write "before <deadline>".
-- Say a review is still worth doing, then list the four items.
+- Say company policy is not to keep auto-renewal clauses, so they should ask the
+  vendor to remove it for the next term.
+- Say a review is still worth doing, then list the six items. Item 1 asks about
+  the next term.
 - Say that if the review shows fewer licenses or a different model are needed,
   they can still ask the vendor to adjust, but the vendor may not have to accept
   until the next renewal.
-The four items, numbered:
-1. Duration: one year or three years?
+If the facts say there is no auto-renewal:
+- Say the contract has no automatic renewal: it ends on its end date (give the
+  date), so the review and the new terms must be finished before that date.
+- Do not mention a notice deadline, auto-renewal or the auto-renewal policy.
+- Say: before I draft the quote request for the vendor, please check the six items.
+The six items, numbered:
+1. Duration: one year, three years, or both, so the quotes can be compared?
 2. License model: keep the current model or change it?
 3. Quantity: how many licenses do you need?
 4. Usage: are all licenses in use, and are there features you do not use?
+5. Instances and add-ons: is each instance or environment still needed, and which
+   add-ons can be dropped?
+6. Forecast: what usage do you expect next year?
 Offer two ways to answer:
 - In Claude: open a review session and I will take them through this contract,
   together with any other contracts waiting for their review.
-- By reply: answer the four points, and I will use the answers to draft the quote
-  request (deadline open) or the request to the vendor (deadline passed).
+- By reply: answer the six points, and I will use the answers to draft the quote
+  request (deadline open, or no auto-renewal) or the request to the vendor
+  (deadline passed).
 The text must work both in Claude and as an email.
-If the notice deadline is still open, end with: nothing goes to the vendor until
-they approve the draft.""",
+If the notice deadline is still open, or there is no auto-renewal, end with:
+nothing goes to the vendor until they approve the draft.""",
 
-    # golden 4
+    # goldens 4, 11
     "missing_file_notice": """\
 Write to the owner. Greet "Hello [Owner],". This is a decline: prepare no draft.
 - Say which decision they asked for (from the facts) on [Product].
 - If the notice deadline is still open, repeat it: it keeps running.
-- Say "I can't find the signed contract", so I can't check its notice terms,
-  and I have not prepared a draft.
-- Ask them to send the signed contract, or say where it is stored, as soon as they can.""",
+- Say "I can't find the signed contract", so I can't check its terms.
+  Decision terminate: say I have not prepared a termination draft.
+  Decision renew: say I have not started the review.
+- Ask them to send the signed contract, or say where it is stored, as soon as they can.
+- If they do not have it, ask the vendor for the last signed copy.""",
 
-    # goldens 5, 6
+    # goldens 5, 6, 10
     "escalation_to_procurement": """\
 Write to procurement. Greet "Hello Procurement team,". This is a decline: prepare no draft.
-- Say the owner of the [Product] contract has left the company.
-- Say which decision is on record (from the facts), but nobody can now review or
-  approve a draft, so I have not prepared one.
-- Give the notice deadline if the facts give one and the contract end date, and ask them to assign a new
-  owner who can confirm or change the decision before the deadline.
-- If the facts say the signed contract was not found, also say that I can't find
-  it and can't check its notice terms, and ask them to send it or say where it
-  is stored.""",
+Keep it short: procurement's only action is to assign a new owner.
+- Say the owner of the [Product] contract has left the company. If the facts say
+  the signed contract was not found, add that I can't find it.
+- Say the decision on record (from the facts), but I can't start the review until
+  a new owner is assigned (and, if the contract was not found, I have the contract).
+- Ask them to assign a new owner before the notice deadline (give the date), or
+  before the contract end date when the facts give no notice deadline.
+- If the notice deadline is still open, say that if nobody acts by that date, the
+  contract renews automatically on its current terms on its end date (give the date).
+- If the signed contract was not found, in a separate paragraph ask them to send it
+  or say where it is stored; if nobody has it, ask the vendor for the last signed copy.""",
 }
 
 def build_prompt(request: Request, message_type: str) -> str:
