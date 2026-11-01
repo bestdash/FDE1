@@ -10,7 +10,7 @@ from helpers import harness
 
 EVALS = Path(__file__).resolve().parent      # the use_case/evals folder
 # One sentence a correct decline says.
-DECLINE_TEXT = "Missing document."
+DECLINE_TEXT = "Not in the documents."
 
 
 def oracle_text(case: dict) -> str:
@@ -183,6 +183,153 @@ SCORERS = {"no_answer": no_answer, "dates": dates,
 
 CHALLENGE = ROOT / "01_Product_Engineering" / "challenge"   # where app.py lives
 
+# --- Step 3: the judge, for failures.md rank 1: "Says something is missing that is in the documents" ---
+# Scores by meaning, so it is not tied to the 5 phrases missing_document looks for.
+import os
+from helpers import config
+from helpers.judge import Judge
+
+# What our files hold per vendor, from use_case/data/contracts/truth.jsonl "documents".
+# Copied here because use_case/data/ is never committed. Same fact as HAS_TERMS_FILE.
+VENDOR_DOCUMENTS = {
+    "01": "SYN-01-order.md (order form), SYN-01-terms.md (master terms)",
+    "02": "SYN-02-order.md (order form), SYN-02-terms.md (master terms)",
+    "03": "SYN-03-order.md (order form) only. It refers to the vendor's online Terms of Service, "
+          "which are not attached: we do not hold them",
+    "04": "SYN-04-order.md (order form), SYN-04-terms.md (master terms)",
+    "05": "SYN-05-order.md (first order form), SYN-05-terms.md (master terms), SYN-05-renewal.md "
+          "(renewal order form; it replaces the first order, and all other master terms still apply)",
+    "06": "SYN-06-order.md (order form) only. It refers to the vendor's online terms, not attached",
+    "07": "SYN-07-order.md (order form), SYN-07-terms.md (master terms)",
+    "08": "SYN-08-order.md (order form) only. It refers to standard terms published online, not attached",
+    "09": "SYN-09-order.md (order form), SYN-09-terms.md (master terms)",
+    "10": "SYN-10-order.md (first order form), SYN-10-terms.md (master terms), SYN-10-renewal.md "
+          "(renewal order form; the master terms still apply unless it says otherwise)",
+}
+
+# Key facts per vendor, from truth.jsonl "fields" (first orders of 05 and 10: their order forms).
+# Lets the judge see a false "not stated" about a fact, not only about a whole document.
+# Set VENDOR_FACTS = {} to judge on the document list alone.
+VENDOR_FACTS = {
+    "01": "Term 1 January 2026 to 31 December 2026 (order). Renews automatically, 90 days notice (terms). "
+          "USD 24,000 a year, 200 users at USD 120 (order).",
+    "02": "Starts 1 March 2026, 36 months; the end date is not stated, 28 February 2029 is computed (order). "
+          "No automatic renewal, 30 days notice (terms). USD 90,000 for the term: package with SSO, "
+          "50,000 AI credits a year, unlimited projects (order).",
+    "03": "Term 1 February 2026 to 31 January 2027. USD 18,000 a year, 300 users at USD 60 (order). "
+          "Renewal and notice: not in our documents.",
+    "04": "Term 1 April 2026 to 31 March 2027 (order). Renews automatically (terms); notice 90 days "
+          "(the order overrides the 60 days in the terms). USD 40,000 a year: package with SSO, "
+          "security add-on, premium support (order).",
+    "05": "First order 1 July 2025 to 30 June 2026, 150 users at USD 100, USD 15,000 a year (first order). "
+          "Renewal 1 July 2026 to 30 June 2028, 150 users at USD 110, USD 16,500 a year, USD 33,000 total, "
+          "AI assistant bundle (renewal). Renews automatically, 90 days notice (terms, which still apply "
+          "to the renewal).",
+    "06": "Term 1 September 2026 to 31 August 2028. No automatic renewal, 30 days notice. USD 50,000 for "
+          "the term: 3,500 learner seats, extra seats USD 1.50 per seat per month, SSO (order).",
+    "07": "Term 15 January 2026 to 14 January 2027 (order). Renews automatically, 30 days notice (terms). "
+          "USD 30,000 a year: 250 users at USD 80, security add-on, support SLA add-on (order).",
+    "08": "Starts 1 November 2025, 36 months; the end date is not stated (order). USD 120,000 for the term: "
+          "package with SSO, 100,000 AI credits a year, priority support (order). "
+          "Renewal and notice: not in our documents.",
+    "09": "Term 1 May 2026 to 30 April 2027 (order). No automatic renewal, 60 days notice (terms). "
+          "USD 12,000 a year: 5 TB storage, standard support; invoices due within 30 days (order).",
+    "10": "First order 1 December 2025 to 30 November 2026, 400 users at USD 40, USD 16,000 a year "
+          "(first order). Renewal 1 December 2026 to 30 November 2027, 400 users at USD 45, USD 18,000 "
+          "a year (renewal). The renewal adds automatic renewal, 90 days notice, Customer only (renewal).",
+}
+
+
+def judge_reference(question: str, kind: str) -> str:
+    """The question plus what our files hold for the vendors it names (all vendors if it names none)."""
+    asked = sorted(vendor_numbers(question)) or sorted(VENDOR_DOCUMENTS)
+    lines = [f"Question: {question}", "", "What our files hold:"]
+    for number in asked:
+        lines.append(f"- Vendor{number} documents: {VENDOR_DOCUMENTS[number]}.")
+        if VENDOR_FACTS:
+            lines.append(f"  Key facts: {VENDOR_FACTS[number]}")
+    if kind == "decline":
+        lines += ["", "Expected: our documents do not answer this question. An answer that says so is correct."]
+    return "\n".join(lines)
+
+
+def judge_case(case: dict) -> dict:
+    """What the judge sees: input = question + reference; output = the oracle answer (known-good)."""
+    return {"input": judge_reference(case["input"], case["kind"]), "output": case["output"]}
+
+
+JUDGE_CASES = [judge_case(case) for case in CASES]
+
+JUDGE_RUBRIC = """You check one answer about our vendor contracts for one failure: the answer says
+something is missing, not found or not stated, but our files have it.
+
+{input}
+
+Answer to check:
+{actual}
+
+Score 0 if the answer says a document or a key fact is missing, not found or not
+stated, and "What our files hold" above shows we have it. The search results are
+not our files: "it wasn't in the search results" is a missing claim too.
+Example of a 0: "The form refers to an underlying Agreement, and that Agreement
+wasn't in the search results", when our files hold SYN-10-terms.md (master terms)
+for Vendor10.
+
+Score 0 also if the text is not an answer to the question, for example it only
+repeats the question or says the turn limit was reached.
+
+Score 1 otherwise. Example of a 1: "The Vendor03 online Terms of Service are not
+in the results", when our files say those terms are not attached.
+A missing claim about something "What our files hold" does not mention (a clause,
+a signature, an invoice, a notice address) is not this failure: score 1.
+If our documents are expected to have no answer to the question, an answer that
+says so scores 1. Short answers, lists of facts and citations count as answers.
+Wrong dates, other vendors, length and style do not matter here.
+
+Reply with JSON only: {{"score": 0 or 1, "why": "<the false missing claim, or none>"}}"""
+
+# Known-bad for calibrate(): the rank-1 mistake, false for all 13 questions (every vendor has an order form).
+BAD_ANSWER = ("I didn't find any contract documents for this vendor in our files: no order form, "
+              "no master agreement and no renewal order. Missing document: ask the vendor for the "
+              "last signed copy of the contract.")
+
+
+def make_judge() -> Judge:
+    """The judge on a different model from the one that answers (JUDGE_MODEL in .env)."""
+    if str(CHALLENGE) not in sys.path:
+        sys.path.insert(0, str(CHALLENGE))
+    import llm  # noqa: F401  loads the repo .env (key, LLM_MODEL, JUDGE_MODEL) into os.environ
+    cfg = config.from_env(ROOT)
+    judge_model = os.environ.get("JUDGE_MODEL", "")
+    if not judge_model or judge_model == cfg.llm_model:
+        raise SystemExit("Set JUDGE_MODEL in .env to a model other than LLM_MODEL.")
+    return Judge(cfg, rubric=JUDGE_RUBRIC, model=judge_model)
+
+
+def judge_scorer(judge: Judge):
+    """The judge as a harness scorer: (actual, case) -> 0 or 1."""
+    return lambda actual, case: judge.score(actual, judge_case(case))
+
+
+# human_scores.jsonl lines I label 0 for this judge, from my why notes:
+# false missing claims (1, 2, 8, 14) and no answer (7). All other lines are 1.
+FALSE_MISSING_ROWS = {1, 2, 7, 8, 14}
+
+def agreement(judge: Judge) -> None:
+    """The judge against my labels on the 20 hand-scored answers, with the chance floor."""
+    by_question = {case["input"]: case for case in CASES}
+    lines = (EVALS / "human_scores.jsonl").read_text(encoding="utf-8").splitlines()
+    rows = [json.loads(line) for line in lines if line.strip()]
+    agreed = 0
+    for number, row in enumerate(rows, start=1):
+        mine = 0 if number in FALSE_MISSING_ROWS else 1
+        judged = round(judge.score(row["actual"], judge_case(by_question[row["input"]])))
+        agreed += mine == judged
+        if mine != judged:
+            print(f"  row {number}: me {mine}, judge {judged}: {row['input'][:60]}")
+    zeros = len(FALSE_MISSING_ROWS)
+    floor = max(zeros, len(rows) - zeros) / len(rows)
+    print(f"agreement {agreed}/{len(rows)} = {agreed / len(rows):.2f}, chance floor {floor:.2f}")
 
 def endpoint(question: str) -> str:
     """The real system: the TC3 endpoint, called as a Python function (no server needed)."""
@@ -208,3 +355,17 @@ if __name__ == "__main__":
         print(report)
         show_failures(report)
         harness.save(report, EVALS / "runs" / "endpoint-step2.json")   # the answers, to read later
+
+    if "--judge" in sys.argv:                      # 52 judge calls; 72 with --agreement
+        judge = make_judge()
+        print(judge.calibrate(JUDGE_CASES, wrong_answer=BAD_ANSWER))
+        for row in judge.calibration.detail:
+            print("  ", row)
+        if judge.calibration.passed:
+            scorer = {"missing_claim_judge": judge_scorer(judge)}
+            print(harness.run(CASES, echo, scorer, name="judge-echo"))
+            report = harness.run(CASES, oracle, scorer, name="judge-oracle")
+            print(report)
+            show_failures(report)                  # an oracle answer the judge scored 0
+            if "--agreement" in sys.argv:
+                agreement(judge)

@@ -8,7 +8,24 @@
 | oracle | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 | endpoint | 0.923 | 0.846 | 1.000 | 0.846 | 0.904 |
 
-Endpoint run of 30 Oct, answers in `use_case/evals/runs/endpoint-step2.json`. 5 of 13 questions failed at least one scorer. Not in this table yet: the 9 drafting goldens (`golden.jsonl`).
+Endpoint run of 30 Oct, answers in `use_case/evals/runs/endpoint-step2.json`. 5 of 13 questions failed at least one scorer. Not in this table yet: the 12 drafting goldens (`golden.jsonl`).
+
+## Step 3: the judge
+
+One judge, for `failures.md` rank 1 ("Says something is missing that is in the documents"), on the 13 contract questions. It scores by meaning, so it is not tied to the 5 phrases the `missing_document` scorer looks for. Reference: what our files hold per vendor, the document list and key facts (term, renewal, notice, fees), in `VENDOR_DOCUMENTS` and `VENDOR_FACTS` in `use_case/evals/harness.py`, copied from the uncommitted `truth.jsonl`; no contract text. Rubric: `JUDGE_RUBRIC`, binary, with an example of a 0 and a 1. Answers by `anthropic/claude-sonnet-5-5` (LLM_MODEL), judged by `anthropic/claude-opus-5-5` (JUDGE_MODEL). Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/harness.py --judge --agreement` (72 judge calls).
+
+| Test | Known-good | Known-bad |
+| --- | --- | --- |
+| `calibrate()`: 13 oracle answers vs one answer that says we hold no documents | 1.00 | 0.00 |
+| `harness.run()`: oracle vs echo | 1.000 | 0.000 |
+
+Agreement with my 20 hand scores (`human_scores.jsonl`), labelled for this one property from my why notes: 5 of 20 are 0 (four false missing claims, one no answer). Judge agrees on 20 of 20 = 1.00; chance floor 0.75 (always answering 1).
+
+**Separation 0.00 / 1.00 (echo / oracle), agreement 1.00 on 20 (floor 0.75): used.**
+
+First run: the judge failed the oracle on Q12 (Do Vendor05 and Vendor10 have a non-compete clause?). Expected a clause inside a contract, not a document. Because the oracle's decline text "Missing document." claimed a document was missing while we hold every document for both vendors; I changed it to "Not in the documents." and re-ran (oracle 0.92, then 1.00). 20 of 20 is an upper bound: the rubric's example of a 0 is my row 1, and I labelled the rows after reading the same traces. Step 4 tests the judge on answers it has not seen.
+
+The drafted messages get no judge: 1 failure in 9 traces (rank 4), low impact, and message type and act_by are code, checked by `check_goldens.py`.
 
 ---
 
