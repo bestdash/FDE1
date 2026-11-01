@@ -27,6 +27,27 @@ First run: the judge failed the oracle on Q12 (Do Vendor05 and Vendor10 have a n
 
 The drafted messages get no judge: 1 failure in 9 traces (rank 4), low impact, and message type and act_by are code, checked by `check_goldens.py`.
 
+## Step 4: generated failures
+
+`use_case/evals/synthetic.jsonl`: 14 broken answers, written by `use_case/evals/make_synthetic.py` from 10 answers I passed in `human_scores.jsonl`. One named edit per line, one `failures.md` mode per line, easy and hard (hard = plausible, or worded the way a scorer was not written for). Each line has the input, the broken output, the original and the failure mode. Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/harness.py --judge --synthetic`
+
+**Natural: 17 failures in 49 traces** (rank 1: 7, rank 2: 5, rank 3: 4, rank 4 no answer: 1, plus 1 invented doubt in a drafted message, not generated: drafts have no scorer). **Generated: 14.** Most of my real traces are fine, which is why the generated set exists.
+
+| Failure mode | Difficulty | n | no_answer | dates | missing_document | other_vendors | missing_claim_judge |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rank 1 false missing claim | easy | 2 | 0/2 | 0/2 | 2/2 | 0/2 | 2/2 |
+| rank 1 false missing claim | hard | 2 | 0/2 | 0/2 | 0/2 | 0/2 | 2/2 |
+| rank 2 other vendors | easy | 2 | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 |
+| rank 2 other vendors | hard | 2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 |
+| rank 3 date error | easy | 2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 |
+| rank 3 date error | hard | 2 | 0/2 | 1/2 | 0/2 | 0/2 | 0/2 |
+| rank 4 no answer | easy | 1 | 1/1 | 0/1 | 1/1 | 0/1 | 1/1 |
+| rank 4 no answer | hard | 1 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
+
+False alarms on the 10 originals (answers I passed): no_answer 0, dates 0, missing_document 0, other_vendors 0.
+
+Easy: 7 of 7 caught by the scorer written for them. Hard: 4 of 7, and 3 of those 4 only by the judge (both hard rank-1 edits and the polite fallback). Nothing caught three: other vendors named without a number ("other providers", "Vendor 7") and an extra wrong date next to the right one. The judge stays on its property: 0 catches on rank 2 (other vendors) and rank 3 (dates). I decide in Step 6, before the baseline, whether to fix other_vendors and dates for these.
+
 ---
 
 <div align="center">

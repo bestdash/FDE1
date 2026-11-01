@@ -331,6 +331,39 @@ def agreement(judge: Judge) -> None:
     floor = max(zeros, len(rows) - zeros) / len(rows)
     print(f"agreement {agreed}/{len(rows)} = {agreed / len(rows):.2f}, chance floor {floor:.2f}")
 
+# --- Step 4: generated failures (synthetic.jsonl, written by make_synthetic.py) ---
+# Natural counts per mode, from failures.md (49 traces read on 29 and 30 Oct).
+NATURAL = {"rank 1 false missing claim": 7, "rank 2 other vendors": 5,
+           "rank 3 date error": 4, "rank 4 no answer": 1}
+
+def detection(scorers: dict) -> None:
+    """Per failure mode and difficulty: how many broken answers each scorer caught (score below 1)."""
+    by_question = {case["input"]: case for case in CASES}
+    lines = (EVALS / "synthetic.jsonl").read_text(encoding="utf-8").splitlines()
+    rows = [json.loads(line) for line in lines if line.strip()]
+    names = list(scorers)
+    table = {}                                      # (mode, difficulty) -> counts
+    for row in rows:
+        case = by_question[row["input"]]
+        counts = table.setdefault((row["failure_mode"], row["difficulty"]),
+                                  {"n": 0, **{name: 0 for name in names}})
+        counts["n"] += 1
+        for name, scorer in scorers.items():
+            counts[name] += scorer(row["output"], case) < 1.0
+    natural = ", ".join(f"{mode}: {count}" for mode, count in NATURAL.items())
+    print(f"Natural: 17 failures in 49 traces ({natural}, plus 1 invented doubt in a drafted message). "
+          f"Generated: {len(rows)}.")
+    print("| Failure mode | Difficulty | n | " + " | ".join(names) + " |")
+    print("| --- " * (3 + len(names)) + "|")
+    for (mode, difficulty), counts in sorted(table.items()):
+        cells = " | ".join(f"{counts[name]}/{counts['n']}" for name in names)
+        print(f"| {mode} | {difficulty} | {counts['n']} | {cells} |")
+    originals = {row["original"]: by_question[row["input"]] for row in rows}
+    alarms = {name: sum(SCORERS[name](text, case) < 1.0 for text, case in originals.items())
+              for name in SCORERS}
+    print(f"False alarms on the {len(originals)} originals (answers I passed): "
+          + ", ".join(f"{name} {count}" for name, count in alarms.items()))    
+
 def endpoint(question: str) -> str:
     """The real system: the TC3 endpoint, called as a Python function (no server needed)."""
     if str(CHALLENGE) not in sys.path:
@@ -361,6 +394,7 @@ if __name__ == "__main__":
         print(judge.calibrate(JUDGE_CASES, wrong_answer=BAD_ANSWER))
         for row in judge.calibration.detail:
             print("  ", row)
+            
         if judge.calibration.passed:
             scorer = {"missing_claim_judge": judge_scorer(judge)}
             print(harness.run(CASES, echo, scorer, name="judge-echo"))
@@ -369,3 +403,9 @@ if __name__ == "__main__":
             show_failures(report)                  # an oracle answer the judge scored 0
             if "--agreement" in sys.argv:
                 agreement(judge)
+
+    if "--synthetic" in sys.argv:                  # free; with --judge: +14 judge calls
+        scorers = dict(SCORERS)
+        if "--judge" in sys.argv and judge.calibration.passed:
+            scorers["missing_claim_judge"] = judge_scorer(judge)
+        detection(scorers)            
