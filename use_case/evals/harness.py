@@ -181,9 +181,6 @@ SCORERS = {"no_answer": no_answer, "dates": dates,
            "missing_document": missing_document, "other_vendors": other_vendors}
 
 
-CHALLENGE = ROOT / "01_Product_Engineering" / "challenge"   # where app.py lives
-
-# --- Step 3: the judge, for failures.md rank 1: "Says something is missing that is in the documents" ---
 # Scores by meaning, so it is not tied to the 5 phrases missing_document looks for.
 import os
 from helpers import config
@@ -363,13 +360,6 @@ def detection(scorers: dict) -> None:
               for name in SCORERS}
     print(f"False alarms on the {len(originals)} originals (answers I passed): "
           + ", ".join(f"{name} {count}" for name, count in alarms.items()))    
-
-def endpoint(question: str) -> str:
-    """The real system: the TC3 endpoint, called as a Python function (no server needed)."""
-    if str(CHALLENGE) not in sys.path:
-        sys.path.insert(0, str(CHALLENGE))        # app.py imports schema, llm, retrieval from its folder
-    from app import answer_contract_question     # imported here, so echo and oracle stay instant
-    return answer_contract_question(question)
 
 def show_failures(report):
     """Print each case where a scorer gave less than 1.0, so you can read it."""

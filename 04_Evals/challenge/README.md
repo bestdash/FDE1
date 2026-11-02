@@ -56,7 +56,7 @@ Skipped: the scored endpoint (`answer_contract_question`) answers one question a
 
 ## Step 6: the baseline
 
-Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py` (13 endpoint calls; 39 judge calls: 26 to calibrate, 13 to score). Saved run: `use_case/evals/baseline.json`. Add `--save` only to replace the baseline.
+Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py` (13 endpoint calls; 39 judge calls: 26 to calibrate, 13 to score). Saved run: `use_case/evals/baseline.json`. Add `--save` only to replace the baseline. It needs a `.env` with the API key, `LLM_MODEL` and `JUDGE_MODEL` (two different models), and the synthetic contracts in `use_case/data/contracts/`, which are not committed (or a folder named in `CONTRACTS_DIR`). Without them, the free checks still run: `harness.py --synthetic`.
 
 | System | dates | missing_document | no_answer | other_vendors | missing_claim_judge |
 | --- | --- | --- | --- | --- | --- |
