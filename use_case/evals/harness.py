@@ -89,7 +89,7 @@ def find_dates(text: str) -> list:
             pass
     return [day for _, day in sorted(found)]           # sorted by position in the text
 
-VENDOR_NUMBER = re.compile(r"vendor\s?(\d{2})(?!\s*(?:days?|months?|years?))", re.IGNORECASE)  # Vendor04, vendor 05
+VENDOR_NUMBER = re.compile(r"vendor\s?(\d{1,2})(?!\d)(?!\s*(?:days?|months?|years?))", re.IGNORECASE)  # Vendor04, vendor 05, Vendor 7 (Step 4)
 
 
 def vendor_numbers(text: str) -> set:
@@ -154,7 +154,7 @@ def missing_document(actual: str, case: dict) -> float:
     return 1.0
 
 # Scorer for failures.md rank 2: "Brings in other vendors' contracts in an answer about one vendor"
-OTHER_VENDOR_WORDS = ["other vendor", "different vendor", "some vendor"]
+OTHER_VENDOR_WORDS = ["other vendor", "different vendor", "some vendor", "other provider", "other supplier"]
 COMPARISON_WORDS = ["compare", "comparison", "usual practice", "similar", "others"]
 
 

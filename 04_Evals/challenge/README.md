@@ -46,7 +46,27 @@ The drafted messages get no judge: 1 failure in 9 traces (rank 4), low impact, a
 
 False alarms on the 10 originals (answers I passed): no_answer 0, dates 0, missing_document 0, other_vendors 0.
 
-Easy: 7 of 7 caught by the scorer written for them. Hard: 4 of 7, and 3 of those 4 only by the judge (both hard rank-1 edits and the polite fallback). Nothing caught three: other vendors named without a number ("other providers", "Vendor 7") and an extra wrong date next to the right one. The judge stays on its property: 0 catches on rank 2 (other vendors) and rank 3 (dates). I decide in Step 6, before the baseline, whether to fix other_vendors and dates for these.
+Easy: 7 of 7 caught by the scorer written for them. Hard: 4 of 7, and 3 of those 4 only by the judge (both hard rank-1 edits and the polite fallback). Nothing caught three: other vendors named without a number ("other providers", "Vendor 7") and an extra wrong date next to the right one. The judge stays on its property: 0 catches on rank 2 (other vendors) and rank 3 (dates).
+
+After Step 4, I fixed `other_vendors` for the two misses (a vendor number with a space, "other providers"): rank 2 hard is now 2 of 2, 0 false alarms on the 10 originals. The fix was written for those two edits, so this number flatters the scorer. I tried a stricter dates rule (every date must be one our files hold) and dropped it: it failed an answer I passed that correctly projected the next renewal end. An extra wrong date next to the right one stays a known gap.
+
+## Step 5: scenarios
+
+Skipped: the scored endpoint (`answer_contract_question`) answers one question and keeps no history. Not covered as a result: follow-up questions, and whether the agent read the sections it cites (it calls search tools inside one turn). I come back to it when the chat endpoint is scored, or in Week 6 and 7.
+
+## Step 6: the baseline
+
+Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py` (13 endpoint calls; 39 judge calls: 26 to calibrate, 13 to score). Saved run: `use_case/evals/baseline.json`. Add `--save` only to replace the baseline.
+
+| System | dates | missing_document | no_answer | other_vendors | missing_claim_judge |
+| --- | --- | --- | --- | --- | --- |
+| endpoint (baseline, Nov 2) | 0.846 | 0.846 | 1.000 | 0.846 | 0.692 |
+
+**Headline: missing_claim_judge 0.692, 95% CI [0.462, 0.923], n = 13.**
+
+`compare()` of the file against itself: `PASS  week4-baseline → week4-baseline  [dates +0.000  missing_claim_judge +0.000  missing_document +0.000  no_answer +0.000  other_vendors +0.000]`
+
+I read the whole answer for the 4 questions where the judge and `missing_document` disagree: the judge matched my reading on all 4, `missing_document` on none. The saved run keeps only the first 2,000 characters of each answer.
 
 ---
 
