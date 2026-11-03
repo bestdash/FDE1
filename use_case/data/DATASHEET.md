@@ -38,7 +38,7 @@ This is prototyping data: inputs that look like real renewal cases, with no labe
 - The pipeline runs end to end: generate, dedupe, validate.
 - The generated inputs fit the current `Request` schema, for each combination of `time_left` and `record_completeness`.
 - The validator rejects rows that do not fit, and the counts show how many.
-- Routing coverage: 128 input situations (decision, dates, owner status, file status), each with the type and `act_by` the model chose, to test routing in Week 4. Not message quality.
+- Routing coverage: 128 input situations (decision, dates, owner status, file status), each with the type and `act_by` the model chose. Checked Oct 28: `route_request` gives the same type and `act_by` on all 128 rows (0 disagree). Not message quality, and the rows reuse the dates of the goldens, so edge cases such as today equal to `autorenew_date` may be missing.
 - Plausibility, narrowly: the contract owner read 14 rows and found no situation that would never happen ("we are covered at 99%"). That is one expert on 14 rows, not a measure of the whole file.
 
 
@@ -50,7 +50,7 @@ This is prototyping data: inputs that look like real renewal cases, with no labe
 - Realistic contract wording: the axis value "paid security support line" is something the expert has never seen in a contract. Real contracts have two separate paid options: a software support add-on and a security add-on.
 - A missing vendor contact: when the vendor's people change and the new email is not in our files, the process blocks. No row covers it. It matters in a later step, after the owner has reviewed the contract.
 - Dedupe uses character overlap, which cannot see a one-word change in a structured field: one renew row was dropped as a twin of a terminate row in run 1.
-- Validation checks types and allowed values only: not that dates are consistent, that `act_by` is right, or that the message matches the decision.
+- Validation checks types and allowed values only: not that dates are consistent or that the message matches the decision. Type and `act_by` were checked separately against `route_request` on Oct 28: 0 of 128 disagree.
 - Which message types appear depends on which goldens the prompt shows: with 3 seeds, run 1 produced zero decline rows.
 - With less than 14 days left, the model wanted an urgent-warning message type the schema does not have. Urgency exists only in the message text.
 - Rows reuse the goldens' invented dates (2026-10-12, 2026-11-15, 2026-12-15), so date variety is lower than it looks.

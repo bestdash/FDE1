@@ -1,3 +1,84 @@
+## Step 2: model-free scorers, echo and oracle
+
+13 contract questions (`use_case/evals/retrieval.jsonl`). Each scorer traces to a line in `use_case/evals/failures.md`. Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/harness.py --endpoint`
+
+| System | dates (rank 3) | missing_document (rank 1) | no_answer (rank 4) | other_vendors (rank 2) | mean |
+| --- | --- | --- | --- | --- | --- |
+| echo | 0.615 | 0.769 | 1.000 | 1.000 | 0.846 |
+| oracle | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| endpoint | 0.923 | 0.846 | 1.000 | 0.846 | 0.904 |
+
+Endpoint run of 30 Oct, answers in `use_case/evals/runs/endpoint-step2.json`. 5 of 13 questions failed at least one scorer. Not in this table yet: the 12 drafting goldens (`golden.jsonl`).
+
+## Step 3: the judge
+
+One judge, for `failures.md` rank 1 ("Says something is missing that is in the documents"), on the 13 contract questions. It scores by meaning, so it is not tied to the 5 phrases the `missing_document` scorer looks for. Reference: what our files hold per vendor, the document list and key facts (term, renewal, notice, fees), in `VENDOR_DOCUMENTS` and `VENDOR_FACTS` in `use_case/evals/harness.py`, copied from the uncommitted `truth.jsonl`; no contract text. Rubric: `JUDGE_RUBRIC`, binary, with an example of a 0 and a 1. Answers by `anthropic/claude-sonnet-5-5` (LLM_MODEL), judged by `anthropic/claude-opus-5-5` (JUDGE_MODEL). Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/harness.py --judge --agreement` (72 judge calls).
+
+| Test | Known-good | Known-bad |
+| --- | --- | --- |
+| `calibrate()`: 13 oracle answers vs one answer that says we hold no documents | 1.00 | 0.00 |
+| `harness.run()`: oracle vs echo | 1.000 | 0.000 |
+
+Agreement with my 20 hand scores (`human_scores.jsonl`), labelled for this one property from my why notes: 5 of 20 are 0 (four false missing claims, one no answer). Judge agrees on 20 of 20 = 1.00; chance floor 0.75 (always answering 1).
+
+**Separation 0.00 / 1.00 (echo / oracle), agreement 1.00 on 20 (floor 0.75): used.**
+
+First run: the judge failed the oracle on Q12 (Do Vendor05 and Vendor10 have a non-compete clause?). Expected a clause inside a contract, not a document. Because the oracle's decline text "Missing document." claimed a document was missing while we hold every document for both vendors; I changed it to "Not in the documents." and re-ran (oracle 0.92, then 1.00). 20 of 20 is an upper bound: the rubric's example of a 0 is my row 1, and I labelled the rows after reading the same traces. Step 4 tests the judge on answers it has not seen.
+
+The drafted messages get no judge: 1 failure in 9 traces (rank 4), low impact, and message type and act_by are code, checked by `check_goldens.py`.
+
+## Step 4: generated failures
+
+`use_case/evals/synthetic.jsonl`: 14 broken answers, written by `use_case/evals/make_synthetic.py` from 10 answers I passed in `human_scores.jsonl`. One named edit per line, one `failures.md` mode per line, easy and hard (hard = plausible, or worded the way a scorer was not written for). Each line has the input, the broken output, the original and the failure mode. Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/harness.py --judge --synthetic`
+
+**Natural: 17 failures in 49 traces** (rank 1: 7, rank 2: 5, rank 3: 4, rank 4 no answer: 1, plus 1 invented doubt in a drafted message, not generated: drafts have no scorer). **Generated: 14.** Most of my real traces are fine, which is why the generated set exists.
+
+| Failure mode | Difficulty | n | no_answer | dates | missing_document | other_vendors | missing_claim_judge |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rank 1 false missing claim | easy | 2 | 0/2 | 0/2 | 2/2 | 0/2 | 2/2 |
+| rank 1 false missing claim | hard | 2 | 0/2 | 0/2 | 0/2 | 0/2 | 2/2 |
+| rank 2 other vendors | easy | 2 | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 |
+| rank 2 other vendors | hard | 2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 |
+| rank 3 date error | easy | 2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 |
+| rank 3 date error | hard | 2 | 0/2 | 1/2 | 0/2 | 0/2 | 0/2 |
+| rank 4 no answer | easy | 1 | 1/1 | 0/1 | 1/1 | 0/1 | 1/1 |
+| rank 4 no answer | hard | 1 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
+
+False alarms on the 10 originals (answers I passed): no_answer 0, dates 0, missing_document 0, other_vendors 0.
+
+Easy: 7 of 7 caught by the scorer written for them. Hard: 4 of 7, and 3 of those 4 only by the judge (both hard rank-1 edits and the polite fallback). Nothing caught three: other vendors named without a number ("other providers", "Vendor 7") and an extra wrong date next to the right one. The judge stays on its property: 0 catches on rank 2 (other vendors) and rank 3 (dates).
+
+After Step 4, I fixed `other_vendors` for the two misses (a vendor number with a space, "other providers"): rank 2 hard is now 2 of 2, 0 false alarms on the 10 originals. The fix was written for those two edits, so this number flatters the scorer. I tried a stricter dates rule (every date must be one our files hold) and dropped it: it failed an answer I passed that correctly projected the next renewal end. An extra wrong date next to the right one stays a known gap.
+
+## Step 5: scenarios
+
+Skipped: the scored endpoint (`answer_contract_question`) answers one question and keeps no history. Not covered as a result: follow-up questions, and whether the agent read the sections it cites (it calls search tools inside one turn). I come back to it when the chat endpoint is scored, or in Week 6 and 7.
+
+## Step 6: the baseline
+
+Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py` (13 endpoint calls; 39 judge calls: 26 to calibrate, 13 to score). Saved run: `use_case/evals/baseline.json`. Add `--save` only to replace the baseline. It needs a `.env` with the API key, `LLM_MODEL` and `JUDGE_MODEL` (two different models), and the synthetic contracts in `use_case/data/contracts/`, which are not committed (or a folder named in `CONTRACTS_DIR`). Without them, the free checks still run: `harness.py --synthetic`.
+
+| System | dates | missing_document | no_answer | other_vendors | missing_claim_judge |
+| --- | --- | --- | --- | --- | --- |
+| endpoint (baseline, Nov 2) | 0.846 | 0.846 | 1.000 | 0.846 | 0.692 |
+
+**Headline: missing_claim_judge 0.692, 95% CI [0.462, 0.923], n = 13.**
+
+`compare()` of the file against itself: `PASS  week4-baseline → week4-baseline  [dates +0.000  missing_claim_judge +0.000  missing_document +0.000  no_answer +0.000  other_vendors +0.000]`
+
+I read the whole answer for the 4 questions where the judge and `missing_document` disagree: the judge matched my reading on all 4, `missing_document` on none. The saved run keeps only the first 2,000 characters of each answer.
+
+## Bring it to work
+
+- **Where at work:** the contract agent's answers to IT contract owners in the pilot. Today nobody measures how often an answer is wrong; the sponsor checks every "not found" by hand and would stop checking at 9 good answers in 10.
+- **Data:** about 50 real questions that owners ask, on masked IT contracts. Legal and procurement already know the right answers and would grade them (sponsor, Nov 3).
+- **Model or endpoint:** the judge uses the same approved route as the agent, with no data retention and no training (sponsor, Nov 3). Processing must stay in the EU: Foundry on Azure has no EU option yet (read Oct 28), so Bedrock or Google with EU routing are the ones to check.
+- **Access or approval:** from IT security with the sponsor: a separate vendor assessment, a legal review of the vendor's DPA, the existing Anthropic agreement checked for data retention, API keys stored in Keeper behind SSO and MFA. **Judge calls per `run.py`: 39 (26 to calibrate, 13 to score), measured** on the baseline run of Nov 2.
+
+Submission page: `TC4_submission.html` in this folder (press P for the 5-minute demo).
+
+---
+
 <div align="center">
   <img
     src="https://github.com/AI-Maker-Space/LLM-Dev-101/assets/37101144/d1343317-fa2f-41e1-8af1-1dbb18399719"
