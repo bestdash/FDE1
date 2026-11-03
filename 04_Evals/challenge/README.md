@@ -68,6 +68,15 @@ Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/ru
 
 I read the whole answer for the 4 questions where the judge and `missing_document` disagree: the judge matched my reading on all 4, `missing_document` on none. The saved run keeps only the first 2,000 characters of each answer.
 
+## Bring it to work
+
+- **Where at work:** the contract agent's answers to IT contract owners in the pilot. Today nobody measures how often an answer is wrong; the sponsor checks every "not found" by hand and would stop checking at 9 good answers in 10.
+- **Data:** about 50 real questions that owners ask, on masked IT contracts. Legal and procurement already know the right answers and would grade them (sponsor, Nov 3).
+- **Model or endpoint:** the judge uses the same approved route as the agent, with no data retention and no training (sponsor, Nov 3). Processing must stay in the EU: Foundry on Azure has no EU option yet (read Oct 28), so Bedrock or Google with EU routing are the ones to check.
+- **Access or approval:** from IT security with the sponsor: a separate vendor assessment, a legal review of the vendor's DPA, the existing Anthropic agreement checked for data retention, API keys stored in Keeper behind SSO and MFA. **Judge calls per `run.py`: 39 (26 to calibrate, 13 to score), measured** on the baseline run of Nov 2.
+
+Submission page: `TC4_submission.html` in this folder (press P for the 5-minute demo).
+
 ---
 
 <div align="center">
