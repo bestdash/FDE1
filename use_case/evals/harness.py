@@ -52,12 +52,16 @@ def oracle(question: str) -> str:
 
 CHALLENGE = ROOT / "01_Product_Engineering" / "challenge"   # where app.py lives
 
+FULL_ANSWERS = {}   # question -> the whole endpoint answer (helpers/harness.py keeps only 2,000 characters)
+
 def endpoint(question: str) -> str:
     """The real system: the TC3 endpoint, called as a Python function (no server needed)."""
     if str(CHALLENGE) not in sys.path:
         sys.path.insert(0, str(CHALLENGE))        # app.py imports schema, llm, retrieval from its folder
     from app import answer_contract_question     # imported here, so echo and oracle stay instant
-    return answer_contract_question(question)
+    answer = answer_contract_question(question)
+    FULL_ANSWERS[question] = answer
+    return answer
 
 
 # Scorer for failures.md rank 4: "No answer: turn limit hit, cause unknown"
@@ -184,7 +188,7 @@ SCORERS = {"no_answer": no_answer, "dates": dates,
 # Scores by meaning, so it is not tied to the 5 phrases missing_document looks for.
 import os
 from helpers import config
-from helpers.judge import Judge
+from helpers.judge import Judge, parse_json
 
 # What our files hold per vendor, from use_case/data/contracts/truth.jsonl "documents".
 # Copied here because use_case/data/ is never committed. Same fact as HAS_TERMS_FILE.
@@ -300,12 +304,43 @@ def make_judge() -> Judge:
     judge_model = os.environ.get("JUDGE_MODEL", "")
     if not judge_model or judge_model == cfg.llm_model:
         raise SystemExit("Set JUDGE_MODEL in .env to a model other than LLM_MODEL.")
-    return Judge(cfg, rubric=JUDGE_RUBRIC, model=judge_model)
+    return ReasonJudge(cfg, rubric=JUDGE_RUBRIC, model=judge_model)
 
+
+class ReasonJudge(Judge):
+    """The course Judge, plus the "why" of its last verdict (helpers/judge.py keeps only the score)."""
+    last_why = ""
+
+    def _ask(self, prompt: str) -> str:
+        reply = super()._ask(prompt)
+        parsed = parse_json(reply) or {}
+        self.last_why = str(parsed.get("why", "(no why in the reply)"))
+        return reply
+
+
+JUDGE_WHYS = {}   # question -> the judge's why, for the run being judged
 
 def judge_scorer(judge: Judge):
-    """The judge as a harness scorer: (actual, case) -> 0 or 1."""
-    return lambda actual, case: judge.score(actual, judge_case(case))
+    """The judge as a harness scorer: (actual, case) -> 0 or 1. Keeps its why per question."""
+    def score(actual, case):
+        value = judge.score(actual, judge_case(case))
+        JUDGE_WHYS[case["input"]] = getattr(judge, "last_why", "")
+        return value
+    return score
+
+
+def save_full(report, path):
+    """One JSON line per question: the whole answer, every score, and the judge's why when it ran."""
+    rows = []
+    for result in report.results:
+        row = {"question": result.input,
+               "answer": FULL_ANSWERS.get(result.input, result.actual),   # whole answer when the endpoint ran
+               "scores": result.scores}
+        if result.input in JUDGE_WHYS:
+            row["judge_why"] = JUDGE_WHYS[result.input]
+        rows.append(json.dumps(row, ensure_ascii=False))
+    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    print(f"  saved {len(rows)} answers to {path.relative_to(ROOT)}")
 
 
 # human_scores.jsonl lines I label 0 for this judge, from my why notes:
@@ -323,7 +358,7 @@ def agreement(judge: Judge) -> None:
         judged = round(judge.score(row["actual"], judge_case(by_question[row["input"]])))
         agreed += mine == judged
         if mine != judged:
-            print(f"  row {number}: me {mine}, judge {judged}: {row['input'][:60]}")
+            print(f"  row {number}: me {mine}, judge {judged}: {row['input'][:60]}  why: {getattr(judge, 'last_why', '')}")
     zeros = len(FALSE_MISSING_ROWS)
     floor = max(zeros, len(rows) - zeros) / len(rows)
     print(f"agreement {agreed}/{len(rows)} = {agreed / len(rows):.2f}, chance floor {floor:.2f}")
@@ -366,7 +401,8 @@ def show_failures(report):
     for result in report.results:
         failed = [name for name, score in result.scores.items() if score < 1.0]
         if failed:
-            print(f"  question {result.index + 1}: {result.input[:70]} -> failed: {', '.join(failed)}")
+            why = f"  why: {JUDGE_WHYS[result.input]}" if result.input in JUDGE_WHYS else ""
+            print(f"  question {result.index + 1}: {result.input[:70]} -> failed: {', '.join(failed)}{why}")
 
 
 if __name__ == "__main__":
@@ -378,6 +414,7 @@ if __name__ == "__main__":
         print(report)
         show_failures(report)
         harness.save(report, EVALS / "runs" / "endpoint-step2.json")   # the answers, to read later
+        save_full(report, EVALS / "runs" / "endpoint-step2-full.jsonl")   # whole answers, no 2,000-character cut
 
     if "--judge" in sys.argv:                      # 52 judge calls; 72 with --agreement
         judge = make_judge()
@@ -388,11 +425,18 @@ if __name__ == "__main__":
         if judge.calibration.passed:
             scorer = {"missing_claim_judge": judge_scorer(judge)}
             print(harness.run(CASES, echo, scorer, name="judge-echo"))
+            JUDGE_WHYS.clear()                         # whys from the oracle run only
             report = harness.run(CASES, oracle, scorer, name="judge-oracle")
             print(report)
             show_failures(report)                  # an oracle answer the judge scored 0
             if "--agreement" in sys.argv:
                 agreement(judge)
+            if FULL_ANSWERS:                           # --endpoint ran too: judge the real answers (13 more judge calls)
+                JUDGE_WHYS.clear()
+                report = harness.run(CASES, lambda question: FULL_ANSWERS[question], scorer, name="judge-endpoint")
+                print(report)
+                show_failures(report)
+                save_full(report, EVALS / "runs" / "judge-endpoint-full.jsonl")
 
     if "--synthetic" in sys.argv:                  # free; with --judge: +14 judge calls
         scorers = dict(SCORERS)
