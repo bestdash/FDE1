@@ -99,6 +99,16 @@ SYSTEM = (
     "the text sits under, in the same bracket format."
 )
 
+SECTION_LINE = re.compile(r"^\[(SYN-[^\]\n]+)\]$", re.MULTILINE)   # the "[SYN-04-order.md#Terms]" line that heads each search result
+
+def returned_ids(name, args, result):
+    """Section ids one tool call showed the model: logged in the trace, used for sources in app.py."""
+    if result.startswith("(tool error"):
+        return []
+    if name == "read_page":                      # a whole page: app.py accepts any section of it
+        return [args.get("page", "")] if isinstance(args, dict) else []
+    return SECTION_LINE.findall(result)          # search_chunks: one "[id]" line per section
+
 def run_agent(question, tools, funcs, max_turns=6):
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, chars = [], 0
@@ -118,6 +128,7 @@ def run_agent(question, tools, funcs, max_turns=6):
         messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": shaped})
         for call in shaped:
             name = call["function"]["name"]
+            args = {}                                  # set before the try: bad JSON must not log the previous call's args
             try:
                 args = json.loads(call["function"]["arguments"] or "{}")
                 if name not in funcs:
@@ -126,7 +137,7 @@ def run_agent(question, tools, funcs, max_turns=6):
             except Exception as exc:
                 result = f"(tool error: {type(exc).__name__}: {exc})"
             chars += len(result)
-            trace.append({"tool": name, "args": args, "chars": len(result)})
+            trace.append({"tool": name, "args": args, "chars": len(result), "ids": returned_ids(name, args, result)})
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
     return {"answer": "(max turns reached)", "trace": trace, "evidence_chars": chars,
             "latency_s": time.perf_counter() - started, "stopped": "max_turns", **tokens}

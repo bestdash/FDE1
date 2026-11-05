@@ -105,7 +105,8 @@ def answer_contract_question(question: str) -> str:
     Searches the contract documents and answers only from what it finds.
     Returns the answer with [file#section] citations inline, then a last line
     "sources: <file#section>, ..." or "sources: none". 
-    A "warning:" line lists citations that match no document section.
+    A "warning:" line lists citations that match no document section, and
+    another lists real sections it cited that this question's searches did not return.
     If the contracts do not cover the question, it says so, names the document
     that seems missing, and suggests asking the vendor for the last signed copy.
     Dates computed from stated terms (for example start date plus term) come
@@ -114,6 +115,7 @@ def answer_contract_question(question: str) -> str:
 
     result = run_agent(question, RAG_TOOLS, RAG_FUNCS)
 
+    not_retrieved = []                                   # cited sections this question's searches did not return
     if result["stopped"] != "answer":                     # the loop ran out of turns
         reply = ContractAnswer(answer="I searched the contracts and found no answer. Either they do not cover "
                                 "this topic, or the document that covers it is missing: if you think it is missing, "
@@ -121,13 +123,19 @@ def answer_contract_question(question: str) -> str:
     else:
         cited = CITATION.findall(result["answer"])        # ["SYN-04-order.md#Terms", "SYN-04-order.md#Order"..."]
         unique = list(dict.fromkeys(cited))               # drop repeats, keep the order
-        sources = [s for s in unique if s in KNOWN_IDS]        # real sections only
+        retrieved = {i for step in result["trace"] for i in step.get("ids", [])}   # every section this question's searches returned
+        def was_retrieved(s):
+            return s in retrieved or s.split("#")[0] in retrieved                   # read_page returns a whole page
+        sources = [s for s in unique if s in KNOWN_IDS and was_retrieved(s)]       # real, and retrieved for this question
+        not_retrieved = [s for s in unique if s in KNOWN_IDS and not was_retrieved(s)]  # real, but not retrieved here
         unknown = [s for s in unique if s not in KNOWN_IDS]    # cited, but no such section
         reply = ContractAnswer(answer=result["answer"], sources=sources, unknown_citations=unknown)
 
     text = reply.answer + "\n\nsources: " + (", ".join(reply.sources) or "none")
     if reply.unknown_citations:                                # an empty list counts as False
         text += "\nwarning: cited but not found: " + ", ".join(reply.unknown_citations)
+    if not_retrieved:
+        text += "\nwarning: cited but not retrieved for this question: " + ", ".join(not_retrieved)
     return text
 
 # --- The frontend ------------------------------------------------------------
