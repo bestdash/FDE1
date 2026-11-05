@@ -75,3 +75,19 @@ One question was asked aloud in Session 9. The rest came as written feedback fro
 | "9 good" counts only false missing claims, while the sponsor accepts 1 wrong answer in 10 of any kind. Which answers count as good in his sense? | Instructor | Fair | The headline now counts answers that pass all 4 checks, one per failure group, with each score beside it (Week 5 decision row). The demo's numbers slide shows both. |
 
 Other feedback (7 points), and where it goes: section ids in the trace, and full answers with the judge's reasons (this week's fixes); the false "not found" rate with its own decline questions (Week 6); open the demo with one missed auto-renewal and its cost (Tuesday's demo); alerts before negotiation (Week 5 decision row); real contracts through an approved route, one department or redacted copies first (same blocker as the open question); an owner and a date for every contract (later, with the contract record).
+
+## Week 5 — second way (Step 2)
+
+The endpoint is a plain tool today. I walked Session 10's six ordering questions for it, in order.
+
+| # | Question | Answer | Why |
+| --- | --- | --- | --- |
+| 1 | Does it already exist as an HTTP API at work? | No | No contract API exists at work. Contract data is internal and is not served through an API. |
+| 2 | Does anything outside this app need to discover it? | **Yes** | The sponsor wants to ask about contracts through the Claude interface, not a separate tool. Client: Claude Desktop, where pilot users connect (`ecosystem.md`). |
+| 3 | Does one request need several calls, or calls that return a lot? | Yes | In the TC3 run `evals/runs/rag-v2b.md`, questions used 1 to 6 searches, most 2 to 4. One search returns up to 4 sections (max 8) of up to 1,000 characters. Later: negotiation, vendor websites, license tiers. |
+| 4 | Does the knowledge change more often than the code? | No | Once most contracts are verified, the rules stay about the same. |
+| 5 | Does the work read a lot to produce a little? | Probably yes | It reads several documents to give a short answer to a precise question. |
+
+**Second way: MCP**, picked by question 2: Claude Desktop is a named client outside my app.
+**Why not question 1:** no contract API exists at work, so there is nothing for UTCP to describe.
+**Closest reject: Code Mode** (question 3 is also yes). I have no sandbox to run model-written code, and building one does not fit this week.
