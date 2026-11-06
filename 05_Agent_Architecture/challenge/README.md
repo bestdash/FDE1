@@ -1,3 +1,11 @@
+## Step 3: second implementation, MCP over stdio
+
+Same capability (`search_chunks`, plus `list_documents` from the fix for fair question 1), same prompt, model and loop as `answer_contract_question`; the model reaches them through an MCP server in its own process. Server: `01_Product_Engineering/challenge/contracts_mcp_server.py`. Loop: `01_Product_Engineering/challenge/mcp_agent.py`. Run from `01_Product_Engineering/challenge`: `uv run python mcp_agent.py "<question>"`. On the two test questions (Vendor07 price, Vendor04 cancellation), both implementations gave the same answers (one run each).
+
+Asked for a tool that does not exist (`search_contracts`), the model gets back: `Unknown tool: 'search_contracts'. Available tools: search_chunks, list_documents`. Arguments that are not JSON: `arguments were not a JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)`.
+
+---
+
 <div align="center">
   <img
     src="https://github.com/AI-Maker-Space/LLM-Dev-101/assets/37101144/d1343317-fa2f-41e1-8af1-1dbb18399719"
