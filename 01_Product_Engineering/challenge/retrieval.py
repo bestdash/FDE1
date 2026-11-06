@@ -92,10 +92,12 @@ SYSTEM = (
     "You may compute a date or amount from terms the contract states (for example start date plus term), "
     "and say how you computed it. "
     "If the contracts do not answer the question, say so. "
-    "If the answer depends on a document that is referenced but not in the results "
-    "(for example online terms or main terms), say which one is missing and suggest "
-    "asking the vendor for the last signed copy." \
-    " When the evidence comes from grep or a full page, cite the file plus the ## heading "
+    "Before saying a document is missing (for example online terms or main terms), call list_documents for that vendor. "
+    "If the document is in the list but not in the results, search again with its file name in the query "
+    "(for example 'SYN-10-terms.md renewal'), and do not call it missing. "
+    "Only if it is not in the list: say which document is missing and suggest asking the vendor for the last signed copy. "
+    "Before saying a fact is not in the contracts, search the vendor's listed documents by file name. "
+    "When the evidence comes from grep or a full page, cite the file plus the ## heading "
     "the text sits under, in the same bracket format."
 )
 
@@ -198,6 +200,24 @@ DCI_TOOLS = [
     schema("read_page", "Read a complete wiki source page by stable name.", {"page": {"type": "string", "enum": sorted(PAGES)}}, ["page"]),
 ]
 
+# Fair question 1 (TC5): what we hold per vendor, from the contracts index. Read-only.
+VENDORS = sorted(set(re.findall(r"\| (Vendor\d\d) ", WIKI_INDEX)))
+
+def list_documents(vendor: str) -> str:
+    """The documents we hold for one vendor: file, document type, sections."""
+    digits = re.findall(r"\d+", vendor)                       # "Vendor10", "vendor 10", "SYN-10" -> "10"
+    key = f"Vendor{int(digits[0]):02d}" if digits else vendor.strip()
+    rows = [line for line in WIKI_INDEX.splitlines() if line.startswith("| `SYN-") and f"| {key} " in line]
+    if not rows:
+        return f"(no documents on file for {vendor}. Vendors on file: {', '.join(VENDORS)})"
+    return "| File | Contract | Document | Vendor | Sections |\n" + "\n".join(rows)
+
+
+RAG_FUNCS["list_documents"] = list_documents
+RAG_TOOLS.append(schema("list_documents",
+    "List the documents we hold for one vendor (file, document type, sections). "
+    "Use it before saying a document is missing.",
+    {"vendor": {"type": "string", "description": "for example Vendor10"}}, ["vendor"]))
 
 DCI_SETTINGS = "contracts/index.md via list_pages; grep_wiki max 40 lines; read_page max 12000 chars; max_turns 6"
 TECHNIQUES = {  # name -> (tools, funcs, settings line for the report)
@@ -245,7 +265,7 @@ def search_dense(query: str, k: int = 4) -> str:
 DENSE_SETTINGS = ("bge-small-en-v1.5 via fastembed (local, 384 dims, embedding tokens 0: nothing sent); "
                   "same ## chunks with prefix as rag (173); cosine; search_chunks k default 4, max 8; "
                   "1000 chars shown; max_turns 6")
-TECHNIQUES["dense"] = (RAG_TOOLS, {"search_chunks": search_dense}, DENSE_SETTINGS)
+TECHNIQUES["dense"] = (RAG_TOOLS, {"search_chunks": search_dense, "list_documents": list_documents}, DENSE_SETTINGS)
 
 # Report
 def write_report(label, note, cases, results, rows, technique="rag", settings=None):
