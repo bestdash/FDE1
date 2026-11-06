@@ -4,6 +4,43 @@ Same capability (`search_chunks`, plus `list_documents` from the fix for fair qu
 
 Asked for a tool that does not exist (`search_contracts`), the model gets back: `Unknown tool: 'search_contracts'. Available tools: search_chunks, list_documents`. Arguments that are not JSON: `arguments were not a JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)`.
 
+## Step 4: both implementations measured (demo scale)
+
+Same two questions, same prompt and model (Claude Sonnet 5.5), median of 3 runs per cell, Nov 6.
+Raw runs: use_case/evals/runs/measure-step4.json. Script: 01_Product_Engineering/challenge/measure.py.
+Measured on the endpoint's loop (`run_agent`), without the page layer.
+
+| Request | Implementation | Model calls | Capability calls | Seconds | Tokens |
+| --- | --- | --- | --- | --- | --- |
+| One search (Vendor07 price) | Tool, in process | 3 | 3 | 6.7 | 5,344 |
+| One search (Vendor07 price) | MCP over stdio | 2 | 2 | 7.8 | 2,965 |
+| Several searches (Vendor04 cancellation) | Tool, in process | 3 | 3 | 9.5 | 7,237 |
+| Several searches (Vendor04 cancellation) | MCP over stdio | 5 | 5 | 10.1 | 14,632 |
+
+Parallel tool calls: yes. The first turn asked for 2 tool calls in all 12 runs (`len(msg.tool_calls)` = 2: `list_documents` and `search_chunks` together), so model calls equal capability calls instead of capability calls + 1.
+
+Blind spot: the MCP server runs in its own process, so measure.py cannot read a counter inside it. MCP capability calls are counted on the client, one per tool call sent through `dispatch`.
+
+What the gap is: MCP added about 1 second (server start). The token gaps come from how many searches the model chose, not from MCP. Runs with the same tool calls cost the same on both paths (3 calls: 5,344 vs 5,355 tokens on Vendor07, 7,237 vs 7,180 on Vendor04). On Vendor04 the tool path made 3, 3 and 4 calls and the MCP path 3, 5 and 5, so one run per path would have shown MCP at 2x.
+
+
+## Step 5: measured again at a realistic response size
+
+Synthetic contract sections are short (under 1,000 characters), so Step 4 understates a real contract search. Stand-in: each search hit returns its whole page (`search_full_pages` in retrieval.py; the MCP server gets it with `--full-pages`). Same tool name and description on both paths. Several-searches question (Vendor04 cancellation), median of 3 runs, Nov 6, measured. Raw: use_case/evals/runs/measure-step5-full-pages.json. The contracts are plain ASCII, so characters = bytes.
+
+| Response | Implementation | Bytes per search response | Capability calls per request | Tokens |
+| --- | --- | --- | --- | --- |
+| Sections (Step 4) | Tool, in process | 2,544 | 3 | 7,237 |
+| Sections (Step 4) | MCP over stdio | 2,004 | 5 | 14,632 |
+| Whole page per hit | Tool, in process | 16,260 | 3 | 22,775 |
+| Whole page per hit | MCP over stdio | 22,854 | 3 | 31,364 |
+
+Same calls, same bytes, same tokens: the one MCP run that got the same pages as the tool path (16,260 bytes, 3 calls) cost 22,873 tokens vs 22,775. The MCP median is higher because its searches returned different, longer pages, not because of the process. On the tool path, responses about 6 times bigger (2,544 to 16,260 bytes) made each request about 3 times more expensive (7,237 to 22,775 tokens). On the one-search question (Vendor07 price) whole pages made the model search less (2 calls instead of 3), so tokens stayed flat (4,996 vs 5,344).
+
+At 10x (50 questions a day instead of the expected 5): at whole-page size the tool path needs about 1.1 million tokens a day, about $2.30 a day or $50 a month over 22 working days at the input price ($2 per million tokens); MCP adds no tokens per call, so volume does not change the choice; response size and the number of searches do.
+
+Docker: challenge:tc5 builds and answers the Vendor07 price question with sources (Nov 6).
+
 ---
 
 <div align="center">

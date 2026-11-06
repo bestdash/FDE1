@@ -24,4 +24,9 @@ def contracts_server(funcs=RAG_FUNCS, counter=None) -> FastMCP:
 
 
 if __name__ == "__main__":
-    contracts_server().run(show_banner=False)  # stdio by default
+    import sys
+    from retrieval import search_full_pages
+    funcs = RAG_FUNCS
+    if "--full-pages" in sys.argv:          # TC5 Step 5: same tool name and description, whole pages back
+        funcs = {**RAG_FUNCS, "search_chunks": search_full_pages}
+    contracts_server(funcs).run(show_banner=False)  # stdio by default

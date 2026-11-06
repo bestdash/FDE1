@@ -219,6 +219,14 @@ RAG_TOOLS.append(schema("list_documents",
     "Use it before saying a document is missing.",
     {"vendor": {"type": "string", "description": "for example Vendor10"}}, ["vendor"]))
 
+def search_full_pages(query: str, k: int = 4) -> str:
+    """TC5 Step 5: same ranking as search_chunks, but each hit returns its whole page
+    (a stand-in for longer real contracts). Read-only."""
+    scores = bm25.get_scores(tokenize(query))
+    order = sorted(range(len(chunks)), key=lambda index: scores[index], reverse=True)[: max(1, min(k, 8))]
+    pages = list(dict.fromkeys(chunks[index]["page"] for index in order))   # each page once, best hit first
+    return "\n\n---\n\n".join(f"[{page}]\n{PAGES[page]}" for page in pages)
+
 DCI_SETTINGS = "contracts/index.md via list_pages; grep_wiki max 40 lines; read_page max 12000 chars; max_turns 6"
 TECHNIQUES = {  # name -> (tools, funcs, settings line for the report)
     "rag": (RAG_TOOLS, RAG_FUNCS, f"{SETTINGS}; CHUNK_PREFIX={CHUNK_PREFIX}"),

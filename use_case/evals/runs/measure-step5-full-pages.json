@@ -1,0 +1,232 @@
+[
+  {
+    "request": "one search (Vendor07 price)",
+    "way": "tool",
+    "model calls": 2,
+    "capability calls": 2,
+    "seconds": 5.3,
+    "tokens": 4996,
+    "search response chars": 7367,
+    "first-turn tool calls": [
+      2,
+      2,
+      2
+    ],
+    "runs": [
+      {
+        "model calls": 2,
+        "capability calls": 2,
+        "seconds": 5.3,
+        "tokens": 5065,
+        "search response chars": 7367,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks"
+        ],
+        "answer": "The Vendor07 contract prices user licences at **USD 80 per user per year**. The Order Form lists 250"
+      },
+      {
+        "model calls": 2,
+        "capability calls": 2,
+        "seconds": 4.4,
+        "tokens": 4928,
+        "search response chars": 7367,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks"
+        ],
+        "answer": "The Vendor07 contract sets the price at **USD 80 per user per year**. The Order Form lists 250 user "
+      },
+      {
+        "model calls": 2,
+        "capability calls": 2,
+        "seconds": 6.6,
+        "tokens": 4996,
+        "search response chars": 7367,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks"
+        ],
+        "answer": "The Vendor07 contract prices user licences at **USD 80 per user per year**. The order form lists 250"
+      }
+    ]
+  },
+  {
+    "request": "one search (Vendor07 price)",
+    "way": "mcp",
+    "model calls": 3,
+    "capability calls": 3,
+    "seconds": 8.8,
+    "tokens": 11513,
+    "search response chars": 7367,
+    "first-turn tool calls": [
+      2,
+      2,
+      2
+    ],
+    "runs": [
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 8.8,
+        "tokens": 11504,
+        "search response chars": 7367,
+        "first-turn tool calls": 2,
+        "tools": [
+          "search_chunks",
+          "list_documents",
+          "search_chunks"
+        ],
+        "answer": "The Vendor07 order form sets the price at **USD 80 per user per year**. It covers 250 user licences,"
+      },
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 8.7,
+        "tokens": 11513,
+        "search response chars": 7367,
+        "first-turn tool calls": 2,
+        "tools": [
+          "search_chunks",
+          "list_documents",
+          "search_chunks"
+        ],
+        "answer": "The Vendor07 order form sets the price at **USD 80 per user per year**. That covers 250 user licence"
+      },
+      {
+        "model calls": 4,
+        "capability calls": 4,
+        "seconds": 10.0,
+        "tokens": 24359,
+        "search response chars": 11437,
+        "first-turn tool calls": 2,
+        "tools": [
+          "search_chunks",
+          "list_documents",
+          "search_chunks",
+          "search_chunks"
+        ],
+        "answer": "The Vendor07 contract prices user licences at **USD 80 per user per year**. The Order Form lists 250"
+      }
+    ]
+  },
+  {
+    "request": "several searches (Vendor04 cancellation)",
+    "way": "tool",
+    "model calls": 3,
+    "capability calls": 3,
+    "seconds": 7.8,
+    "tokens": 22775,
+    "search response chars": 16260,
+    "first-turn tool calls": [
+      2,
+      2,
+      2
+    ],
+    "runs": [
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 7.3,
+        "tokens": 22775,
+        "search response chars": 16260,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks",
+          "search_chunks"
+        ],
+        "answer": "The Vendor04 contract has no right to cancel mid-term. The closest thing is a **90-day notice period"
+      },
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 7.8,
+        "tokens": 22874,
+        "search response chars": 16260,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks",
+          "search_chunks"
+        ],
+        "answer": "For Vendor04, the contract has no cancellation period as such. What it has is a notice period for no"
+      },
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 7.9,
+        "tokens": 22770,
+        "search response chars": 16260,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks",
+          "search_chunks"
+        ],
+        "answer": "The Vendor04 contract has no right to cancel mid-term. The closest thing is a **90-day notice period"
+      }
+    ]
+  },
+  {
+    "request": "several searches (Vendor04 cancellation)",
+    "way": "mcp",
+    "model calls": 3,
+    "capability calls": 3,
+    "seconds": 12.0,
+    "tokens": 31364,
+    "search response chars": 22854,
+    "first-turn tool calls": [
+      2,
+      2,
+      2
+    ],
+    "runs": [
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 12.0,
+        "tokens": 31435,
+        "search response chars": 22854,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks",
+          "search_chunks"
+        ],
+        "answer": "The Vendor04 contract doesn't have a \"cancellation period\" as such. What it has is a notice period f"
+      },
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 14.8,
+        "tokens": 22873,
+        "search response chars": 16260,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks",
+          "search_chunks"
+        ],
+        "answer": "The Vendor04 contract doesn't give a general right to cancel. It does set a notice period for non-re"
+      },
+      {
+        "model calls": 3,
+        "capability calls": 3,
+        "seconds": 11.2,
+        "tokens": 31364,
+        "search response chars": 22854,
+        "first-turn tool calls": 2,
+        "tools": [
+          "list_documents",
+          "search_chunks",
+          "search_chunks"
+        ],
+        "answer": "The Vendor04 contract has no cancellation period as such. It has a 90-day non-renewal notice period."
+      }
+    ]
+  }
+]
