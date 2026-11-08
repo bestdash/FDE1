@@ -110,5 +110,5 @@ Stage 1 feeds Stage 4: `end_date`, `autorenew_date` and `file_exists` come from 
 | Week | Decision | Why, and what you rejected |
 | --- | --- | --- |
 | 3 | Retrieval approach | BM25 over contract sections with the contract's identity in every chunk (rag-v2), chosen over DCI and dense on 10 labelled questions. Reasons, rejected options and switch conditions: `decisions.md`, Week 3 retrieval row |
-| 5 | Agent architecture | <!-- TC5 --> |
+| 5 | Agent architecture | YOUR SENTENCE. Reasons, rejected options and switch condition: `decisions.md`, Week 5 architecture row |
 | 8 | Model | <!-- TC8 --> |
