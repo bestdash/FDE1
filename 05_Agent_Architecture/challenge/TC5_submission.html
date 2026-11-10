@@ -341,7 +341,6 @@ details{padding:10px 14px} details summary{font-size:14px}
   </div>
   <p>
     <a class="btn" href="https://github.com/bestdash/FDE1/tree/main">Repository</a>
-    <a class="btn" id="loomLink" href="#" target="_blank" rel="noopener">▶ Watch the video (5 min)</a>
     <a class="btn ghost" href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/README.md">Challenge README</a>
   </p>
 
@@ -350,7 +349,6 @@ details{padding:10px 14px} details summary{font-size:14px}
   <table>
     <thead><tr><th>Required item</th><th>On this page</th><th>Source in the repo</th></tr></thead>
     <tbody>
-      <tr><td>Video (5 minutes or less): the refined demo, opening with what changed after critique, leading with the problem</td><td>Button above</td><td id="loomCell">link to be added</td></tr>
       <tr><td>Step 1: the room's questions with their marks</td><td><a href="#room">01 What the room asked</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 5, what the room asked)</td></tr>
       <tr><td>Step 2: the second way and why</td><td><a href="#second">02 The second way</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 5, second way)</td></tr>
       <tr><td>Step 3: the second implementation, and the dispatcher's failure messages</td><td><a href="#build">03 The build</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/contracts_mcp_server.py">contracts_mcp_server.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/mcp_agent.py">mcp_agent.py</a>, challenge README (Step 3)</td></tr>
@@ -797,10 +795,10 @@ const LOOM_URL = "";
 
   const loom = document.getElementById('loomLink');
   const loomCell = document.getElementById('loomCell');
-  if (LOOM_URL) {
+  if (loom && loomCell && LOOM_URL) {
     loom.href = LOOM_URL;
     loomCell.innerHTML = '<a href="' + LOOM_URL + '" target="_blank" rel="noopener">Video</a>';
-  } else { loom.textContent = 'Video (link to be added)'; loom.removeAttribute('href'); }
+  } else if (loom) { loom.textContent = 'Video (link to be added)'; loom.removeAttribute('href'); }
 
   /* sidebar: every section, numbered, with demo time or "doc" */
   const sections = Array.from(document.querySelectorAll('main section'));
