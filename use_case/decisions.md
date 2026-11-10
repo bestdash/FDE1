@@ -71,7 +71,7 @@ One question was asked aloud in Session 9. The rest came as written feedback fro
 
 | Question | From | Mark | What I will change |
 | --- | --- | --- | --- |
-| When does it go to production? | Asked aloud | Open | Not before next year. The company must first decide where contract data may be sent and which model API the agent may use; that decision is above my level and blocks production. What would close it: an approved model route, and a developer to work on it with me. |
+| When does it go to production? | Asked aloud | Open | Partly closed on Nov 10. Route chosen: the Anthropic API under the existing agreement, with dedicated API credits; IT's email of Nov 9 confirms no training and 30-day retention, and the sponsor accepts no EU processing for these contracts. Still open: IT sets up the credits and how cost is watched (IT does not want a separate workspace), and a production host (the temporary VM). Not before next year. |
 | The prompt tells the model to call a document missing when it is referenced but not retrieved; the agent cannot tell "not retrieved" from "does not exist". What could it check against, beyond one search? | Instructor; same point from a reviewer | Fair | Before saying a document is missing, check the vendor's document list in the contracts index, and change the prompt that invites the claim. Re-run the questions that failed on it. |
 | "9 good" counts only false missing claims, while the sponsor accepts 1 wrong answer in 10 of any kind. Which answers count as good in his sense? | Instructor | Fair | The headline now counts answers that pass all 4 checks, one per failure group, with each score beside it (Week 5 decision row). The demo's numbers slide shows both. |
 
@@ -92,3 +92,13 @@ The endpoint is a plain tool today. I walked Session 10's six ordering questions
 **Second way: MCP**, picked by question 2: Claude Desktop is a named client outside my app.
 **Why not question 1:** no contract API exists at work, so there is nothing for UTCP to describe.
 **Closest reject: Code Mode** (question 3 is also yes). I have no sandbox to run model-written code, and building one does not fit this week.
+
+## Week 5 — model route (settled Nov 10)
+
+| Decision | Chosen | Rejected | Why | Would switch if |
+| --- | --- | --- | --- | --- |
+| Model route for real contract data | Anthropic API under the existing agreement, dedicated API credits | Gemini workflow builder (IT's suggestion: no extra cost, pooled credits) | The agent, the MCP server and the evals are built and measured on this route; IT confirms no training and 30-day retention; the sponsor accepts no EU processing for international contracts | IT refuses API spend, or EU processing becomes required (Gemini can do EU only with a separate app, per IT) |
+
+## Week 5 — what the refined demo changed (Step 7)
+
+The sponsor's worst case is disclosure, not a wrong date: another vendor's name, our discount or internal history in an answer or a draft a vendor could read. The one failing question (another vendor named) moves from a prompt rule to a guardrail in the search itself: a vendor filter, later an owner filter. It also sharpened the route: he dropped EU processing as a condition (Nov 3) for these contracts.
