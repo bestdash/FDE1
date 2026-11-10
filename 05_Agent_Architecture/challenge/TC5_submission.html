@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TC5 · Contract Agent Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Same system as the TC2 to TC4 submission pages. Palette: paper 45% · ink 35% · white 10% · orange 10% (accent only) */
+:root{
+  --paper:#F3F1EC; --white:#FFFFFF; --ink:#0E0E0E; --orange:#F04B2A;
+  --stone:#D6D2C9; --gray:#5B5852; --tint:#FBE2DA;
+  --display:"Schibsted Grotesk", "Segoe UI", system-ui, Arial, sans-serif;
+  --body:"Archivo", "Segoe UI", system-ui, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --r:16px; --side:260px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.5}
+a{color:var(--ink); text-decoration:underline; text-decoration-color:var(--orange); text-decoration-thickness:2px; text-underline-offset:3px}
+a:hover{color:var(--orange)}
+code{font-family:var(--mono); font-size:.86em; background:var(--paper); border:1px solid var(--stone); padding:.02em .35em; border-radius:6px; overflow-wrap:anywhere}
+
+/* ---------- left sidebar ---------- */
+#side{position:fixed; top:16px; left:16px; bottom:16px; width:var(--side); z-index:10;
+  background:var(--white); border-radius:var(--r); padding:18px 12px 12px; display:flex; flex-direction:column}
+#side .brand{font-family:var(--display); font-weight:800; text-transform:uppercase; font-size:16px; display:flex; align-items:center; gap:8px; padding:0 8px}
+#side .count{display:flex; justify-content:space-between; align-items:baseline; margin:18px 8px 8px;
+  font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray)}
+#side .count b{font-family:var(--display); font-size:20px; letter-spacing:0; color:var(--ink)}
+#prog{height:6px; background:var(--paper); border-radius:3px; overflow:hidden; margin:0 8px 12px}
+#prog i{display:block; height:100%; width:0; background:var(--orange); border-radius:3px; transition:width .25s}
+#nav{flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:2px}
+#nav a{display:grid; grid-template-columns:30px 1fr auto; gap:6px; align-items:center; padding:7px 8px; border-radius:10px;
+  text-decoration:none; color:var(--gray); font-size:14px; line-height:1.2}
+#nav a:hover{background:var(--paper); color:var(--ink)}
+#nav a .n{font-family:var(--display); font-weight:800; font-size:14px; color:var(--stone)}
+#nav a .t{font-family:var(--mono); font-size:11px; color:var(--gray)}
+#nav a .doc{font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--stone); border-radius:999px; padding:1px 6px; color:var(--gray)}
+#nav a.done{color:var(--ink)}
+#nav a.done .n{color:var(--orange)}
+#nav a.on{background:var(--orange); color:var(--ink); font-weight:600}
+#nav a.on .n, #nav a.on .t{color:var(--ink)}
+#nav a.on .doc{border-color:var(--ink); color:var(--ink)}
+#nav a.hide{display:none}
+#mode{font-size:12px; color:var(--gray); line-height:2; margin:10px 8px 0; padding-top:10px; border-top:1px solid var(--stone)}
+main{margin-left:calc(var(--side) + 32px)}
+
+/* ---------- sections ---------- */
+section{min-height:100vh; padding:44px 24px 64px 0}
+.wrap{max-width:1120px}
+.kicker{display:flex; align-items:baseline; gap:10px; margin:0 0 10px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gray)}
+.kicker .n{font-family:var(--display); font-size:26px; font-weight:800; letter-spacing:0; color:var(--orange); line-height:1}
+h1{font-family:var(--display); font-weight:800; font-size:64px; line-height:.9; letter-spacing:-.01em; text-transform:uppercase; margin:6px 0 20px}
+h2{font-family:var(--display); font-weight:700; font-size:36px; line-height:1.02; letter-spacing:-.01em; margin:0 0 18px; max-width:980px}
+h3{font-family:var(--display); font-weight:700; font-size:24px; line-height:1.05; margin:32px 0 12px}
+.lead{font-weight:500; font-size:22px; line-height:1.4; max-width:820px; margin:0 0 8px}
+.intro{font-size:18px; margin:0 0 16px; max-width:900px}
+.req{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink); background:var(--white); border-radius:999px; padding:5px 12px 5px 8px; margin:0 0 16px}
+.req::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--orange)}
+.src{font-size:14px; color:var(--gray); margin-top:16px}
+
+.grid{display:grid; gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--white); border-radius:var(--r); padding:18px 20px; min-width:0; overflow-wrap:anywhere}
+.card h4{font-family:var(--display); font-weight:700; margin:0 0 8px; font-size:19px; line-height:1.1}
+.card.accent{background:var(--orange); color:var(--ink)}
+.card.accent small{color:var(--ink)}
+.card.inkc{background:var(--ink); color:var(--white)}
+.card.inkc small{color:var(--stone)}
+.big{font-family:var(--display); font-size:46px; font-weight:800; line-height:.95; letter-spacing:-.01em}
+.big small{display:block; font-family:var(--body); font-size:15px; font-weight:500; letter-spacing:0; color:var(--gray); margin-top:10px; line-height:1.35}
+
+blockquote.hers{margin:12px 0; padding:16px 20px; background:var(--white); border-radius:var(--r); position:relative; font-size:17px}
+blockquote.hers::before{content:""; position:absolute; left:0; top:18px; bottom:18px; width:4px; border-radius:0 3px 3px 0; background:var(--orange)}
+blockquote.hers p{margin:0 0 10px} blockquote.hers p:last-child{margin:0}
+
+.statement{background:var(--ink); color:var(--white); border-radius:var(--r); padding:26px 28px; margin:14px 0}
+.statement .lab{font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin:0 0 12px}
+.statement p{font-family:var(--display); font-weight:700; font-size:30px; line-height:1.12; margin:0}
+
+table{border-collapse:collapse; width:100%; background:var(--white); font-size:16px}
+th,td{text-align:left; vertical-align:top; padding:11px 14px; border-bottom:1px solid var(--stone); overflow-wrap:anywhere}
+th{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--gray)}
+thead th{border-bottom:1px solid var(--ink)}
+tr:last-child td, tr:last-child th{border-bottom:0}
+.tablewrap{overflow-x:auto; border-radius:var(--r); background:var(--white)}
+.num td{white-space:nowrap}
+tr.ship td{background:var(--tint)}
+tr.ship td:first-child{box-shadow:inset 4px 0 0 var(--orange)}
+
+.tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap}
+.t-pass{background:var(--paper); color:var(--ink); border:1px solid var(--stone)}
+.t-fail{background:var(--orange); color:var(--ink)}
+.t-q{background:var(--ink); color:var(--white)}
+
+pre.msg{white-space:pre-wrap; font-family:var(--mono); font-size:14px; background:var(--white); border-radius:12px; padding:14px 16px; margin:10px 0 0}
+details{background:var(--white); border-radius:var(--r); padding:12px 18px; margin-top:12px}
+details summary{cursor:pointer; font-weight:600; font-size:16px}
+details summary::marker{color:var(--orange)}
+details pre.msg{background:var(--paper)}
+
+.diary{background:transparent; border:1px dashed var(--gray); border-radius:var(--r); padding:14px 18px; margin:16px 0; font-size:17px}
+.diary .lab{display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin-bottom:6px}
+.diary p{margin:0 0 8px} .diary p:last-child{margin:0}
+/* .todo = a box I still have to fill with my own words. Delete the box once it is filled. */
+.todo{background:var(--white); border:2px dashed var(--ink); border-radius:var(--r); padding:16px 20px; margin:12px 0}
+.todo .lab{display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin-bottom:8px}
+.todo p{margin:0 0 6px} .todo p:last-child{margin:0}
+.todo ul{margin:4px 0 0; padding-left:22px} .todo li{margin:0 0 4px}
+
+/* the question and the saved answer */
+.ask{display:flex; flex-wrap:wrap; align-items:center; gap:10px; background:var(--ink); color:var(--white); border-radius:var(--r); padding:14px 20px; margin:0 0 12px; font-size:20px; font-weight:600}
+.ask .who{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--orange)}
+.answer{background:var(--white); border-radius:var(--r); padding:18px 22px; font-size:17px; line-height:1.5}
+.answer p{margin:0 0 10px} .answer p:last-child{margin:0}
+.cite{font-family:var(--mono); font-size:12.5px; background:var(--paper); border:1px solid var(--stone); border-radius:999px; padding:1px 8px; white-space:nowrap}
+.answer mark{background:var(--tint); color:var(--ink); padding:0 .15em; border-radius:3px}
+.answer mark.bad{background:var(--orange)}
+
+/* demo screens: few words, large type */
+.slide-h{font-size:44px; line-height:1.05; max-width:1000px}
+.slide-sub{font-size:22px; line-height:1.4; max-width:900px; margin:0 0 22px}
+.big-answer{font-size:24px; line-height:1.35}
+.big-answer p{margin:0 0 14px}
+.big-answer .srcline{font-size:16px; color:var(--gray)}
+.big-answer .cite{font-size:14px}
+.lab2{font-size:12px!important; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin:0 0 8px!important}
+.card.accent .lab2{color:var(--ink)}
+.steps{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:8px 0 6px}
+.stepc{background:var(--white); border-radius:var(--r); padding:16px 18px; font-size:17px; line-height:1.35; display:flex; flex-direction:column; gap:6px}
+.stepc .no{font-family:var(--display); font-weight:800; font-size:28px; line-height:1; color:var(--orange)}
+.stepc b{font-family:var(--display); font-size:24px; line-height:1}
+.stepc .st{margin-top:auto; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; border:1px solid var(--stone); border-radius:999px; padding:2px 8px; align-self:flex-start; color:var(--gray)}
+.stepc.now{box-shadow:0 0 0 3px var(--orange)}
+.stepc.now .st{background:var(--orange); border-color:var(--orange); color:var(--ink)}
+.stepc.done .st{border-color:var(--ink); color:var(--ink)}
+.stepc .nx{display:block; margin-top:auto; padding-top:12px; border-top:1px solid var(--stone); font-size:16px; line-height:1.4}
+.stepc.key{background:var(--orange); box-shadow:0 0 0 3px var(--ink)}
+.stepc.key .no{color:var(--ink)}
+.stepc.key .nx{border-top-color:var(--ink)}
+.docs{display:flex; flex-direction:column; gap:10px}
+.docpage{background:var(--white); border:1px solid var(--stone); border-left:6px solid var(--orange); border-radius:10px; padding:14px 16px; font-family:Georgia, "Times New Roman", serif; font-size:17px; line-height:1.45}
+.docpage .fname{display:block; font-family:var(--mono); font-size:12px; color:var(--gray); margin-bottom:6px}
+.docpage b{display:block; font-family:Georgia, serif; font-size:19px; margin-bottom:4px}
+.moral{font-family:var(--display); font-weight:700; font-size:26px; line-height:1.12; margin:20px 0 8px; max-width:900px}
+.moral span{color:var(--orange)}
+@media (max-width:1000px){ .steps{grid-template-columns:1fr 1fr} }
+@media (max-width:600px){ .steps{grid-template-columns:1fr} .slide-h{font-size:30px} .big-answer{font-size:19px} }
+
+/* "what changed" cards on the opening screen */
+.changed{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:8px 0 6px}
+.chg{background:var(--white); border-radius:var(--r); padding:18px 20px; display:flex; flex-direction:column; gap:8px; font-size:17px; line-height:1.38}
+.chg .who{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gray)}
+.chg b.q{font-family:var(--display); font-size:21px; line-height:1.12}
+.chg .fx{margin-top:auto; padding-top:12px; border-top:1px solid var(--stone)}
+.chg .kpi{display:block; font-family:var(--display); font-weight:800; font-size:30px; line-height:1; margin-top:6px}
+.chg.open{background:var(--ink); color:var(--white)}
+.chg.open .who{color:var(--orange)}
+.chg.open .fx{border-top-color:var(--gray)}
+@media (max-width:1000px){ .changed{grid-template-columns:1fr} }
+
+/* the three ways, drawn as rows of boxes */
+.way{background:var(--white); border-radius:var(--r); padding:16px 18px; margin:0 0 12px}
+.way h4{font-family:var(--display); font-weight:700; font-size:19px; margin:0 0 10px}
+.flow{display:grid; grid-template-columns:1fr 34px 1fr 34px 1fr; align-items:stretch; gap:0}
+.flow .bx{border:1.5px solid var(--stone); border-radius:12px; padding:10px 12px; font-size:15px; line-height:1.3; text-align:center}
+.flow .bx b{display:block; font-family:var(--display); font-size:17px}
+.flow .bx.hot{border:2px solid var(--orange); background:var(--tint)}
+.flow .ar{display:flex; align-items:center; justify-content:center; color:var(--gray); font-size:20px}
+.flow .ar.wall{border-left:2px dashed var(--gray); border-right:0; margin:0 15px}
+.way .note{font-size:15px; margin:10px 0 0} .way .note.q{color:var(--gray)}
+@media (max-width:760px){ .flow{grid-template-columns:1fr} .flow .ar{transform:rotate(90deg); height:28px} .flow .ar.wall{border:0; transform:none} }
+
+/* presenter cues */
+.cue{display:none; margin:0 0 18px; padding:10px 16px; border-radius:12px; background:var(--ink); color:var(--white); font-size:16px}
+.cue b{color:var(--orange)}
+.cue kbd{color:var(--ink)}
+body.presenter .cue{display:block}
+body.presenter section.doc-only{display:none}
+
+.btn{display:inline-block; text-decoration:none; font-weight:600; background:var(--orange); color:var(--ink); padding:12px 22px; border-radius:999px; margin:6px 8px 0 0}
+.btn:hover{color:var(--ink); filter:brightness(1.05)}
+.btn.ghost{background:var(--white); color:var(--ink)}
+.help{font-size:14px; color:var(--gray)}
+kbd{font-family:var(--mono); font-size:12px; border:1px solid var(--stone); border-bottom-width:2px; border-radius:5px; padding:0 5px; background:var(--white); color:var(--ink)}
+
+/* cover */
+.cover-grid{display:grid; grid-template-columns:1fr auto; gap:24px; align-items:end}
+
+/* story */
+.story-h{font-family:var(--display); font-weight:800; font-size:58px; line-height:.9; letter-spacing:-.015em; margin:6px 0 10px}
+.story-h em{font-style:normal; color:var(--orange)}
+@media (max-width:760px){ .story-h{font-size:40px} .moral{font-size:21px} }
+
+/* narrow screens: sidebar becomes a block at the top */
+@media (max-width:900px){
+  #side{position:static; width:auto; margin:16px 16px 0}
+  #nav{overflow:visible}
+  main{margin-left:0}
+  section{padding:36px 16px 56px}
+}
+@media (max-width:760px){
+  body{font-size:16px}
+  h1{font-size:44px} h2{font-size:30px} h3{font-size:21px} .lead{font-size:18px}
+  .statement p{font-size:22px} .big{font-size:34px}
+  .cover-grid{grid-template-columns:1fr} .pixels{display:none}
+}
+@media print{
+  #side,.cue{display:none!important}
+  main{margin-left:0}
+  section{min-height:0; page-break-inside:avoid; padding:20px 0}
+  section.doc-only{display:block!important}
+}
+
+/* ---------- compact type: body 14px, everything scaled to match ---------- */
+body{font-size:14px; line-height:1.5}
+section{padding:28px 20px 40px 0}
+body:not(.presenter) section{min-height:0}
+h1{font-size:44px; margin:4px 0 14px}
+h2{font-size:26px; margin:0 0 12px}
+h3{font-size:18px; margin:22px 0 8px}
+.lead{font-size:16px}
+.intro{font-size:14px; margin-bottom:12px}
+.kicker{font-size:11px} .kicker .n{font-size:20px}
+.req{font-size:10.5px; margin-bottom:12px}
+.src,.help{font-size:12px}
+.grid{gap:10px}
+.card{padding:14px 16px} .card h4{font-size:15px; margin-bottom:6px}
+.big{font-size:32px} .big small{font-size:12.5px; margin-top:6px}
+blockquote.hers{font-size:14px; padding:12px 16px}
+.statement{padding:16px 20px; margin:10px 0} .statement .lab{font-size:10.5px; margin-bottom:8px} .statement p{font-size:20px}
+table{font-size:13px} th,td{padding:8px 11px} th{font-size:10.5px}
+pre.msg{font-size:12px; padding:10px 12px}
+details{padding:10px 14px} details summary{font-size:14px}
+.diary{font-size:14px; padding:10px 14px; margin:12px 0} .diary .lab{font-size:10px}
+.todo{font-size:14px; padding:12px 16px} .todo .lab{font-size:10px}
+.ask{font-size:16px; padding:10px 16px} .ask .who{font-size:10px}
+.answer{font-size:14px; padding:14px 16px}
+.cite{font-size:11px}
+.slide-h{font-size:30px}
+.slide-sub{font-size:16px; margin-bottom:16px}
+.big-answer{font-size:17px} .big-answer .srcline{font-size:13px} .big-answer .cite{font-size:12px}
+.lab2{font-size:10.5px!important}
+.stepc{font-size:14px; padding:12px 14px} .stepc .no{font-size:22px} .stepc b{font-size:18px} .stepc .nx{font-size:13px} .stepc .st{font-size:10px}
+.moral{font-size:19px; margin:14px 0 6px}
+.chg{font-size:14px; padding:14px 16px} .chg .who{font-size:10px} .chg b.q{font-size:16px} .chg .kpi{font-size:24px}
+.way{padding:12px 14px} .way h4{font-size:15px} .flow .bx{font-size:13px} .flow .bx b{font-size:14px} .way .note{font-size:13px}
+.story-h{font-size:42px}
+.docpage{font-size:14px} .docpage b{font-size:15px}
+.btn{font-size:14px; padding:9px 18px}
+#nav a{font-size:13px}
+</style>
+</head>
+<body>
+
+<aside id="side">
+  <span class="brand"><svg width="16" height="16" viewBox="0 0 4 4" aria-hidden="true"><rect x="3" y="0" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="0" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/></svg>Contract Agent</span>
+  <div class="count"><span id="modeLabel">Document</span><span><b id="pos">1</b> / <span id="tot">18</span></span></div>
+  <div id="prog"><i></i></div>
+  <nav id="nav"></nav>
+  <div id="mode"><kbd>P</kbd> presenter mode<br><kbd>←</kbd> <kbd>→</kbd> previous / next section<br><kbd>A</kbd> open the app</div>
+</aside>
+
+<main>
+
+<!-- ============ DEMO 0:00 · THE PROBLEM ============ -->
+<section id="problem" data-label="The problem" data-time="0:00" data-n="→">
+<div class="wrap">
+  <p class="kicker">The problem</p>
+  <h1 class="story-h">A tool nobody uses renews itself <em>for another year.</em></h1>
+  <p class="slide-sub">An invented but typical case: the contract renews automatically unless we say no 90 days before the end. Nobody looked in time, so we pay a full year more for something we wanted to stop.</p>
+  <div class="grid g3">
+    <div class="card"><div class="big">80 to 100<small>software contracts owned by our Head of IT infrastructure alone, tracked in a spreadsheet</small></div></div>
+    <div class="card"><div class="big">1 in 5<small>renewals late or missed</small></div></div>
+    <div class="card accent"><div class="big">~120 h<small>a year spent in review calls to catch the next deadlines</small></div></div>
+  </div>
+</div>
+</section>
+
+<!-- ============ DEMO 0:10 · THE SOLUTION ============ -->
+<section id="solution" data-label="The solution" data-time="0:10" data-n="→">
+<div class="wrap">
+  <p class="kicker">What I am building</p>
+  <h2 class="slide-h">An agent that reads the contracts and warns the owner in time</h2>
+  <div class="steps">
+    <div class="stepc now"><span class="no">1</span><b>Read</b>Answers questions about any contract, with the source<span class="st">Built · fixed this week</span></div>
+    <div class="stepc"><span class="no">2</span><b>Save</b>Keeps the key dates and terms of every contract<span class="st">Next</span></div>
+    <div class="stepc"><span class="no">3</span><b>Alert</b>Warns the owner weeks before the deadline<span class="st">Next</span></div>
+    <div class="stepc done"><span class="no">4</span><b>Draft</b>Prepares the email; the owner approves before anything is sent<span class="st">Built</span></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h4>Door 1: ask in Claude Desktop</h4>The sponsor wants to ask about contracts in the AI assistant he already uses, not in one more app. This week I built that door.</div>
+    <div class="card"><h4>Door 2: email</h4>Not every owner will have an AI assistant licence. They get the alerts and answer by email. Planned.</div>
+  </div>
+</div>
+</section>
+
+<!-- ============ DEMO 0:20 · WHAT CHANGED AFTER CRITIQUE ============ -->
+<section id="changed" data-label="What changed" data-time="0:20" data-n="→">
+<div class="wrap">
+  <p class="kicker">Contract Agent · Week 5 · after critique</p>
+  <h2 class="slide-h">Last week the room asked three hard questions. Two were fair, so I fixed them. One I still cannot answer.</h2>
+  <div class="changed">
+    <div class="chg">
+      <span class="who">Fair · instructor and a reviewer</span>
+      <b class="q">"The agent says a document is missing. How can it tell 'not found' from 'does not exist'?"</b>
+      <span class="fx"><b>Fixed:</b> before saying "missing", the agent now checks the list of documents we hold for that vendor.<span class="kpi">9 → 13 of 13</span><small>answers with no false "missing" claim (Nov 2 → Nov 6)</small></span>
+    </div>
+    <div class="chg">
+      <span class="who">Fair · instructor</span>
+      <b class="q">"You count 9 good answers, but your sponsor rejects any wrong answer. Good by whose definition?"</b>
+      <span class="fx"><b>Fixed:</b> "good" now means the answer passes all 4 checks, one per kind of mistake I found.<span class="kpi">5 → 12 of 13</span><small>good answers, strict definition (Nov 2 → Nov 6, one run)</small></span>
+    </div>
+    <div class="chg open">
+      <span class="who">Open · asked aloud</span>
+      <b class="q">"When does it go to production?"</b>
+      <span class="fx"><b>Partly answered (Nov 10): the route is chosen.</b> The Anthropic API under the company's existing agreement: no training on our data, 30-day retention. Still not before next year: IT must set up the API credits, and the app needs a production host.</span>
+    </div>
+  </div>
+  <p class="help">All contracts, vendors and prices on this page are invented (synthetic). Roles, not names.</p>
+</div>
+</section>
+
+<!-- ============ COVER (document only) ============ -->
+<section id="cover" data-label="Overview" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">00</span> AI Forward-Deployed Engineer · Technical Challenge 5</p>
+  <div class="cover-grid">
+    <div>
+      <h1>Agent<br>Architecture</h1>
+      <p class="lead">The same contract search, reached two ways: as a tool inside the app, and through an MCP server that Claude Desktop can use. Both measured on the same questions, at two response sizes. The decision, what I rejected, and what would make me switch. No real contract was used.</p>
+    </div>
+    <svg class="pixels" id="stairs" width="240" height="240" viewBox="0 0 12 12" aria-hidden="true"></svg>
+  </div>
+  <p>
+    <a class="btn" href="https://github.com/bestdash/FDE1/tree/main">Repository</a>
+    <a class="btn" id="loomLink" href="#" target="_blank" rel="noopener">▶ Watch the video (5 min)</a>
+    <a class="btn ghost" href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/README.md">Challenge README</a>
+  </p>
+
+  <h3>Where each required item is answered</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Required item</th><th>On this page</th><th>Source in the repo</th></tr></thead>
+    <tbody>
+      <tr><td>Video (5 minutes or less): the refined demo, opening with what changed after critique, leading with the problem</td><td>Button above</td><td id="loomCell">link to be added</td></tr>
+      <tr><td>Step 1: the room's questions with their marks</td><td><a href="#room">01 What the room asked</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 5, what the room asked)</td></tr>
+      <tr><td>Step 2: the second way and why</td><td><a href="#second">02 The second way</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 5, second way)</td></tr>
+      <tr><td>Step 3: the second implementation, and the dispatcher's failure messages</td><td><a href="#build">03 The build</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/contracts_mcp_server.py">contracts_mcp_server.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/mcp_agent.py">mcp_agent.py</a>, challenge README (Step 3)</td></tr>
+      <tr><td>Step 4: the demo-scale table, with the parallel tool call count</td><td><a href="#scale">04 Measured at demo scale</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/measure.py">measure.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/measure-step4.json">measure-step4.json</a>, challenge README (Step 4)</td></tr>
+      <tr><td>Step 5: the real-size row, and what 10x volume does</td><td><a href="#realsize">05 Measured at real size</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/measure-step5-full-pages.json">measure-step5-full-pages.json</a>, challenge README (Step 5)</td></tr>
+      <tr><td>Step 6: the architecture row, and the open question</td><td><a href="#decision">06 Decision</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 5 architecture row), <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a></td></tr>
+      <tr><td>Step 7: the refined demo shown to a real stakeholder, their answers, what changed</td><td><a href="#sponsor">08 Sponsor demo</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 5 row), <a href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/TC5_submission.md">TC5_submission.md</a> (what changed after critique)</td></tr>
+      <tr><td>Step 8: the swap lines</td><td><a href="#work">09 Bring it to work</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/TC5_submission.md#bring-it-to-work">TC5_submission.md · Bring it to work</a></td></tr>
+      <tr><td>Still runs in Docker</td><td><a href="#realsize">05 Measured at real size</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/Dockerfile">Dockerfile</a>, challenge README (Docker line)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">All data on this page is synthetic: every vendor, price and date is invented. Roles, not names. TC = the course's weekly technical challenge. Press <kbd>P</kbd> for presenter mode (the 5-minute demo: document-only sections hidden).</p>
+  <details open>
+  <summary>Words on this page</summary>
+  <div class="tablewrap" style="margin-top:10px">
+  <table>
+    <thead><tr><th>Term</th><th>Plain meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Endpoint</td><td>The app's question service (<code>answer_contract_question</code>): a question goes in, an answer with its sources comes out. Built in Week 3</td></tr>
+      <tr><td>Tool</td><td>A function the AI model may ask the app to run, here a search over the contracts. The model asks, the app runs it and hands back the result</td></tr>
+      <tr><td>Capability</td><td>The work itself: the contract search (<code>search_chunks</code>) and the list of documents we hold (<code>list_documents</code>)</td></tr>
+      <tr><td>Model call / capability call</td><td>One round trip to the AI model / one time the search actually ran. One model call can ask for several searches at once</td></tr>
+      <tr><td>Parallel tool calls</td><td>The model asks for two or more searches in one reply, instead of one at a time</td></tr>
+      <tr><td>MCP (Model Context Protocol)</td><td>An open standard that lets AI apps, such as Claude Desktop, find and use tools offered by another program, called an MCP server</td></tr>
+      <tr><td>stdio / process</td><td>The MCP server runs as a separate program on the same computer (a process), and the two talk through its input and output (stdio)</td></tr>
+      <tr><td>Claude Desktop</td><td>Anthropic's AI assistant app, which the sponsor and pilot users already use</td></tr>
+      <tr><td>Token</td><td>The unit AI models read and are paid in, about three quarters of a word. Everything the model reads, including every search result, costs tokens</td></tr>
+      <tr><td>Context</td><td>Everything the model has read for one request: the question, the instructions, the tool results</td></tr>
+      <tr><td>Code Mode</td><td>Instead of asking for searches one by one, the model writes a small program that runs the searches and returns only the final result</td></tr>
+      <tr><td>Sandbox</td><td>A locked, isolated place to run code the model wrote: no passwords or keys, no network, a time limit</td></tr>
+      <tr><td>Skill / subagent / UTCP</td><td>Three more ways the course compares: instructions in a file the assistant loads / a second AI model that reads and summarises / a description of an existing web API</td></tr>
+      <tr><td>Dispatcher</td><td>The code that receives the model's request ("run this tool with these values") and runs the right function, or answers with an error message</td></tr>
+      <tr><td>False "missing" claim</td><td>The answer says a document or fact is missing, but our files have it. The top failure found in Week 4</td></tr>
+      <tr><td>The 4 checks</td><td>One check per kind of mistake: a false "missing" claim (graded by a second AI model, the judge), a wrong date, another vendor brought in, no answer</td></tr>
+      <tr><td>Judge</td><td>A second AI model that grades each answer for one narrow mistake. Tested against my own grades in Week 4: 20 of 20 agreed</td></tr>
+      <tr><td>Model route</td><td>An approved way to send company data to an AI provider</td></tr>
+      <tr><td>SYN-04 / Vendor04</td><td>Synthetic (invented) contract 4, and its invented vendor</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </details>
+</div>
+</section>
+
+<!-- ============ 1. WHAT THE ROOM ASKED ============ -->
+<section id="room" data-label="What the room asked" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">01</span> What the room asked</p>
+  <span class="req">Step 1: the questions, two fair, one open, any confusion marked</span>
+  <h2>One question asked aloud, the rest in writing. None came from a misunderstanding.</h2>
+  <p class="intro">In Session 9 I showed the Week 4 demo to engineers who did not build it. The instructor and two reviewers sent written feedback after. A "fair" question is a real gap, not a misunderstanding: those I fix. The "open" one is the one I could not answer.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Question</th><th>From</th><th>Mark</th><th>What I changed</th></tr></thead>
+    <tbody>
+      <tr><td>When does it go to production?</td><td>Asked aloud</td><td><span class="tag t-q">open</span></td><td>Not before next year. The company must first decide where contract data may be sent and which AI provider the agent may use. That decision is above my level and blocks production. What would close it: an approved model route, and a developer to work on it with me.</td></tr>
+      <tr class="ship"><td>The agent calls a document missing when it was only not retrieved. What could it check against, beyond one search?</td><td>Instructor; same point from a reviewer</td><td><span class="tag t-fail">fair</span></td><td>Before saying a document is missing, the agent checks the vendor's document list, and the instructions no longer invite the claim. Re-run the questions that failed. <a href="#fix">The fix</a></td></tr>
+      <tr class="ship"><td>"9 good" counts only false missing claims, while the sponsor accepts 1 wrong answer in 10 of any kind. Which answers are good in his sense?</td><td>Instructor</td><td><span class="tag t-fail">fair</span></td><td>"Good" now means the answer passes all 4 checks, with each score shown beside it. <a href="#number">The number</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="diary"><span class="lab">The other 7 points, and where they went</span>
+    <p>Section ids in the trace, and full answers with the judge's reasons: done this week. The false "not found" rate with its own decline questions: Week 6. Open the demo with one missed auto-renewal: <a href="#problem">done</a>. Alerts before negotiation: the Week 5 next-build row. Real contracts through an approved route: the same blocker as the open question. An owner and a date for every contract: later, with the contract record.</p>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> (Week 5, what the room asked)</p>
+</div>
+</section>
+
+<!-- ============ DEMO 0:50 · THE FIX, LIVE ============ -->
+<section id="fix" data-label="The fix, live" data-time="0:50" data-n="→">
+<div class="wrap">
+  <p class="kicker">Live demo · fair question 1, fixed</p>
+  <div class="ask"><span class="who">Question</span>What are the renewal terms of the Vendor10 contract?</div>
+  <div class="grid g2">
+    <div class="answer big-answer">
+      <p class="lab2">Last week (Nov 2), at the end of the answer</p>
+      <p><mark class="bad">"The original Vendor10 Agreement isn't in the search results. Ask the vendor for the last signed copy."</mark></p>
+      <p class="srcline">We hold it. The owner would have emailed the vendor for a document he already has.</p>
+    </div>
+    <div class="answer big-answer">
+      <p class="lab2">This week (Nov 6)</p>
+      <p><b>Master Subscription Agreement:</b> "Section 8 has no renewal or non-renewal notice clause. It says the Agreement continues while any order is in effect."</p>
+      <p class="srcline">Source: <span class="cite">SYN-10-terms.md#8. Term and Termination</span></p>
+    </div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h4>What changed in the agent</h4>A new lookup, <code>list_documents</code>: "List the documents we hold for one vendor. Use it before saying a document is missing." The instructions say: listed but not found means search again by file name; only a document that is not listed is missing.</div>
+    <div class="card accent"><h4>Result</h4>Answers with no false "missing" claim, graded by the judge: <b>9 of 13</b> (Nov 2), <b>11 of 13</b> (Nov 5, other fixes), <b>13 of 13</b> (Nov 6, with the list). One run each.</div>
+  </div>
+  <p class="help">Shortened from the saved test answers. Real "missing" answers stay: Vendor03 (only the order form is on file), Vendor04 security (no security clause), the non-compete question (none found).</p>
+</div>
+</section>
+
+<!-- ============ DEMO 1:30 · A FAILURE ON PURPOSE ============ -->
+<section id="failure" data-label="A failure" data-time="1:30" data-n="→">
+<div class="wrap">
+  <p class="kicker">Live demo · a failure that is still there</p>
+  <div class="ask"><span class="who">Question</span>Who is responsible for security in case of an incident with Vendor04, and on what terms?</div>
+  <h2 class="slide-h">The answer is right, then it talks about other vendors.</h2>
+  <div class="answer big-answer">
+    <p>Liability is capped at the total fees paid under the order form <span class="cite">SYN-04-terms.md#7</span>.</p>
+    <p><mark class="bad">"Unlike some other vendors' agreements, there is no carve-out from the cap for confidentiality breaches."</mark></p>
+  </div>
+  <p class="moral">The owner asked about one vendor.<br><span>Other vendors' terms do not belong in that answer, least of all in an email a vendor could read.</span></p>
+  <div class="card" style="margin-top:14px"><h4>Where the fix goes (Week 6)</h4>A vendor filter inside the search itself, so it returns only the vendor asked about. A rule written in the instructions would not reach Claude Desktop: <a href="#desktop">section 07</a> shows why.</div>
+  <p class="help">Saved test answer of Nov 6, question 10, shortened. The second most frequent failure in Week 4: 5 of the 17 traces with a failure, out of 49 read.</p>
+</div>
+</section>
+
+<!-- ============ DEMO 2:00 · THE NUMBER ============ -->
+<section id="number" data-label="The number" data-time="2:00" data-n="→">
+<div class="wrap">
+  <p class="kicker">Fair question 2, fixed · how often can the owner trust it?</p>
+  <h2 class="slide-h">Last week I said 9 good answers out of 13. By my sponsor's definition, it was 5.</h2>
+  <div class="grid g3">
+    <div class="card"><div class="big">5 of 13<small>good on Nov 2, when "good" means passing all 4 checks: no false "missing", no wrong date, no other vendor, a real answer</small></div></div>
+    <div class="card accent"><div class="big">12 of 13<small>good on Nov 6, after the fixes. One run: the only failure is the other-vendor answer you just saw</small></div></div>
+    <div class="card inkc"><div class="big">9 in 10<small>the sponsor's bar: with 1 wrong answer in 10, he would stop checking</small></div></div>
+  </div>
+  <div class="statement"><p>12 of 13 is above his bar on paper. On 13 questions and one run, it is a good sign, not proof.</p></div>
+  <div class="tablewrap">
+  <table class="num">
+    <thead><tr><th>Check (1 = every answer passes)</th><th>Nov 2 baseline</th><th>Nov 6, one run</th></tr></thead>
+    <tbody>
+      <tr><td>No false "missing" claim (the judge)</td><td>0.692</td><td>1.000</td></tr>
+      <tr><td>Answers only about the vendor asked</td><td>0.846</td><td>0.923</td></tr>
+      <tr><td>No wrong date</td><td>0.846</td><td>1.000</td></tr>
+      <tr><td>A real answer</td><td>1.000</td><td>1.000</td></tr>
+      <tr class="ship"><td><b>All 4 checks: the headline</b></td><td><b>5 of 13</b></td><td><b>12 of 13</b></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">One answer moves a score by 0.077 on 13 questions. The Nov 6 run also has a free phrase check, which now fails 3 honest answers that say "I found no ... in document X": it is kept as a warning only, and will be tightened in Week 6.</p>
+</div>
+</section>
+
+<!-- ============ 2. THE SECOND WAY ============ -->
+<section id="second" data-label="The second way" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">02</span> The second way</p>
+  <span class="req">Step 2: the second way named, why, and the closest one not picked</span>
+  <h2>The sponsor wants to ask in Claude Desktop. That makes MCP the second way.</h2>
+  <p class="intro">The course gives six ways for an AI model to reach a capability, and six questions to pick between them, asked in order. The first "yes" names the second-best way. I walked them for the contract search.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>#</th><th>Question</th><th>If yes</th><th>My answer</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Does it already exist as a web API at work?</td><td>UTCP</td><td>No: contract data is internal and not served through any API</td></tr>
+      <tr class="ship"><td>2</td><td>Does anything outside this app need to find and use it?</td><td>MCP</td><td><b>Yes:</b> the sponsor wants to ask about contracts through Claude Desktop, where pilot users already work</td></tr>
+      <tr><td>3</td><td>Does one request need several searches, or searches that return a lot?</td><td>Code Mode</td><td>Yes: 1 to 6 searches per question in Week 3, most 2 to 4</td></tr>
+      <tr><td>4</td><td>Does the knowledge change more often than the code?</td><td>A skill</td><td>No: once contracts are checked, the rules stay about the same</td></tr>
+      <tr><td>5</td><td>Does the work read a lot to give a little?</td><td>A subagent</td><td>Probably: it reads several documents for one short answer</td></tr>
+      <tr><td>6</td><td>Otherwise</td><td>A tool</td><td>What I had: the search as a tool inside the app</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card accent"><h4>Second way: MCP</h4>Picked by question 2: Claude Desktop is a named client outside my app. Question 1 is no: there is no contract API at work for UTCP to describe.</div>
+    <div class="card"><h4>Closest one not picked: Code Mode</h4>Question 3 is also yes. But Code Mode runs code the model writes, and I have no sandbox to run it safely. Building one does not fit this week.</div>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> (Week 5, second way)</p>
+</div>
+</section>
+
+<!-- ============ 3. THE BUILD ============ -->
+<section id="build" data-label="The build" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">03</span> The build</p>
+  <span class="req">Step 3: the second implementation running, failures returned as messages</span>
+  <h2>Same search, same instructions, same model. Only the road to the search changes.</h2>
+  <p class="intro">I did not put the whole answering agent behind MCP: that would hide a second AI model behind the server. The MCP server offers the capability itself (the search and the document list), with the same descriptions the model reads in the app.</p>
+  <div class="way">
+    <h4>1. Tool, inside the app (built in Week 3)</h4>
+    <div class="flow">
+      <div class="bx"><b>AI model</b>reads every search result</div>
+      <div class="ar">⇄</div>
+      <div class="bx"><b>The app's loop</b>run_agent, same program</div>
+      <div class="ar">⇄</div>
+      <div class="bx"><b>Contract search</b>search_chunks, list_documents</div>
+    </div>
+  </div>
+  <div class="way">
+    <h4>2. MCP over stdio (built this week)</h4>
+    <div class="flow">
+      <div class="bx"><b>AI model</b>reads every search result</div>
+      <div class="ar">⇄</div>
+      <div class="bx"><b>MCP client</b>mcp_agent.py, the app's program</div>
+      <div class="ar wall">⇄</div>
+      <div class="bx hot"><b>MCP server</b>its own program, same search</div>
+    </div>
+    <p class="note q">The dashed line is the process boundary: the search now runs in another program. Claude Desktop connects to the same server.</p>
+  </div>
+  <h3>When the model asks for something wrong, it gets a message, not a crash</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>The model asks for</th><th>What it gets back</th></tr></thead>
+    <tbody>
+      <tr><td>A tool that does not exist (<code>search_contracts</code>)</td><td><code>Unknown tool: 'search_contracts'. Available tools: search_chunks, list_documents</code></td></tr>
+      <tr><td>Values that are not valid JSON</td><td><code>arguments were not a JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">The model can read the message and try again; the app keeps running. On the two test questions (Vendor07 price, Vendor04 cancellation) both ways gave the same answers.</p>
+  <pre class="msg">cd 01_Product_Engineering/challenge
+uv run python mcp_agent.py "What is the price per user in the Vendor07 contract?"</pre>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/contracts_mcp_server.py">contracts_mcp_server.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/mcp_agent.py">mcp_agent.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/README.md">challenge README</a> (Step 3)</p>
+</div>
+</section>
+
+<!-- ============ 4. MEASURED AT DEMO SCALE ============ -->
+<section id="scale" data-label="Demo scale" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">04</span> Measured at demo scale</p>
+  <span class="req">Step 4: 2 ways × 2 questions × 4 numbers, and parallel tool calls</span>
+  <h2>MCP did not double the cost. The model's choice of searches did.</h2>
+  <p class="intro">Two questions: one that needs a single search (Vendor07 price) and one that needs several (Vendor04 cancellation). Same instructions and model (Claude Sonnet 5.5), 3 runs per cell, the middle value (median) shown. Nov 6.</p>
+  <div class="tablewrap">
+  <table class="num">
+    <thead><tr><th>Question</th><th>Way</th><th>Model calls</th><th>Capability calls</th><th>Seconds</th><th>Tokens</th><th>≈ Cost</th></tr></thead>
+    <tbody>
+      <tr><td>One search (Vendor07 price)</td><td>Tool, in the app</td><td>3</td><td>3</td><td>6.7</td><td>5,344</td><td>1.6 ¢</td></tr>
+      <tr><td>One search (Vendor07 price)</td><td>MCP over stdio</td><td>2</td><td>2</td><td>7.8</td><td>2,965</td><td>1.2 ¢</td></tr>
+      <tr><td>Several searches (Vendor04 cancellation)</td><td>Tool, in the app</td><td>3</td><td>3</td><td>9.5</td><td>7,237</td><td>2.0 ¢</td></tr>
+      <tr class="ship"><td>Several searches (Vendor04 cancellation)</td><td>MCP over stdio</td><td>5</td><td>5</td><td>10.1</td><td>14,632</td><td>3.5 ¢</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="grid g3" style="margin-top:14px">
+    <div class="card"><div class="big">≈ same<small>tokens when the model made the same searches: 5,344 vs 5,355 (Vendor07), 7,237 vs 7,180 (Vendor04), at 3 calls each</small></div></div>
+    <div class="card"><div class="big">+1 s<small>what MCP adds: starting the server program</small></div></div>
+    <div class="card accent"><div class="big">2 at once<small>searches asked for in the model's first reply, in all 12 runs: it uses parallel tool calls</small></div></div>
+  </div>
+  <div class="diary"><span class="lab">Why one run would have misled me</span>
+    <p>On Vendor04 the tool made 3, 3 and 4 searches; MCP made 3, 5 and 5. One run per way could have shown MCP at twice the cost. The gap comes from how many searches the model decides to make, not from MCP. Why the MCP side searched more is not verified yet: a guess is that the server describes the tools in a slightly different format.</p>
+    <p>Because the first reply always asks for 2 searches together (the document list and a search), model calls equal capability calls here, instead of capability calls + 1.</p>
+  </div>
+  <p class="help">Cost is estimated from the tokens at Claude Sonnet 5.5 rates: method in <a href="#realsize">section 05</a>. Blind spot: the MCP server runs in its own program, so the counter cannot see inside it. MCP searches are counted on the app's side, one per request sent to the server. Measured on the endpoint's loop, without the web page around it.</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/measure.py">measure.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/measure-step4.json">measure-step4.json</a> · <a href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/README.md">challenge README</a> (Step 4)</p>
+</div>
+</section>
+
+<!-- ============ 5. MEASURED AT REAL SIZE ============ -->
+<section id="realsize" data-label="Real size" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">05</span> Measured at real size</p>
+  <span class="req">Step 5: bytes per response, calls per request, tokens, measured</span>
+  <h2>Search results 6 times bigger made each question 3 times more expensive</h2>
+  <p class="intro">My invented contract sections are short (under 1,000 characters), so Step 4 flatters every way. As a stand-in for real, longer contracts, each search hit returned its whole document page instead. Same tool names and descriptions on both ways. Several-searches question (Vendor04), median of 3 runs, Nov 6.</p>
+  <div class="tablewrap">
+  <table class="num">
+    <thead><tr><th>Response</th><th>Way</th><th>Bytes per search response</th><th>Capability calls per request</th><th>Tokens</th><th>≈ Cost per question</th></tr></thead>
+    <tbody>
+      <tr><td>Sections (Step 4)</td><td>Tool, in the app</td><td>2,544</td><td>3</td><td>7,237</td><td>2.0 ¢</td></tr>
+      <tr><td>Sections (Step 4)</td><td>MCP over stdio</td><td>2,004</td><td>5</td><td>14,632</td><td>3.5 ¢</td></tr>
+      <tr class="ship"><td>Whole page per hit</td><td>Tool, in the app</td><td>16,260</td><td>3</td><td><b>22,775</b></td><td><b>5.1 ¢</b></td></tr>
+      <tr><td>Whole page per hit</td><td>MCP over stdio</td><td>22,854</td><td>3</td><td>31,364</td><td>6.8 ¢</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="grid g3" style="margin-top:14px">
+    <div class="card"><div class="big">$6<small>a month today: 5 questions a day at whole-page size, 22 working days</small></div></div>
+    <div class="card accent"><div class="big">$56<small>a month at 10x: 50 questions a day, about 1.1 million tokens a day</small></div></div>
+    <div class="card inkc"><div class="big">$0<small>extra tokens for MCP: volume does not change the choice. Response size and the number of searches do</small></div></div>
+  </div>
+  <div class="diary"><span class="lab">Reading it</span>
+    <p>Same searches, same bytes, same tokens: the one MCP run that got the same pages as the tool (16,260 bytes, 3 calls) cost 22,873 tokens against 22,775. The MCP median is higher because its searches returned different, longer pages.</p>
+    <p>On the one-search question (Vendor07), whole pages made the model search less (2 calls instead of 3), so tokens stayed flat: 4,996 against 5,344.</p>
+    <p>Real contracts are longer, but the search cuts each section at 1,000 characters and returns at most 8. A big contract adds sections, not bigger results. Whole pages are the uncapped case.</p>
+  </div>
+  <p class="help">How the cents are estimated: tokens are measured as a total, so I price them at Claude Sonnet 5.5 rates ($2 per million tokens in, $10 out), assuming about 700 tokens of answer (two answers measured on Nov 6: 419 and 764). The README's "about $50 a month" counts the input price only. The contracts are plain text, so characters = bytes. Docker: the image builds and answers the Vendor07 price question with its sources (Nov 6).</p>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/measure-step5-full-pages.json">measure-step5-full-pages.json</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/retrieval.py">retrieval.py</a> (<code>search_full_pages</code>) · <a href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/README.md">challenge README</a> (Step 5)</p>
+</div>
+</section>
+
+<!-- ============ DEMO 2:40 · THE OPTIONS ============ -->
+<section id="options" data-label="The options" data-time="2:40" data-n="→">
+<div class="wrap">
+  <p class="kicker">The architecture choice · three options for the same search</p>
+  <h2 class="slide-h">How should people reach the contract search? I compared three ways, and built two.</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th></th><th>A. Tool inside the app</th><th>B. MCP server (plus the tool)</th><th>C. Code Mode</th></tr></thead>
+    <tbody>
+      <tr><th>How it works</th><td>The app runs the search when the AI model asks for it</td><td>The same search in a small separate program that Claude Desktop can find and use</td><td>The AI model writes a short program that runs all the searches and returns only the result</td></tr>
+      <tr><th>For</th><td>Simplest. Nothing new to run</td><td>Owners ask in Claude Desktop, as the sponsor asked. Same search, same cost per question</td><td>Stays cheap when one question needs many searches</td></tr>
+      <tr><th>Against</th><td>Owners must use my app: Claude Desktop cannot reach it</td><td>One more program to run and look after. My instructions to the model do not travel with it</td><td>Runs code the AI wrote: needs a locked-down sandbox and a security review. Its own filter can hide evidence</td></tr>
+      <tr><th>Cost per question</th><td>About 5 ¢ (measured)</td><td>About 5 ¢ (measured), about 1 s slower</td><td>Not measured. It can save part of the 5 ¢, never more</td></tr>
+      <tr class="ship"><th>Cost per month</th><td>About $6 today · $56 at 10x</td><td>About $6 today · $56 at 10x</td><td>Saves less than $6 today · less than $56 at 10x</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">Cost per question at real size (Vendor04 cancellation, whole pages: 22,775 tokens, measured Nov 6), priced at Claude Sonnet 5.5 rates ($2 in, $10 out per million tokens), with about 700 tokens of answer. Today = the expected 5 questions a day; 10x = 50 a day; 22 working days. Three more ways were ruled out early: a skill, a subagent, a description of an existing web API (<a href="#second">section 02</a>).</p>
+</div>
+</section>
+
+<!-- ============ DEMO 3:40 · THE DECISION ============ -->
+<section id="architecture" data-label="The decision" data-time="3:40" data-n="→">
+<div class="wrap">
+  <p class="kicker">The architecture decision</p>
+  <h2 class="slide-h">I chose B: MCP for questions, with the same search kept inside the app</h2>
+  <div class="grid g3">
+    <div class="card accent"><h4>1. It meets the sponsor's need</h4>He wants to ask in Claude Desktop, not in one more app. Option A cannot do that.</div>
+    <div class="card"><h4>2. It costs almost nothing extra</h4>Measured: the same tokens as A when the AI makes the same searches. The price is about 1 second per question, and one small program to deploy and look after.</div>
+    <div class="card inkc"><h4>3. C is not worth it yet</h4>At most a few dollars a month to save, against building a sandbox and getting it through a security review.</div>
+  </div>
+  <div class="statement"><p class="lab">What decides the bill</p><p>Not the way in. How many searches the AI makes, and how big each result is: 2 ¢ per question with short results, 5 ¢ with whole pages.</p></div>
+  <p class="moral">What would make me switch:<br><span>to C, when negotiation support needs more than 5 searches per question; away from MCP, if the company stops using Claude.</span></p>
+</div>
+</section>
+
+<!-- ============ 6. DECISION ============ -->
+<section id="decision" data-label="Decision" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">06</span> Decision</p>
+  <span class="req">Step 6: decision, what I rejected, why, what would change my mind</span>
+  <h2>Keep both doors to the same search. Code Mode waits for negotiation support.</h2>
+  <div class="grid g2">
+    <div class="card"><h4>Decision</h4>MCP for questions, because the sponsor wants to ask through Claude Desktop, a client outside the app. The tool inside the app stays for the app's own loop: alerts and email replies, and the demo page. Both measured. Gap: owners without a Claude licence get alerts by email but cannot ask free questions yet.</div>
+    <div class="card"><h4>What I rejected</h4><b>Code Mode, in detail:</b> it keeps search results out of the model's context, but runs model-written code, so it needs a sandbox (no keys, no network, a time limit). Not worth building: the whole bill is about $6 a month today and $56 at 10x volume, so it can save less than that.<br><br><b>The others in one line:</b> UTCP (no contract API at work), a skill (the rules change slower than the code), a subagent (it would still read everything, so total tokens do not drop).</div>
+    <div class="card"><h4>Why</h4>Ordering question 2 is yes: a named outside client. MCP measured at the same tokens as the tool at equal searches, plus about 1 s. Parallel tool calls: 2 in the first reply, 12 of 12 runs. Limits: whole pages are a stand-in for real contracts; why MCP searched more on Vendor04 is not verified.</div>
+    <div class="card accent"><h4>What would change my mind</h4><b>Code Mode:</b> when negotiation support starts (this year's and last year's contract, the quotes, public prices for similar tools), at more than 5 searches per request (today's maximum: 5), with a sandbox that has no network and a separate step that fetches public data.<br><br><b>Drop MCP:</b> if the company stops using Claude, unless the assistant it moves to also speaks MCP.</div>
+  </div>
+  <h3>The row, as written in my decision log</h3>
+  <blockquote class="hers">
+    <p><b>Decision:</b> MCP for questions from Claude Desktop, with the same search kept as a tool inside the app for alerts and email replies.</p>
+    <p><b>What I rejected:</b> Code Mode (closest): it needs a sandbox for model-written code, and it can save less than the whole bill ($6 a month today, $56 at 10x). UTCP (no contract API at work), a skill (the rules change slower than the code), a subagent (it would still read everything).</p>
+    <p><b>Why:</b> ordering question 2 is yes: Claude Desktop is a named client outside the app. Measured: the same tokens as the tool when the model makes the same searches (22,873 vs 22,775 at whole-page size), about 1 s slower.</p>
+    <p><b>What would change my mind:</b> to Code Mode when negotiation support needs more than 5 searches per question, with a sandbox that has no network; away from MCP if the company stops using Claude and the next assistant does not speak MCP.</p>
+  </blockquote>
+  <div class="diary"><span class="lab">The open question from Step 1</span>
+    <p><b>When does it go to production?</b> Partly closed on Nov 10. Route chosen with the sponsor: the Anthropic API under the existing company agreement, with API credits dedicated to the contract agent. IT confirmed by email (Nov 9): no training on our data, 30-day retention by default, no EU processing; the sponsor accepts that for these international contracts. Still open: IT sets up the credits and a way to watch cost, and a production host (today a temporary VM). Not before next year.</p>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">use_case/decisions.md</a> (Week 5 architecture row, Week 5 questions) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 4 and Week 5 rows) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a></p>
+</div>
+</section>
+
+<!-- ============ 7. WHAT MCP DOES NOT CARRY ============ -->
+<section id="desktop" data-label="What MCP does not carry" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">07</span> What MCP does not carry</p>
+  <h2>Claude Desktop gets the tools, not my instructions</h2>
+  <p class="intro">Through MCP, Claude Desktop receives the tools and their descriptions. It does not receive the app's instructions to the model (cite every source in brackets, invent nothing, the rule before saying "missing"). So I asked the same questions in Claude Desktop three times. One run each, Nov 6.</p>
+  <div class="tablewrap">
+  <table class="num">
+    <thead><tr><th>Round</th><th>Answers right</th><th>False "missing"</th><th>Sources in brackets</th><th>Other vendors brought in</th></tr></thead>
+    <tbody>
+      <tr><td>1. No app instructions (Claude Opus 5.5)</td><td>6 of 6</td><td>0</td><td>0 of 6</td><td>1 of 6</td></tr>
+      <tr><td>2. App instructions pasted first (Claude Opus 5.5)</td><td>4 of 4</td><td>0</td><td>4 of 4</td><td>0</td></tr>
+      <tr><td>3. No app instructions (Claude Sonnet 5.5)</td><td>5 of 5</td><td>0</td><td>0 of 5</td><td>1 of 5</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card accent"><h4>What travels</h4>No false "missing" in any round: the <code>list_documents</code> description ("Use it before saying a document is missing") reaches every client, because it is part of the tool.</div>
+    <div class="card"><h4>What does not</h4>The citation format lives only in the app's instructions. Without them, answers were richer (comparisons, negotiation advice) but less scoped and less traceable.</div>
+  </div>
+  <div class="statement"><p>A rule that must hold for every client goes into the tool, not into the instructions.</p></div>
+  <p class="help">One run per round, and rounds 2 and 3 returned fewer answers than asked (4 and 5 of 6). Round 1 used a stronger model, so round 3 repeats it on the endpoint's model. The other-vendor fix (a vendor filter in the search) is planned for Week 6 for this reason.</p>
+</div>
+</section>
+
+<!-- ============ DEMO 4:20 · STILL OPEN, AND NEXT ============ -->
+<section id="next" data-label="Still open, and next" data-time="4:20" data-n="→">
+<div class="wrap">
+  <p class="kicker">Still open, and what is next</p>
+  <h2 class="slide-h">Production waits for one approval. The alert is where the owner sees the value.</h2>
+  <div class="card inkc" style="margin-bottom:14px"><h4>Route chosen, production still next year</h4>Nov 10: real contracts go through the Anthropic API under the existing company agreement (no training, 30-day retention). Still open: IT sets up the API credits, and a production host. First real documents: my own team's IT contracts.</div>
+  <div class="steps">
+    <div class="stepc"><span class="no">1</span><b>Read</b>Fixed this week<span class="nx"><b>Next (Week 6):</b> answer only about the vendor asked, enforced in the search.</span></div>
+    <div class="stepc"><span class="no">2</span><b>Save</b>Not built yet<span class="nx"><b>Next:</b> save each contract's dates and terms with their source. Dates calculated by code, not by the AI.</span></div>
+    <div class="stepc key"><span class="no">3</span><b>Alert</b>The key step<span class="nx"><b>Next:</b> warn the owner before the last day to say no, with time to review.</span></div>
+    <div class="stepc done"><span class="no">4</span><b>Draft</b>Built<span class="nx"><b>Kept:</b> the owner approves every email before it is sent.</span></div>
+  </div>
+  <p class="moral">This week's lesson:<br><span>build the alternative and measure it before you reject it.</span></p>
+</div>
+</section>
+
+<!-- ============ 8. SPONSOR DEMO ============ -->
+<section id="sponsor" data-label="Sponsor demo" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">08</span> Sponsor demo</p>
+  <span class="req">Step 7: the refined demo shown to a real stakeholder, in my own words</span>
+  <h2>"I would stop using the spreadsheet." His worst case is disclosure to a vendor.</h2>
+  <div class="grid g2">
+    <div class="card"><h4>Who</h4>The Head of IT infrastructure: the sponsor, and the contract owner in the charter.</div>
+    <div class="card"><h4>How</h4>Nov 10, one-on-one, recorded Zoom screen-share, 52 minutes with discussion, in English and French. The demo itself was not timed.</div>
+  </div>
+  <h3>His answers to the three questions, in my words</h3>
+  <div class="grid g3">
+    <div class="card"><h4>1. "What would you do differently on Monday if this is right?"</h4>Stop tracking renewal dates in a spreadsheet. Stop writing vendor questions himself and only check the draft. Copy the shared contracts mailbox so the agent learns from real threads. Rely less on other people for routine renewal steps.</div>
+    <div class="card"><h4>2. "What did I say that you did not believe?"</h4>Nothing. He wants to see the third way, Code Mode, later, to cut API cost.</div>
+    <div class="card accent"><h4>3. "What is the worst thing this could do, from where you sit?"</h4>A wrong amount, duration, or an old contract version taken as current. Worse: telling a vendor what must stay inside the company (past internal discussions, the discount we got, a competitor's name). That ends the negotiation. Candidate guardrail for Week 6: a vendor filter in the search.</div>
+  </div>
+  <h3>My two questions</h3>
+  <div class="grid g2">
+    <div class="card"><h4>Rich or scoped answer?</h4>Scoped. In the rich answer to the Vendor04 security question, the other vendors' terms were noise to him ("who cares?"). That is why the app's instructions stay, and why the vendor rule moves into the search.</div>
+    <div class="card"><h4>Claude Desktop still the plan?</h4>Yes. He prefers Claude Desktop to a web page behind the company login (VPN, single sign-on, MFA), and wants a weekly routine: every Monday, the contracts coming up for renewal. Contract owners: about 10 to 15 people, not all with a licence, so email stays the second door. Slack is a possible third.</div>
+  </div>
+  <div class="statement"><p class="lab">What it changed (decisions.md, Week 5, Step 7)</p><p>His worst case is disclosure, not a wrong date. The other-vendor failure moves from a prompt rule to a filter in the search. He also dropped EU processing as a condition for these contracts.</p></div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">use_case/stakeholders.md</a> (Week 5 row) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a></p>
+</div>
+</section>
+
+<!-- ============ 9. BRING IT TO WORK ============ -->
+<section id="work" data-label="Bring it to work" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">09</span> Bring it to work</p>
+  <span class="req">Step 8: which capability at work, and what I would swap</span>
+  <h2>The contract search, wrapped in an MCP server for Claude Desktop</h2>
+  <blockquote class="hers">
+    <p><b>Where at work:</b> the contract search (<code>search_chunks</code>, <code>list_documents</code>) that the contract agent wraps in an MCP server, so contract owners can ask about IT contracts from Claude Desktop instead of a separate app. Step 8 pattern: a capability wrapped in an MCP server for one outside caller, Claude Desktop.</p>
+    <p><b>Data:</b> one search returns 2,544 bytes with sections and 16,260 bytes with whole pages (the stand-in for real, longer contracts). The several-searches question needs 3 capability calls on the tool path (<i>measured</i>).</p>
+    <p><b>Model or endpoint:</b> no contract API exists at work; the search is my code on a temporary VM. The model is the Anthropic API under the existing company agreement (chosen Nov 10). IT holds the API credential, dedicated to the contract agent; no credential on laptops.</p>
+    <p><b>Access or approval:</b> IT to set up API credits for the agent and a way to watch cost; a deployment target for the MCP server that Claude Desktop can reach (local over VPN, or a remote endpoint with TLS and company login), to settle with IT security; later, a sandbox for Code Mode if cost needs cutting.</p>
+    <p><b>Measured:</b> 22,775 tokens per question on the tool path at whole-page size (Vendor04, median of 3 runs, Step 5).</p>
+  </blockquote>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/05_Agent_Architecture/challenge/TC5_submission.md#bring-it-to-work">05_Agent_Architecture/challenge/TC5_submission.md · Bring it to work</a></p>
+</div>
+</section>
+
+</main>
+
+<script>
+/* Paste the video link between the quotes after recording. */
+const LOOM_URL = "";
+
+(function(){
+  /* cover decoration: two columns of pixels joining into one, ink and orange */
+  const svg = document.getElementById('stairs');
+  if (svg) {
+    const N = 12, ns = 'http://www.w3.org/2000/svg';
+    const h = [3,4,4,6,5,7,8,7,9,10,11,12];
+    for (let c = 0; c < N; c++) for (let r = 0; r < h[c]; r++) {
+      const s = document.createElementNS(ns, 'rect');
+      s.setAttribute('x', c + .08); s.setAttribute('y', N - 1 - r + .08);
+      s.setAttribute('width', .84); s.setAttribute('height', .84); s.setAttribute('rx', .2);
+      const t = c / (N - 1);
+      s.setAttribute('fill', t > .55 ? '#F04B2A' : '#0E0E0E');
+      s.setAttribute('opacity', (0.25 + 0.75 * t).toFixed(2));
+      svg.appendChild(s);
+    }
+  }
+
+  const loom = document.getElementById('loomLink');
+  const loomCell = document.getElementById('loomCell');
+  if (LOOM_URL) {
+    loom.href = LOOM_URL;
+    loomCell.innerHTML = '<a href="' + LOOM_URL + '" target="_blank" rel="noopener">Video</a>';
+  } else { loom.textContent = 'Video (link to be added)'; loom.removeAttribute('href'); }
+
+  /* sidebar: every section, numbered, with demo time or "doc" */
+  const sections = Array.from(document.querySelectorAll('main section'));
+  const nav = document.getElementById('nav');
+  const links = sections.map((s, i) => {
+    const a = document.createElement('a');
+    a.href = '#' + s.id;
+    const isDoc = s.classList.contains('doc-only');
+    const k = s.querySelector('.kicker .n');
+    const num = s.dataset.n || (k ? k.textContent : String(i).padStart(2, '0'));
+    a.innerHTML = '<span class="n">' + num + '</span><span>' + s.dataset.label + '</span>' +
+      (isDoc ? '<span class="doc">doc</span>' : '<span class="t">' + (s.dataset.time || '') + '</span>');
+    a.addEventListener('click', e => { e.preventDefault(); s.scrollIntoView({behavior:'smooth', block:'start'}); });
+    nav.appendChild(a);
+    return a;
+  });
+
+  const presenter = () => document.body.classList.contains('presenter');
+  const visibleIdx = () => sections.map((s, i) => i).filter(i => !(presenter() && sections[i].classList.contains('doc-only')));
+
+  function currentIndex(){
+    const line = window.innerHeight * 0.35; let cur = visibleIdx()[0];
+    visibleIdx().forEach(i => { if (sections[i].getBoundingClientRect().top <= line) cur = i; });
+    return cur;
+  }
+
+  function update(){
+    const vis = visibleIdx(); const cur = currentIndex(); const pos = vis.indexOf(cur);
+    links.forEach((a, i) => {
+      a.classList.toggle('hide', !vis.includes(i));
+      a.classList.toggle('on', i === cur);
+      a.classList.toggle('done', vis.includes(i) && vis.indexOf(i) < pos);
+    });
+    document.getElementById('pos').textContent = pos + 1;
+    document.getElementById('tot').textContent = vis.length;
+    document.querySelector('#prog i').style.width = ((pos + 1) / vis.length * 100) + '%';
+    document.getElementById('modeLabel').textContent = presenter() ? 'Presenter' : 'Document';
+    const a = links[cur];
+    if (a && nav.scrollHeight > nav.clientHeight) {
+      if (a.offsetTop < nav.scrollTop) nav.scrollTop = a.offsetTop - 8;
+      else if (a.offsetTop + a.offsetHeight > nav.scrollTop + nav.clientHeight) nav.scrollTop = a.offsetTop + a.offsetHeight - nav.clientHeight + 8;
+    }
+  }
+
+  function go(step){
+    const vis = visibleIdx(); const pos = vis.indexOf(currentIndex());
+    const next = vis[Math.max(0, Math.min(vis.length - 1, pos + step))];
+    sections[next].scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,textarea,select')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    else if (e.key === 'p' || e.key === 'P') {
+      const keep = sections[currentIndex()];
+      document.body.classList.toggle('presenter');
+      const target = (keep.offsetParent !== null) ? keep : sections[currentIndex()];
+      target.scrollIntoView({block:'start'});
+      update();
+    }
+    else if (e.key === 'a' || e.key === 'A') { window.open('http://localhost:7860', '_blank', 'noopener'); }
+  });
+
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(() => { update(); ticking = false; }); }
+  }, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
+</body>
+</html>

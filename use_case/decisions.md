@@ -93,6 +93,12 @@ The endpoint is a plain tool today. I walked Session 10's six ordering questions
 **Why not question 1:** no contract API exists at work, so there is nothing for UTCP to describe.
 **Closest reject: Code Mode** (question 3 is also yes). I have no sandbox to run model-written code, and building one does not fit this week.
 
+## Week 5 — architecture row (Step 6)
+
+| Decision | Rejected | Why | Would switch if |
+| --- | --- | --- | --- |
+| MCP for questions from Claude Desktop; the same search stays a tool inside the app for alerts and email replies | Code Mode (closest): needs a sandbox for model-written code, and can save less than the whole bill ($6 a month today, $56 at 10x). UTCP: no contract API at work. Skill: the rules change slower than the code. Subagent: it would still read everything | Ordering question 2 is yes (Claude Desktop is an outside client). Measured: the same tokens as the tool at equal searches (22,873 vs 22,775 at whole-page size), about 1 s slower; 2 parallel tool calls in the first reply, 12 of 12 runs | Code Mode when negotiation support needs more than 5 searches per question, with a sandbox that has no network; drop MCP if the company stops using Claude and the next assistant does not speak MCP |
+
 ## Week 5 — model route (settled Nov 10)
 
 | Decision | Chosen | Rejected | Why | Would switch if |

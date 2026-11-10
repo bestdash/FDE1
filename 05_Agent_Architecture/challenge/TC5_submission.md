@@ -8,11 +8,11 @@ After Session 9 and the Nov 3 sponsor demo, three things changed. The agent now 
 
 **Capability:** the contract search (`search_chunks` and `list_documents`) that the contract agent wraps in an MCP server for Claude Desktop, so contract owners can ask about IT contracts from Claude instead of a separate app.
 
-- **Data:** one search returns about 7,400 characters (7,367 measured, up to 4 sections of up to 1,000 characters, max 8). A one-search question needs 2 capability calls as a tool and 3 through MCP (*measured*). Real contracts are longer than the synthetic ones, so this grows.
+- **Data:** one search returns 2,544 bytes with sections and 16,260 bytes with whole pages (the stand-in for real, longer contracts). The several-searches question needs 3 capability calls on the tool path (*measured*).
 - **Model or endpoint:** no contract API exists at work; the search is my code on the temporary VM. The model is the Anthropic API under the existing company agreement (decided Nov 10). IT holds the API credential, dedicated to the contract agent; no credential on laptops.
 - **Access or approval:** IT to set up API credits for the agent and a way to watch cost (they rejected a separate workspace); a deployment target for the MCP server reachable from Claude Desktop (local over VPN, or a remote endpoint with TLS and company login: to settle with IT security); a sandbox for Code Mode later, if API cost needs cutting.
 
-**Step 5 tokens (*measured*, one search, mean of 3 runs, `use_case/evals/runs/measure-step5-full-pages.json`):** tool 4,996 tokens; MCP 11,513 tokens.
+**Step 5 tokens (*measured*, several-searches question, whole pages, median of 3 runs, `use_case/evals/runs/measure-step5-full-pages.json`):** 22,775 tokens per question on the tool path; MCP 31,364, and 22,873 in the one MCP run that made the same searches.
 
 ## Step 7 answers
 
