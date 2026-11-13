@@ -85,7 +85,14 @@ The endpoint is a plain tool today. I walked Session 10's six ordering questions
 | --- | --- | --- | --- |
 | 1 | Does it already exist as an HTTP API at work? | No | No contract API exists at work. Contract data is internal and is not served through an API. |
 | 2 | Does anything outside this app need to discover it? | **Yes** | The sponsor wants to ask about contracts through the Claude interface, not a separate tool. Client: Claude Desktop, where pilot users connect (`ecosystem.md`). |
-| 3 | Does one request need several calls, or calls that return a lot? | Yes | In the TC3 run `evals/runs/rag-v2b.md`, questions used 1 to 6 searches, most 2 to 4. Oinside the app for alerts and email replies | Code Mode (closest): needs a sandbox for model-written code, and can save less than the whole bill ($6 a month today, $56 at 10x). UTCP: no contract API at work. Skill: the rules change slower than the code. Subagent: it would still read everything | Ordering question 2 is yes (Claude Desktop is an outside client). Measured: the same tokens as the tool at equal searches (22,873 vs 22,775 at whole-page size), about 1 s slower; 2 parallel tool calls in the first reply, 12 of 12 runs | Code Mode when negotiation support needs more than 5 searches per question, with a sandbox that has no network; drop MCP if the company stops using Claude and the next assistant does not speak MCP |
+| 3 | Does one request need several calls, or calls that return a lot? | Yes | In the TC3 run `evals/runs/rag-v2b.md`, questions used 1 to 6 searches, most 2 to 4. |
+| 4 | Does the knowledge change more often than the code? | No | Once contracts are checked, the rules stay about the same. |
+| 5 | Does the work read a lot to produce a little? | Probably | It reads several documents for one short answer. |
+| 6 | Otherwise | - | What I had: the search as a tool inside the app. |
+
+**Second way: MCP**, picked by question 2: Claude Desktop is a named client outside my app. Question 1 is no: there is no contract API at work for UTCP to describe.
+
+**Closest one not picked: Code Mode.** Question 3 is also yes. But Code Mode runs code the model writes, and I have no sandbox to run it safely. Building one does not fit this week.
 
 ## Week 5 — model route (settled Nov 10)
 
