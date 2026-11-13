@@ -63,6 +63,14 @@ def schema(name, description, properties, required=()):
     return {"type": "function", "function": {"name": name, "description": description,
             "parameters": {"type": "object", "properties": properties, "required": list(required)}}}
 
+def declared_args(tools, name):
+    """The argument names the tool list declares for one tool, or None when it is not listed (then nothing is dropped)."""
+    for tool in tools:
+        function = tool.get("function", {})
+        if function.get("name") == name:
+            return set(function.get("parameters", {}).get("properties", {}))
+    return None
+
 RAG_TOOLS = [schema("search_chunks", "Search ranked corpus chunks. Search again with a new query when evidence is incomplete.",
                         {"query": {"type": "string"}, "k": {"type": "integer"}}, ["query"])]
 SAMPLER = {"temperature": 0}  # deterministic where the provider allows it
@@ -135,7 +143,11 @@ def run_agent(question, tools, funcs, max_turns=6):
                 args = json.loads(call["function"]["arguments"] or "{}")
                 if name not in funcs:
                     raise KeyError(f"unknown tool {name}")
-                result = str(funcs[name](**args))
+                declared = declared_args(tools, name)
+                extra = sorted(set(args) - declared) if declared is not None else []   # a small model may invent arguments (Nov 13: "corpus")
+                result = str(funcs[name](**{key: value for key, value in args.items() if key not in extra}))
+                if extra:
+                    result = f"(ignored unknown arguments: {', '.join(extra)})\n" + result
             except Exception as exc:
                 result = f"(tool error: {type(exc).__name__}: {exc})"
             chars += len(result)
