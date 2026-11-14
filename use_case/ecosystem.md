@@ -117,6 +117,26 @@ Downloading open weights works: `LiquidAI/LFM2.5-350M` downloaded from Hugging F
 
 BM25 needs no model and no index service, so the retrieval step needs no approval. Dense was measured with a local embedding model (bge-small-en-v1.5 through fastembed): embedding tokens 0, measured, nothing sent. At work it would need the same vendor review as any local model (Week 2). Still blocked: the answer model route (Week 1, question 8). New this week: retrieval sends contract sections to the answer model, not only structured fields, so the route request must cover contract text. Open with the sponsor and IT security after about Nov 4: may contract text go to a private endpoint in our own cloud under an SLA?
 
+## Week 6: who can write to what the app reads
+
+| Source | Where it enters the app | Who can write there | Trusted? |
+| --- | --- | --- | --- |
+| The user's question | `answer_contract_question` in `app.py`, and tool arguments from Claude Desktop | Any contract owner with a Claude license. Only contract owners should get access to the app | Partly: internal users, but they may paste vendor text. Separate gap: any owner can ask about another owner's contracts, and so can anyone who reaches the MCP server. Needs the permission filter (search only the contracts this user may see). |
+| The contract files `SYN-*.md` | loaded into `PAGES` in `retrieval.py` | Whoever curates the corpus; in the real app, vendors write the contracts | No: vendors write them. Impact low: a planted instruction is unlikely (bad for the vendor's reputation), an attacker who replaces a file must know the app exists, and nothing leaves without the owner's approval (the app cannot send email). |
+| `index.md` | read by `list_documents` | Whoever curates the corpus | Partly: built by my code from the contract files, so its titles carry the same small risk as the contract files. |
+| The tool descriptions | `RAG_TOOLS` in `retrieval.py`, also served over MCP | You, and anyone who can edit the MCP server or the app source code | Yes, if every change goes through review in the private repo. Impact high if not: the model follows tool descriptions without question. |
+| Real app: shared contracts mailbox | the watcher reads new emails and attachments | Anyone who can send an email to it, inside or outside the company: a vendor can hide an instruction in the message or an attachment | No: anyone can email it. Impact low, as for the contract files: the owner approves every draft. |
+| Real app: database fields | values the app stores and later puts into a prompt (extracted terms, owner notes, dialogue replies) | The app itself (extraction from contracts and emails), contract owners through the dialogue, database admins | Partly: written by my code and by internal owners, but text extracted from contracts and emails is No (stored injection). Impact low, as for the contract files. |
+
+### Doors
+
+- Indirect injection: tested. A hidden instruction in a contract, 0 of 8 on the local model, 0 of 8 on a deliberately weakened copy. The real failure was cross-vendor retrieval, found with no attacker: the fix is the vendor filter in the search.
+- Tool description: tested. Two poisoned descriptions of the search tool (the same words the MCP server serves), run through the local agent loop: 0 of 16 leaks, the same as with no poison. But the descriptions changed the model's tool calls in every run, so they must stay in the reviewed private repo.
+- Sandbox escape: closed. The app never runs code the model writes.
+- The hosted model through Claude Desktop: not tested. The course rule and the providers' policies forbid attack prompts on the hosted model. The vendor filter in the search protects this path too.
+- The internet: closed. The app has no web tool.
+- Shared contracts mailbox (real app): not tested, because the course app has no mailbox. Planned controls: email text is data, never instructions; the owner approves every draft before it is sent (the human step in the ladder).
+
 ---
 
 ## Week 9 — the full checklist
