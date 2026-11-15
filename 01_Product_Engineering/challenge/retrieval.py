@@ -55,12 +55,12 @@ bm25 = BM25Okapi([tokenize(chunk["text"]) for chunk in chunks])
 def search_chunks(query: str, k: int = 4, vendor: str = None) -> str:
     scores = bm25.get_scores(tokenize(query))
     candidates = range(len(chunks))                  # all positions
+    
     if vendor:
-        found = re.search(r"\d{1,2}", vendor)    # finds the first 1 or 2 digits
-        if not found:
-            return f"(vendor {vendor} has no digits to match SYN-XX)"
-        number = found.group().zfill(2)            # "7" -> "07"
-        candidates = [index for index in candidates if chunks[index]["page"].startswith(f"SYN-{number}-")] # filter by vendor if given
+        numbers = {n.zfill(2) for n in re.findall(r"\d{1,2}", vendor)}   # "Vendor05, Vendor10" -> {"05", "10"}
+        if not numbers:
+            return f"(no vendor number found in '{vendor}': use a name like Vendor04)"
+        candidates = [index for index in candidates if chunks[index]["page"][4:6] in numbers]   # "SYN-04-order.md"[4:6] -> "04"
     
     order = sorted(candidates, key=lambda index: scores[index], reverse=True)[: max(1, min(k, 8))]
     if not order:
@@ -82,8 +82,10 @@ def declared_args(tools, name):
             return set(function.get("parameters", {}).get("properties", {}))
     return None
 
-RAG_TOOLS = [schema("search_chunks", "Search ranked corpus chunks. Search again with a new query when evidence is incomplete. Vendor is optional: if given, only chunks from that vendor are returned.",
-                        {"query": {"type": "string"}, "vendor": {"type": "string"}, "k": {"type": "integer"}}, ["query"])]
+RAG_TOOLS = [schema("search_chunks", "Search ranked corpus chunks. Search again with a new query when evidence is incomplete.",
+                        {"query": {"type": "string"},
+                         "vendor": {"type": "string", "description": "Optional. Only these vendors' contracts, e.g. Vendor04, or Vendor05, Vendor10 for several. If none, search all vendors."},
+                         "k": {"type": "integer"}}, ["query"])]
 SAMPLER = {"temperature": 0}  # deterministic where the provider allows it
 PRICE_IN, PRICE_OUT = 2.0, 10.0  # USD per million tokens, Claude Sonnet 5.5 (looked up Oct 25, 2026). Change with the model.
 

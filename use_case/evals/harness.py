@@ -267,6 +267,31 @@ def judge_case(case: dict) -> dict:
     """What the judge sees: input = question + reference; output = the oracle answer (known-good)."""
     return {"input": judge_reference(case["input"], case["kind"]), "output": case["output"]}
 
+# Updated Nov 15: two new functions (the system and the scorer), plus one regex line.
+
+def search_only(question: str) -> str:
+    """System for the Week 6 test: the search alone, no model."""
+    if str(CHALLENGE) not in sys.path:
+        sys.path.insert(0, str(CHALLENGE))     # retrieval.py lives in the challenge folder
+    import retrieval                            # imported here, so echo and oracle stay instant
+    asked = vendor_numbers(question)            # {'04'}, {'05', '10'} or set(), as in Step A
+    if len(asked) > 0:                       
+        vendor = ", ".join(sorted(asked))      # every vendor the question names, e.g. "05, 10"
+    else:
+        vendor = None                          # no vendor named: search all vendors
+    return retrieval.search_chunks(question, vendor=vendor)
+
+RESULT_ID = re.compile(r"^\[SYN-(\d{2})-", re.MULTILINE)   # "[SYN-04-order.md#Terms]" -> "04"
+
+def vendor_isolation(actual: str, case: dict) -> float:
+    """Week 6 regression case. 1.0 = only the asked vendors came back. 0.0 = another vendor came back."""
+    asked = vendor_numbers(case["question"])           # e.g. {"05", "10"}, or set() when none is named
+    if not asked:
+        return 1.0                                   # no vendors named: the question is about all vendors, so no isolation check
+    returned = set(RESULT_ID.findall(actual))         # e.g. {"05", "10"} from the lines above
+    if returned - asked :                             # a vendor the question did not ask about came back
+        return 0.0
+    return 1.0
 
 JUDGE_CASES = [judge_case(case) for case in CASES]
 

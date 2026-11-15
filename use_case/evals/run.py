@@ -54,6 +54,11 @@ def main():
         raise SystemExit("No baseline.json yet: run once with --save.")
     print(harness.compare(harness.load(BASELINE), report))
 
+    # Week 6 regression case: the vendor filter, search only, no model (kept out of SCORERS so compare() stays valid)
+    isolation = harness.run(evals.CASES, evals.search_only, {"vendor_isolation": evals.vendor_isolation},
+                            name="week6-vendor-isolation")
+    print(isolation)
+
 
 if __name__ == "__main__":
     main()
