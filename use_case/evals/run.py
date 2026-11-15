@@ -5,6 +5,7 @@ Calls the endpoint on the 13 contract questions and scores every answer with the
 (26 to calibrate, 13 to score). --save writes baseline.json; without it, the run
 is compared against the saved baseline.
 """
+import json
 import os
 import random
 import sys
@@ -58,6 +59,12 @@ def main():
     isolation = harness.run(evals.CASES, evals.search_only, {"vendor_isolation": evals.vendor_isolation},
                             name="week6-vendor-isolation")
     print(isolation)
+
+    # Week 6 rules rung (NeMo, guardrails/config.yml): one pass of the attacks and the real questions through the same config
+    attacks = [json.loads(line) for line in (evals.EVALS / "attacks.jsonl").read_text().splitlines() if line.strip()]
+    rules = {"blocks_injection": evals.blocks_injection}
+    print(harness.run(attacks, evals.echo, rules, name="week6-rules-attacks"))          # coverage
+    print(harness.run(evals.CASES, evals.echo, rules, name="week6-rules-real-questions"))  # false positives
 
 
 if __name__ == "__main__":
