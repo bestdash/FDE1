@@ -137,6 +137,8 @@ BM25 needs no model and no index service, so the retrieval step needs no approva
 - The internet: closed. The app has no web tool.
 - Shared contracts mailbox (real app): not tested, because the course app has no mailbox. Planned controls: email text is data, never instructions; the owner approves every draft before it is sent (the human step in the ladder).
 
+Week 6 finding (Level 0): the approved model route is a closed API, so there is no logit access and constrained decoding is not available in production. The one closed-set output (`message_type`) is picked by code instead.
+
 ---
 
 ## Week 9 — the full checklist
