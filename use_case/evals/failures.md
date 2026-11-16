@@ -35,8 +35,9 @@ Group 3 fix: today's date and all date calculations in code, not by the model.
 - Q8 gold also accepts SYN-09-terms#3 from the baseline on.
 - Labels changed on 30 Oct, after Step 1, for the baseline: notice dates added to Q1, Q2, Q4; end_date added to Q4, Q5; term dates added to Q3.
 
-## Week 6: found while attacking (Nov 13 to 15)
+## Week 6: found while attacking (Nov 13 to 16)
 
 | Failure | Count | Evidence |
 | --- | --- | --- |
 | The search returns other vendors' sections for a question about one vendor, with no attacker (the cause behind rank 2) | 10 of 12 questions that name a vendor; 3 of 4 sections in the Vendor04 email trace | `vendor_isolation` before the fix 0.231, after 1.000; trace Nov 13 |
+| A typed "developer mode" request makes the model print the asked vendor's own internal comment as a contract term and compute a wrong fee, after the vendor filter | 1 of 24 optimiser candidates; the winner (`devmode`) 1 of 9 runs | `attacks.jsonl` optimiser and `devmode` lines; finding in `06_Guardrails/challenge/TC6_submission.md` |
