@@ -130,8 +130,8 @@ BM25 needs no model and no index service, so the retrieval step needs no approva
 
 ### Doors
 
-- Indirect injection: tested. A hidden instruction in a contract, 0 of 8 on the local model, 0 of 8 on a deliberately weakened copy. The real failure was cross-vendor retrieval, found with no attacker: the fix is the vendor filter in the search.
-- Tool description: tested. Two poisoned descriptions of the search tool (the same words the MCP server serves), run through the local agent loop: 0 of 16 leaks, the same as with no poison. But the descriptions changed the model's tool calls in every run, so they must stay in the reviewed private repo.
+- Indirect injection: tested. A hidden instruction in a contract, 0 of 8 on the local model, 0 of 8 on a deliberately weakened copy. The real failure was cross-vendor retrieval, found with no attacker: the fix is the vendor filter in the search. The note did reach the model: a traced run on Nov 14 retrieved the poisoned section (Vendor04 Products and Fees).
+- Tool description: tested. Two poisoned descriptions of the search tool (the same words the MCP server serves), run through the local agent loop: 0 of 16 leaks, the same as with no poison. But the descriptions changed the model's tool calls in every run, so they must stay in the reviewed private repo. `leaked()` reads only the answer, not the tool arguments. In the course app the only tool searches our own contracts, so an argument cannot take data out; in Claude Desktop with other connectors it could.
 - Sandbox escape: closed. The app never runs code the model writes.
 - The hosted model through Claude Desktop: not tested. The course rule and the providers' policies forbid attack prompts on the hosted model. The vendor filter in the search protects this path too.
 - The internet: closed. The app has no web tool.
