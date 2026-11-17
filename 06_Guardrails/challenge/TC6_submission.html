@@ -167,7 +167,7 @@ details summary{cursor:pointer; font-weight:600}
       <tr><td>The other doors, each with a result or a closed line</td><td><a href="#doors">Every door</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">ecosystem.md</a> (Week 6)</td></tr>
       <tr><td>The fix, the leg it removes, the attack as a scored case</td><td><a href="#fix">The fix</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/retrieval.py">retrieval.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/run.py">run.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/failures.md">failures.md</a></td></tr>
       <tr><td>Before/after and false positives from one pass, the ladder table, Docker</td><td><a href="#ladder">The protection ladder</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 6, the ladder), <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/guardrails/config.yml">guardrails/config.yml</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc6-final.txt">runs/tc6-final.txt</a></td></tr>
-      <tr><td>Shown to a real person, their answers</td><td><a href="#yourturn">Your view</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6 row)</td></tr>
+      <tr><td>Shown to a real person, their answers</td><td><a href="#yourturn">Your view</a>. Meeting on Wed Nov 18, added after</td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6 row)</td></tr>
       <tr><td>The system at work and the three swap lines</td><td><a href="#work">Bring it to work</a></td><td>This page</td></tr>
     </tbody>
   </table>
@@ -350,8 +350,8 @@ details summary{cursor:pointer; font-weight:600}
   <table>
     <thead><tr><th>Protection</th><th>Ships?</th><th>What it stops</th><th>Real requests refused</th></tr></thead>
     <tbody>
-      <tr><td><b>0. Constrained decoding (logits)</b><span class="term">Force the AI's output into a fixed shape</span></td><td><span class="tag t-no">No</span></td><td>Not available with our AI provider. The one fixed choice, the type of message, is already made by code</td><td>0</td></tr>
-      <tr><td><b>1. Rules (regex)</b><span class="term">Block known attack phrases</span></td><td><span class="tag t-no">No</span></td><td>Built as banned phrases on the question: 6 of 7 typed attacks, 0 of 4 hidden ones. The right rule checks the email for a fixed shape, such as an internal file name</td><td>0 of 13</td></tr>
+      <tr><td><b>0. Constrained decoding (logits)</b><span class="term">Force the AI's output into a fixed shape</span></td><td><span class="tag t-no">No</span></td><td>Available from our AI provider as structured output, done on its server. The type of message is picked by code, not the AI. The email text is free and cannot be constrained</td><td>0</td></tr>
+      <tr><td><b>1. Rules (regex)</b><span class="term">Block known attack phrases</span></td><td><span class="tag t-no">No</span></td><td>Built as banned phrases on the question: 7 of 8 typed attacks, including the one that worked; 0 of 4 hidden ones. The right rule checks the email for a fixed shape, such as an internal file name</td><td>0 of 13</td></tr>
       <tr><td><b>2. Classifier</b><span class="term">A small model that spots attack-like questions</span></td><td><span class="tag t-no">No</span></td><td>New wordings, but never hidden attacks. An attack and a real request look alike</td><td>Not built</td></tr>
       <tr><td><b>3. LLM judge</b><span class="term">A second AI that checks drafts</span></td><td><span class="tag t-q">After</span></td><td>Checks a sample of drafts afterwards, so nobody waits</td><td>0, it never blocks</td></tr>
       <tr class="ship"><td><b>4. Policy layer</b><span class="term">The search returns only the vendor asked</span></td><td><span class="tag t-yes">Yes</span></td><td>Other vendors' contracts, on every path</td><td>0 of 13</td></tr>
@@ -365,17 +365,15 @@ details summary{cursor:pointer; font-weight:600}
 <section id="ladderdoc" data-label="How the ladder was measured" class="doc-only">
 <div class="wrap">
   <span class="req">Step 5: one pass, both numbers, every rung, what I accept instead</span>
-  <p class="intro"><b>One pass:</b> the 13 real questions and the recorded attacks through the same NeMo config (<code>guardrails/config.yml</code>). Both shipped rungs together cost about 3.5 ms per question and no AI call. The rules (Level 1) cost 3.4 ms; their 6 of 7 is an upper bound, because the rules were written from these attacks. The leak rate was 0 before any rule, so the rules added latency and nothing else: that is why they do not ship. As built, they are a list of banned attack phrases on the input, which is really the classifier's job. Rules work best on a fixed shape, and Session 12 catches the hidden attack on the output. My spellable failures are on the output: internal file references such as <code>[SYN-04-order.md#Products and Fees]</code> and <code>Internal:</code> lines in a vendor text (seen Nov 13, Nov 15 and in <code>devmode</code>). That output rule is the first one for the real drafting path; not built here. Level 2 is not built, so its false positives are an estimate, not a number: probably high, because an attack and an owner's request look alike ("every note on this contract"). The attacks in <code>attacks.jsonl</code> would be its first examples.</p>
-  <p class="intro"><b>Week 4 baseline:</b> <code>run.py</code> passes against it on the hosted model, 13 questions: answers only about the vendor asked 0.846 to 1.000; the judge's missing-claim score 0.692 to 1.000, which also includes the Week 5 fixes. One run.</p>
+  <p class="intro"><b>One pass:</b> the 13 real questions and the recorded attacks through the same NeMo config (<code>guardrails/config.yml</code>). Both shipped rungs together cost about 3.5 ms per question and no AI call. The rules (Level 1) cost 3.4 ms; their 6 of 7 is an upper bound, because the rules were written from these attacks. They would have stopped <code>devmode</code>, the one attack that worked, at 3.4 ms and 0 of 13 real questions refused. Not shipped yet: they are not wired into the app (that means calling them before the model and adding <code>guardrails/</code> to the image), and they only know the wordings I wrote down, so a reworded attack passes. Wiring them in is a next step, together with the output rule. As built, they are a list of banned attack phrases on the input, which is really the classifier's job. Rules work best on a fixed shape, and Session 12 catches the hidden attack on the output. My spellable failures are on the output: internal file references such as <code>[SYN-04-order.md#Products and Fees]</code> and <code>Internal:</code> lines in a vendor text (seen Nov 13, Nov 15 and in <code>devmode</code>). That output rule is the first one for the real drafting path; not built here. Level 2 is not built, so its false positives are an estimate, not a number: probably high, because an attack and an owner's request look alike ("every note on this contract"). The attacks in <code>attacks.jsonl</code> would be its first examples.</p>
+  <p class="intro"><b>Week 4 baseline:</b> <code>run.py</code> passes against it on the hosted model (Nov 16, saved in <code>runs/tc6-final.txt</code>), 13 questions, average 0.985: answers only about the vendor asked 0.846 to 1.000; the judge's missing-claim score 0.692 to 1.000, which also includes the Week 5 fixes; dates 0.846 to 1.000; one question still fails the missing-document check (Vendor04 cancellation period). One run.</p>
   <div class="grid g3">
-    <div class="card"><h4>Level 0</h4>A closed API: no access to the AI's word choices, so no forced output shape. The one closed-set output, the message type, is picked by code.</div>
+    <div class="card"><h4>Level 0</h4>A closed API: no logit access, but the provider offers structured output and strict tool use, constrained on its server (Session 12 notebook: Level 0 from behind a closed API). The message type is picked by code, which is stronger. The free text cannot be constrained. Not used yet for the search tool's arguments (vendor, k), where it would block the invented argument and the malformed k seen on Nov 13.</div>
     <div class="card"><h4>Level 3</h4>About 30 drafts a day × about 1 second = 30 seconds a day. Cheap inline, but it runs as an evaluator on a sample afterwards, because the owner verifies every email.</div>
     <div class="card"><h4>Level 4</h4>The permission rule was "do not mention other vendors unless asked". It left the prompt; the <code>if</code> now lives in <code>search_chunks</code>.</div>
   </div>
-  <div class="todo"><span class="lab">To fill</span>
-    <p>From <code>runs/tc6-final.txt</code>, which now includes the optimiser and <code>devmode</code> lines: the new count of attacks stopped by the rules.</p>
-    <p>Docker: the date the image was rebuilt and answered one question.</p>
-  </div>
+  <p class="intro"><b>Final pass, Nov 16</b> (<code>runs/tc6-final.txt</code>): the rules stop 7 of the 14 attack lines: 7 of 8 typed attacks, including <code>devmode</code>, the one that worked; 0 of 4 hidden ones; the control is not blocked, as it should not be; the optimiser line holds 24 inputs, not one, so it is not scored. 0 of 13 real questions blocked.</p>
+  <p class="intro"><b>Docker:</b> rebuilt on Nov 16 with <code>nemoguardrails</code> in the app's own dependencies. With the contracts mounted read-only, <code>/health</code> reports the hosted model and the Vendor04 annual-fee question returns USD 40,000 with its sources. The image copies the app code only, not <code>guardrails/</code>: the rules rung is not wired into the app yet, and the vendor filter lives in <code>retrieval.py</code>.</p>
   <p class="src">The full table, with cost and "what I accept instead" for every rung: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 6, the ladder)</p>
 </div>
 </section>
@@ -383,21 +381,21 @@ details summary{cursor:pointer; font-weight:600}
 <!-- 4:05 YOUR VIEW -->
 <section id="yourturn" data-label="Your view" data-time="4:05" data-n="→">
 <div class="wrap">
-  <p class="kicker">Shown to the sponsor, Head of IT infrastructure</p>
+  <p class="kicker">For the sponsor, Head of IT infrastructure · meeting Wed Nov 18</p>
   <h2 class="slide-h">Three questions for the person who owns the risk</h2>
   <div class="grid g3">
-    <div class="card"><h4>1. What is the worst thing this could have done, in our setup?</h4><span id="a1">[Sponsor's answer, Nov 17]</span></div>
-    <div class="card"><h4>2. Which of these protections would you want, and which would you switch off the first time it refused you?</h4><span id="a2">[Sponsor's answer, Nov 17]</span></div>
-    <div class="card"><h4>3. Who else needs to see the "before"?</h4><span id="a3">[Sponsor's answer, Nov 17]</span></div>
+    <div class="card"><h4>1. What is the worst thing this could have done, in our setup?</h4><span id="a1">His answer is added after the meeting on Wed Nov 18.</span></div>
+    <div class="card"><h4>2. Which of these protections would you want, and which would you switch off the first time it refused you?</h4><span id="a2">His answer is added after the meeting on Wed Nov 18.</span></div>
+    <div class="card"><h4>3. Who else needs to see the "before"?</h4><span id="a3">His answer is added after the meeting on Wed Nov 18.</span></div>
   </div>
-  <div class="statement"><p class="lab">What his answers changed</p><p id="a4">[One change: a protection switched, a way in I had called closed, or a source of risk I now remove. Or "nothing", and why.]</p></div>
+  <div class="statement"><p class="lab">What his answers changed</p><p id="a4">Added after the meeting on Wed Nov 18: one change his answers make, or "nothing", and why.</p></div>
 </div>
 </section>
 
-<section id="sponsor" data-label="How it was shown" class="doc-only">
+<section id="sponsor" data-label="The sponsor meeting" class="doc-only">
 <div class="wrap">
   <span class="req">Step 6: shown to a real person, their answers in my own words</span>
-  <p class="intro">Nov 17, one-on-one. What I showed: the attack that worked and the open door from before the fix, then the ladder. The first question asked before explaining the fix. Full row: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6).</p>
+  <p class="intro"><b>Not done yet: the meeting is planned for Wednesday Nov 18, one day after the deadline.</b> I submit on time on Nov 17 and add his answers the next day to this same page, under the same link, and to <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6 row), with one line in <code>decisions.md</code> on what they changed. What I will show him: the attack that worked and the open door from before the fix, then the ladder. I ask the first question before explaining the fix.</p>
 </div>
 </section>
 
