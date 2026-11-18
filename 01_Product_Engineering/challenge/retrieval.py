@@ -132,6 +132,23 @@ def returned_ids(name, args, result):
         return [args.get("page", "")] if isinstance(args, dict) else []
     return SECTION_LINE.findall(result)          # search_chunks: one "[id]" line per section
 
+FINAL_TURN = ("You have used all your search turns. Using only the evidence below, answer the question and cite "
+              "every source in brackets, or say the contracts do not answer it and name the documents you read. "
+              "Do not ask for more searches.")
+
+def final_answer(question, messages, tokens):
+    """Last turn, no tools: answer or decline from what the searches already returned. Empty text if the call fails."""
+    evidence = "\n\n---\n\n".join(m["content"] for m in messages if m["role"] == "tool")
+    prompt = f"{FINAL_TURN}\n\nQuestion: {question}\n\nEvidence:\n{evidence}"
+    try:   # a fresh conversation with no tool messages: some gateways reject tool history sent without tools
+        response = ask_model([{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}], None)
+    except Exception:
+        return ""
+    usage = getattr(response, "usage", None)
+    tokens["tokens_in"] += getattr(usage, "prompt_tokens", 0) or 0
+    tokens["tokens_out"] += getattr(usage, "completion_tokens", 0) or 0
+    return (response.choices[0].message.content or "").strip()
+
 def run_agent(question, tools, funcs, max_turns=6):
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, chars = [], 0
@@ -166,6 +183,10 @@ def run_agent(question, tools, funcs, max_turns=6):
             chars += len(result)
             trace.append({"tool": name, "args": args, "chars": len(result), "ids": returned_ids(name, args, result)})
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
+    final = final_answer(question, messages, tokens)   # turns ran out: one last call without tools
+    if final:
+        return {"answer": final, "trace": trace, "evidence_chars": chars,
+            "latency_s": time.perf_counter() - started, "stopped": "final_turn", **tokens}    
     return {"answer": "(max turns reached)", "trace": trace, "evidence_chars": chars,
             "latency_s": time.perf_counter() - started, "stopped": "max_turns", **tokens}
 
@@ -330,7 +351,7 @@ def write_report(label, note, cases, results, rows, technique="rag", settings=No
         f.write(f"| [{label}](runs/{label}.md) | {date.today()} | {note} | {passed}/{len(rows)} | {cited}/{len(with_gold)} "
                 f"| {sum(r['calls'] for r in rows)} | {sum(r['evidence_chars'] for r in rows):,} "
                 f"| {sum(r['tokens_in'] for r in rows):,} | {sum(r['tokens_out'] for r in rows):,} | {sum(r['cost_usd'] for r in rows):.2f} "
-                f"| {sum(r['latency_s'] for r in rows) / len(rows):.1f} | {sum(r['stopped'] == 'max_turns' for r in rows)} |\n")
+                f"| {sum(r['latency_s'] for r in rows) / len(rows):.1f} | {sum(r['stopped'] != 'answer' for r in rows)} |\n")
     print(f"\nPass {passed}/{len(rows)}, cited {cited}/{len(with_gold)}. Report: {RUNS_DIR / (label + '.md')}")
 
 

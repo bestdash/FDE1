@@ -10,7 +10,7 @@ from pathlib import Path
 from fastmcp import Client
 from fastmcp.client import PythonStdioTransport
 
-from retrieval import SYSTEM, ask_model, returned_ids   # same prompt and model call as implementation one
+from retrieval import SYSTEM, ask_model, returned_ids, final_answer   # same prompt and model call as implementation one
 
 SERVER_FILE = Path(__file__).parent / "contracts_mcp_server.py"
 
@@ -67,6 +67,10 @@ async def run_agent_mcp(question, client, max_turns=6):
             chars += len(result)
             trace.append({"tool": name, "args": args, "chars": len(result), "ids": returned_ids(name, args, result)})
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
+    final = final_answer(question, messages, tokens)   # turns ran out: one last call without tools
+    if final:
+        return {"answer": final, "trace": trace, "evidence_chars": chars,
+            "latency_s": time.perf_counter() - started, "stopped": "final_turn", **tokens}    
     return {"answer": "(max turns reached)", "trace": trace, "evidence_chars": chars,
             "latency_s": time.perf_counter() - started, "stopped": "max_turns", **tokens}
 
