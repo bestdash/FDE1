@@ -36,3 +36,4 @@ Claude outputs/
 
 # DeepEval writes its run cache here (04_Evals S7); regenerable
 .deepeval/
+06_Guardrails/challenge/TC6_submission_v1.html
