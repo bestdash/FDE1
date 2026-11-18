@@ -116,7 +116,7 @@ def answer_contract_question(question: str) -> str:
     result = run_agent(question, RAG_TOOLS, RAG_FUNCS)
 
     not_retrieved = []                                   # cited sections this question's searches did not return
-    if result["stopped"] != "answer":                     # the loop ran out of turns
+    if result["stopped"] not in ("answer", "final_turn"):   # only when the last call also failed
         reply = ContractAnswer(answer="I searched the contracts and found no answer. Either they do not cover "
                                 "this topic, or the document that covers it is missing: if you think it is missing, "
                                 "ask the vendor for the last signed copy of the relevant terms.", sources=[])
