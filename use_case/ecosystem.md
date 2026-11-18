@@ -136,6 +136,8 @@ BM25 needs no model and no index service, so the retrieval step needs no approva
 - The hosted model through Claude Desktop: not tested. The course rule and the providers' policies forbid attack prompts on the hosted model. The vendor filter in the search protects this path too.
 - The internet: closed. The app has no web tool.
 - Shared contracts mailbox (real app): not tested, because the course app has no mailbox. Planned controls: email text is data, never instructions; the owner approves every draft before it is sent (the human step in the ladder).
+- Asking the agent by email (real app): closed by the sponsor on Nov 18 ("by email is dangerous"). Questions only through Claude Desktop or a web interface, with single sign-on and MFA.
+- A compromised MCP server (real app): not tested. The sponsor's top worry (Nov 18): through it, an attacker learns which security products the contracts name and plans the next attack. Controls to settle with the infrastructure team: isolation (DMZ), a bastion, whitelisting. His open question: can local accounts reach the agent?
 
 Week 6 finding (Level 0): the approved model route is a closed API, so there is no logit access. The provider's structured output and strict tool use are constrained decoding on its server, for the structured parts of an output only. The one closed-set output (`message_type`) is picked by code instead; the search tool's arguments are a candidate for strict tool use.
 

@@ -167,7 +167,7 @@ details summary{cursor:pointer; font-weight:600}
       <tr><td>The other doors, each with a result or a closed line</td><td><a href="#doors">Every door</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/ecosystem.md">ecosystem.md</a> (Week 6)</td></tr>
       <tr><td>The fix, the leg it removes, the attack as a scored case</td><td><a href="#fix">The fix</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/retrieval.py">retrieval.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/run.py">run.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/failures.md">failures.md</a></td></tr>
       <tr><td>Before/after and false positives from one pass, the ladder table, Docker</td><td><a href="#ladder">The protection ladder</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 6, the ladder), <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/guardrails/config.yml">guardrails/config.yml</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc6-final.txt">runs/tc6-final.txt</a></td></tr>
-      <tr><td>Shown to a real person, their answers</td><td><a href="#yourturn">Your view</a>. Meeting on Wed Nov 18, added after</td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6 row)</td></tr>
+      <tr><td>Shown to a real person, their answers</td><td><a href="#yourturn">Your view</a> (Nov 18)</td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6 row)</td></tr>
       <tr><td>The system at work and the three swap lines</td><td><a href="#work">Bring it to work</a></td><td>This page</td></tr>
     </tbody>
   </table>
@@ -268,6 +268,8 @@ details summary{cursor:pointer; font-weight:600}
       <tr><td>Code written by the AI</td><td>Nobody</td><td>Closed: the app never runs code the AI writes</td></tr>
       <tr><td>The company's AI provider, through Claude Desktop</td><td>Contract owners</td><td>Not tested: the course rule and the provider's policy forbid attack text. The vendor filter protects this path too</td></tr>
       <tr><td>The internet</td><td>Anyone</td><td>Closed: the app has no web tool</td></tr>
+      <tr><td>A compromised MCP server (real app)</td><td>Whoever reaches the server or the machine it runs on</td><td>Not tested. The sponsor's top worry (Nov 18): through it, an attacker learns which security products we use. Controls to settle with the infrastructure team: a protected network zone, a single controlled entry point, a list of allowed machines</td></tr>
+      <tr><td>Asking the agent by email (real app)</td><td>Anyone who can send an email</td><td>Closed by the sponsor (Nov 18): questions only through Claude Desktop or the web, with single sign-on and MFA</td></tr>
       <tr><td>Shared contracts mailbox (real app)</td><td>Anyone who can send an email</td><td>Not tested: the course app has no mailbox. Email text is data, never instructions; the owner approves every draft</td></tr>
     </tbody>
   </table>
@@ -381,21 +383,22 @@ details summary{cursor:pointer; font-weight:600}
 <!-- 4:05 YOUR VIEW -->
 <section id="yourturn" data-label="Your view" data-time="4:05" data-n="→">
 <div class="wrap">
-  <p class="kicker">For the sponsor, Head of IT infrastructure · meeting Wed Nov 18</p>
+  <p class="kicker">Shown to the sponsor, Head of IT infrastructure · Nov 18</p>
   <h2 class="slide-h">Three questions for the person who owns the risk</h2>
   <div class="grid g3">
-    <div class="card"><h4>1. What is the worst thing this could have done, in our setup?</h4><span id="a1">His answer is added after the meeting on Wed Nov 18.</span></div>
-    <div class="card"><h4>2. Which of these protections would you want, and which would you switch off the first time it refused you?</h4><span id="a2">His answer is added after the meeting on Wed Nov 18.</span></div>
-    <div class="card"><h4>3. Who else needs to see the "before"?</h4><span id="a3">His answer is added after the meeting on Wed Nov 18.</span></div>
+    <div class="card"><h4>1. What is the worst thing this could have done, in our setup?</h4><span id="a1">Not the amounts: the agent is a map of our technology. Through a compromised MCP server or a prompt injection, an attacker learns which security products we use and can "invent the future attack of tomorrow, because they know our defense". Also fake payment requests, built from what we pay to whom.</span></div>
+    <div class="card"><h4>2. Which of these protections would you want, and which would you switch off the first time it refused you?</h4><span id="a2">They complete the network controls. He wants: no questions by email ("by email is dangerous"), access only with single sign-on and MFA, each owner seeing only their own contracts, internal comments never in vendor emails, and every vendor email read before it goes. He named none to switch off.</span></div>
+    <div class="card"><h4>3. Who else needs to see the "before"?</h4><span id="a3">The infrastructure team that hosts the MCP server, to decide how to isolate it: a protected network zone, a single controlled entry point, and a list of allowed machines.</span></div>
   </div>
-  <div class="statement"><p class="lab">What his answers changed</p><p id="a4">Added after the meeting on Wed Nov 18: one change his answers make, or "nothing", and why.</p></div>
+  <div class="statement"><p class="lab">What his answers changed</p><p id="a4">The MCP server moves from low risk to the top risk. And asking the agent by email is dropped.</p></div>
 </div>
 </section>
 
 <section id="sponsor" data-label="The sponsor meeting" class="doc-only">
 <div class="wrap">
   <span class="req">Step 6: shown to a real person, their answers in my own words</span>
-  <p class="intro"><b>Not done yet: the meeting is planned for Wednesday Nov 18, one day after the deadline.</b> I submit on time on Nov 17 and add his answers the next day to this same page, under the same link, and to <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6 row), with one line in <code>decisions.md</code> on what they changed. What I will show him: the attack that worked and the open door from before the fix, then the ladder. I ask the first question before explaining the fix.</p>
+  <p class="intro">Nov 18, one-on-one, a recorded Zoom call in English and French, one day after the deadline: this page was submitted on Nov 17 and this section added on Nov 18. I showed the <code>devmode</code> answer and the open door from before the fix, then the vendor filter and the ladder. I explained the fix before asking the first question; the course asks for the reverse, so he answered it knowing the fix. His answers above are in my words. Full row: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 6). What it changed: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 6: what the sponsor changed).</p>
+  <div class="diary"><span class="lab">Also agreed</span><p>A small pilot group first, with a real-life test with him before anyone else; each owner sees only their own contracts, the CIO sees all. His open question: can a local account, without single sign-on, reach the agent?</p></div>
 </div>
 </section>
 
@@ -407,7 +410,7 @@ details summary{cursor:pointer; font-weight:600}
   <div class="grid g3">
     <div class="card accent"><h4>Runs with every test</h4>The vendor check and the recorded attacks run each time I test the agent. When I change the AI model in Week 8, they run against it automatically.</div>
     <div class="card"><h4>Next: who may see what</h4>A second filter: each owner sees only their own contracts; finance and procurement see all. The user's identity comes from the company login, never from what they type.</div>
-    <div class="card"><h4>Next: the real mailbox</h4>Vendors can write to the shared contracts mailbox the agent will read. Emails are treated as data, never as instructions, and the owner approves every draft.</div>
+    <div class="card"><h4>Next: the door the sponsor fears most</h4>Isolate the MCP server with the infrastructure team, and ask the agent only through Claude Desktop or the web, never by email. Emails the agent reads stay data, never instructions.</div>
   </div>
   <p class="moral">This week's lesson:<br><span>remove what the AI can see before you try to filter what it says.</span></p>
 </div>
