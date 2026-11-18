@@ -419,15 +419,18 @@ details summary{cursor:pointer; font-weight:600}
 <section id="work" data-label="Bring it to work" class="doc-only">
 <div class="wrap">
   <span class="req">Step 7: one system at work, three swap lines, the false-positive count</span>
-  <div class="todo"><span class="lab">In my words</span>
-    <ul>
-      <li><b>System at work:</b> one line naming a system that reads text someone outside the team can write, where nobody has checked what happens when that text addresses the AI.</li>
-      <li><b>Data:</b> which sources it reads, and who can write to them.</li>
-      <li><b>Model or endpoint:</b> whether there is logit access or structured output, which decides whether Level 0 exists.</li>
-      <li><b>Access or approval:</b> what I would need to ask for.</li>
-    </ul>
+  <h2>The real contract agent, and the shared mailbox it will read</h2>
+  <div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>System at work</th><td>The contract agent itself, in its real version. It will read the shared contracts mailbox, which any vendor can email, and nobody has yet tried putting instructions in a vendor email or its attachment.</td></tr>
+      <tr><th>Data</th><td>The contracts folder in the company document store, read to build the contract database: vendors write the contracts, contract owners upload them. And the shared contracts mailbox: anyone who can send an email, inside or outside the company.</td></tr>
+      <tr><th>Model or endpoint</th><td>The Anthropic API under the company agreement: a closed API, so no logit access. Its structured output covers only the structured parts, such as the search tool's arguments; the email text stays free.</td></tr>
+      <tr><th>Access or approval</th><td>From the sponsor, Head of IT infrastructure and security: isolate the MCP server with the infrastructure team, and set up the API credits for the agent. Before anyone else uses the pilot, he and his team attack it themselves (the test agreed on Nov 18).</td></tr>
+      <tr class="ship"><th>Measured</th><td>0 of 13 real questions refused by the rules, and 0 of 13 harmed by the vendor filter.</td></tr>
+    </tbody>
+  </table>
   </div>
-  <p class="intro"><b>Measured:</b> 0 of 13 real questions refused by the rules, and 0 of 13 harmed by the vendor filter.</p>
 </div>
 </section>
 
