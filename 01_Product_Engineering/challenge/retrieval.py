@@ -9,7 +9,8 @@ from datetime import date
 
 import litellm
 import numpy as np
-import llm  
+import llm
+import memory
 from litellm.exceptions import UnsupportedParamsError
 from rank_bm25 import BM25Okapi
 
@@ -264,6 +265,79 @@ RAG_TOOLS.append(schema("list_documents",
     "List the documents we hold for one vendor (file, document type, sections). "
     "Use it before saying a document is missing.",
     {"vendor": {"type": "string", "description": "for example Vendor10"}}, ["vendor"]))
+
+# TC7 memory: the contract record (semantic memory), read through memory.py.
+# MEMORY=off in the shell turns it off, so the agent searches the documents as before.
+MEMORY_ON = os.getenv("MEMORY", "on") != "off"
+
+# Plain words for each record field, with the words people use for it.
+# Found Nov 22 (Chunk 6): asked for the "cancellation period", the agent read
+# notice_days: 90 and still searched "notice of non-renewal cancellation period
+# termination", because the field name did not match the user's word.
+# When a question in other words makes the agent search for a fact the record holds,
+# add those words here and in the tool description. Say what a field does NOT cover,
+# so a synonym does not make the record answer a question it cannot answer.
+LABELS = {
+    "start_date": "start date",
+    "end_date": "end date (term end, expiry date)",
+    "auto_renewal": "auto-renewal (renews automatically, rollover clause)", 
+    "notice_days": "notice period (cancellation period, notice of non-renewal, termination notice)", 
+    "total_contract_value": "total contract value (TCV, whole term)",
+    "annual_contract_value": "annual contract value (ACV, per year)",
+}
+
+
+def get_contract_record(contract: str) -> str:
+    """The current record of one contract: the key facts, each followed by its source."""
+    digits = re.findall(r"\d+", contract)                    # "SYN-04", "Vendor04", "vendor 4" -> "04"
+    key = f"SYN-{int(digits[0]):02d}" if digits else contract.strip()
+    conn = memory.connect()
+    # YOU (blank 8): read the live record of this contract, with your function from Step 4b.
+    record = memory.get_live_record(conn, key)
+    if record is None:
+        return f"(no contract record for {contract}: search the documents instead)"
+    sources = dict(conn.execute(
+        "SELECT field, source FROM sources WHERE record_id = ?", (record["record_id"],)).fetchall())
+    if record["validated_by"]:
+        status = "confirmed by " + record["validated_by"]
+    else:
+        status = "not yet confirmed by the owner"
+    lines = [f"Contract record {key}, {record['vendor']}: current version, {status}."]
+    for field in memory.FACTS[4:]:                            # skip contract_id, vendor, product, owner
+        value = record[field]
+        lines.append(f"{LABELS[field]}: {'not found' if value is None else value}")
+        source = sources.get(field, "")
+        if source.startswith("computed from "):
+            for section in source.removeprefix("computed from ").split(" + "):
+                lines.append(f"[{section}]")              # each input section on its own line: citable
+            lines.append("(computed by code from the cited section(s) above)")
+        elif source.startswith("SYN-"):
+            lines.append(f"[{source}]")                   # its own line, so app.py counts it as retrieved
+        elif source:
+            lines.append(f"(source: {source})")           # "not found"
+    return "\n".join(lines)
+
+
+if MEMORY_ON:
+    RAG_FUNCS["get_contract_record"] = get_contract_record
+    RAG_TOOLS.append(schema("get_contract_record", "The current record of one contract (latest version, after any renewal): start date, end date, auto-renewal, notice period, total and annual contract value, each with its document source. Use it first for these facts; for anything else, search the documents.",
+        {"contract": {"type": "string", "description": "a contract id or vendor, for example SYN-04 or Vendor04"}},
+        ["contract"]))
+    # The system prompt was written for search only. With memory on, widen its first sentence
+    # and put the memory rule right after it, so the two do not contradict each other.
+    # With memory off, SYSTEM stays exactly as in TC6 (a fair on/off comparison for Chunk 6).
+    FIRST = "Answer questions about our contracts only from the search results."
+    assert FIRST in SYSTEM, "the first sentence of SYSTEM changed: update FIRST"   # loud, not silent
+    SYSTEM = SYSTEM.replace(FIRST,
+        "Answer questions about our contracts only from the contract record and the search results. "
+        "For start date, end date, auto-renewal (renews automatically, rollover clause),"
+        "notice period (cancellation period, notice of non-renewal, termination notice) total contract value "
+        "(TCV, whole term) and annual contract value (ACV, per year), call get_contract_record first. "
+        "If it gives the value with a source, answer from it and cite that source; "
+        "no search is needed. A value computed by code is an answer; cite the section "
+        "it was computed from and say it was computed; do not redo the calculation. "
+        "If there is no record, a field says 'not found', or the question is about "
+        "anything else, search the documents.")
 
 def search_full_pages(query: str, k: int = 4) -> str:
     """TC5 Step 5: same ranking as search_chunks, but each hit returns its whole page
