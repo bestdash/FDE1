@@ -38,8 +38,7 @@ def test_new_document_replaces_old_record(tmp_path):
     assert live["record_id"] == new_id
     assert live["end_date"] == "2027-11-30"
 
-    old = conn.execute("SELECT live FROM records WHERE record_id = ?", (old_id,)).fetchone()
-    # YOU (blank 5): the value of live the first order must have now.
+    old = conn.execute("SELECT live FROM records WHERE record_id = ?", (old_id,)).fetchone()  
     assert old["live"] == 0
 
     count = conn.execute(
