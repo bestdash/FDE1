@@ -286,11 +286,16 @@ LABELS = {
     "annual_contract_value": "annual contract value (ACV, per year)",
 }
 
+def contract_key(text):
+    """"SYN-04", "Vendor04", "vendor 4", "contract 2 of Vendor04" -> "SYN-04".
+    The number after Vendor or SYN- names the contract; any other number is ignored."""
+    match = re.search(r"(?:syn-|vendor\s*)0*(\d+)", text or "", re.IGNORECASE)
+    digits = [match.group(1)] if match else re.findall(r"\d+", text or "")   # no Vendor or SYN-: first number
+    return f"SYN-{int(digits[0]):02d}" if digits else (text or "").strip()
 
 def get_contract_record(contract: str) -> str:
-    """The current record of one contract: the key facts, each followed by its source."""
-    digits = re.findall(r"\d+", contract)                    # "SYN-04", "Vendor04", "vendor 4" -> "04"
-    key = f"SYN-{int(digits[0]):02d}" if digits else contract.strip()
+    """The current record of one contract: the key facts, each followed by its source."""    
+    key = contract_key(contract)    
     conn = memory.connect()
     # YOU (blank 8): read the live record of this contract, with your function from Step 4b.
     record = memory.get_live_record(conn, key)
@@ -338,6 +343,38 @@ if MEMORY_ON:
         "it was computed from and say it was computed; do not redo the calculation. "
         "If there is no record, a field says 'not found', or the question is about "
         "anything else, search the documents.")
+
+# TC7 Chunk 8: who is asking. The viewer comes from login (the app passes it), never
+# from the model: it is not a tool argument, so a question cannot make it the CIO.
+def tools_for(viewer):
+    """The tool functions for one viewer: the record and documents of their contracts only."""
+    allowed = memory.numbers_for(memory.connect(), viewer)   # {"04", "07"}, set() = nothing, None = all
+    if allowed is None:
+        return dict(RAG_FUNCS)
+
+    def numbers(text):
+        return {n.zfill(2) for n in re.findall(r"\d{1,2}", text or "")}   # "Vendor04, Vendor05" -> {"04", "05"}
+
+    def search_chunks_for_viewer(query, k=4, vendor=None):
+        asked = numbers(vendor) & allowed if vendor else set(allowed)   # no vendor named: all of theirs
+        if not asked:
+            return f"(no documents you can see for {vendor or 'this question'})"
+        return search_chunks(query, k, ", ".join(sorted(asked)))
+
+    def list_documents_for_viewer(vendor):
+        if not numbers(vendor) & allowed:
+            return f"(no documents you can see for {vendor})"
+        return list_documents(vendor)
+
+    funcs = {"search_chunks": search_chunks_for_viewer, "list_documents": list_documents_for_viewer}
+    if MEMORY_ON:
+        def get_contract_record_for_viewer(contract):
+            if contract_key(contract)[4:6] not in allowed:
+                return f"(no contract record you can see for {contract}: search the documents instead)"
+            return get_contract_record(contract)
+        funcs["get_contract_record"] = get_contract_record_for_viewer
+    return funcs
+
 
 def search_full_pages(query: str, k: int = 4) -> str:
     """TC5 Step 5: same ranking as search_chunks, but each hit returns its whole page

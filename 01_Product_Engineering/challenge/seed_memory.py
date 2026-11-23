@@ -35,7 +35,23 @@ COMPUTED_FROM = {
     "annual_contract_value": ["total_contract_value", "term_months"],
     "total_contract_value": ["annual_contract_value", "term_months"]
 }
- 
+
+# Synthetic owners (roles, never names): who manages which contract (TC7 Chunk 8).
+# YOU (blank 22): assign all 10 contracts. Give at least one owner several contracts,
+# so "all my contracts" returns more than one, and use at least 3 owners.
+OWNERS = {
+    "SYN-01": "owner 1",
+    "SYN-02": "owner 1",
+    "SYN-03": "owner 2",
+    "SYN-04": "owner 2",
+    "SYN-05": "owner 3",
+    "SYN-06": "owner 3",
+    "SYN-07": "owner 1",
+    "SYN-08": "owner 2",
+    "SYN-09": "owner 3",
+    "SYN-10": "owner 1"
+}
+
 def to_record(row):
     """One truth.jsonl line -> (record, sources), ready for memory.save_record."""
     fields = row["fields"]
@@ -43,7 +59,7 @@ def to_record(row):
         "contract_id": row["contract_id"],
         "vendor": row["vendor"],
         "product": None,               # not in truth.jsonl; filled later from the documents
-        "owner": "contract owner",     # a role: the synthetic data has no people
+        "owner": OWNERS[row["contract_id"]],     # a missing contract fails loudly (KeyError)
     }
     sources = {}
     for column, name in FROM_TRUTH.items():

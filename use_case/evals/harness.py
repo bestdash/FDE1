@@ -60,7 +60,7 @@ def endpoint(question: str) -> str:
     if str(CHALLENGE) not in sys.path:
         sys.path.insert(0, str(CHALLENGE))        # app.py imports schema, llm, retrieval from its folder
     from app import answer_contract_question     # imported here, so echo and oracle stay instant
-    answer = answer_contract_question(question)
+    answer = answer_contract_question(question, viewer="CIO")   # evals run as a see-all viewer, so scores stay comparable with baseline.json
     FULL_ANSWERS[question] = answer
     return answer
 

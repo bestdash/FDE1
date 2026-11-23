@@ -110,6 +110,27 @@ def get_live_record(conn, contract_id):
         "SELECT * FROM live_records WHERE contract_id = ?", (contract_id,)).fetchone()
     return dict(row) if row else None
 
+# Groups that see every contract (the sponsor's scope, Nov 18): TC7 Chunk 8.
+SEE_ALL = {"procurement", "leadership", "legal", "finance", "admin", "CIO", "CFO", "CEO"}
+
+def records_for(conn, viewer):
+    """The live records one viewer may see: their own contracts, or all for a see-all group."""
+    # Viewers in see all groups. Anyone else gets only the
+    # records whose owner is the viewer. Unknown or empty viewers get no records.
+    if viewer in SEE_ALL:
+        rows = conn.execute("SELECT * FROM live_records ORDER BY contract_id").fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM live_records WHERE owner = ? ORDER BY contract_id",
+                            (viewer,)).fetchall()
+    return [dict(row) for row in rows]
+
+
+def numbers_for(conn, viewer):
+    """The contract numbers a viewer may see, like {"04", "07"}. None = sees all (a see-all group)."""
+    if viewer in SEE_ALL:
+        return None
+    return {record["contract_id"][4:6] for record in records_for(conn, viewer)}   # "SYN-04"[4:6] -> "04"
+
 if __name__ == "__main__":
     conn = connect()
     names = [row["name"] for row in conn.execute(

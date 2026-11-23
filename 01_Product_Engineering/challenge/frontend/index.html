@@ -446,7 +446,7 @@
         setAsking(true);
         try {
           const client = await clientReady;
-          const result = await client.predict("/answer_contract_question", { question: text });
+          const result = await client.predict("/answer_contract_question", { question: text, viewer: "CIO" });  // until login: the logged-in user's role goes here
           showReply(result.data[0]);
         } catch (err) {
           showAskError("Could not get an answer: " + (err?.message || String(err)));
