@@ -281,7 +281,7 @@ LABELS = {
     "start_date": "start date",
     "end_date": "end date (term end, expiry date)",
     "auto_renewal": "auto-renewal (renews automatically, rollover clause)", 
-    "notice_days": "notice period (cancellation period, notice of non-renewal, termination notice)", 
+    "notice_days": "notice period in days (cancellation period, notice of non-renewal, termination notice)",
     "total_contract_value": "total contract value (TCV, whole term)",
     "annual_contract_value": "annual contract value (ACV, per year)",
 }
