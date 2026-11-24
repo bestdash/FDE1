@@ -7,6 +7,7 @@ split is the point: the API is the product, the UI is disposable.
 
 import os
 import re
+import memory
 from pathlib import Path
 
 from fastapi.responses import HTMLResponse
@@ -15,7 +16,7 @@ from gradio import Server
 
 from schema import Request, ContractAnswer, build_prompt, route_request, solve
 from llm import stream_reply
-from retrieval import run_agent, RAG_TOOLS, RAG_FUNCS, chunks, WIKI_INDEX
+from retrieval import run_agent, RAG_TOOLS, RAG_FUNCS, chunks, WIKI_INDEX, tools_for
 CITATION = re.compile(r"\[(SYN-[^\]]+)\]")        # finds [SYN-12.md#Order.md] in the text
 KNOWN_IDS = {s["id"] for s in chunks}         # every section id that really exists
 
@@ -99,7 +100,7 @@ def show_prompt_for_renew_or_terminate(
 # --- Retrieval from the documents ------------------------------------------------------------
 
 @app.api(name="answer_contract_question")
-def answer_contract_question(question: str) -> str:
+def answer_contract_question(question: str, viewer: str = "") -> str:
 
     """ Answer one question about our contracts, asked in plain words.
     Searches the contract documents and answers only from what it finds.
@@ -111,9 +112,15 @@ def answer_contract_question(question: str) -> str:
     that seems missing, and suggests asking the vendor for the last signed copy.
     Dates computed from stated terms (for example start date plus term) come
     with the terms used: check them before acting on a deadline.
-    Read-only: sends nothing, writes nothing, never guesses a figure."""
+    Read-only: sends nothing, writes nothing, never guesses a figure.
+    viewer: who is asking, from login (an owner role like "owner 1", or a see-all group).
+    Empty or unknown: sees no contract."""
 
-    result = run_agent(question, RAG_TOOLS, RAG_FUNCS)
+    if memory.numbers_for(memory.connect(), viewer) == set():   # unknown or empty viewer: no contracts assigned
+        return ("No contracts are assigned to you. If you should see contracts, "
+                "contact procurement or the admin.")
+        
+    result = run_agent(question, RAG_TOOLS, tools_for(viewer))
 
     not_retrieved = []                                   # cited sections this question's searches did not return
     if result["stopped"] not in ("answer", "final_turn"):   # only when the last call also failed

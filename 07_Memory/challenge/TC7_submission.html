@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TC7 · Contract Agent Memory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F1EC; --white:#FFFFFF; --ink:#0E0E0E; --orange:#F04B2A;
+  --stone:#D6D2C9; --gray:#5B5852; --tint:#FBE2DA;
+  --display:"Schibsted Grotesk", "Segoe UI", system-ui, Arial, sans-serif;
+  --body:"Archivo", "Segoe UI", system-ui, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --r:16px; --side:260px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:14px; line-height:1.5}
+a{color:var(--ink); text-decoration:underline; text-decoration-color:var(--orange); text-decoration-thickness:2px; text-underline-offset:3px}
+a:hover{color:var(--orange)}
+code{font-family:var(--mono); font-size:.86em; background:var(--paper); border:1px solid var(--stone); padding:.02em .35em; border-radius:6px; overflow-wrap:anywhere}
+
+#side{position:fixed; top:16px; left:16px; bottom:16px; width:var(--side); z-index:10; background:var(--white); border-radius:var(--r); padding:18px 12px 12px; display:flex; flex-direction:column}
+#side .brand{font-family:var(--display); font-weight:800; text-transform:uppercase; font-size:16px; display:flex; align-items:center; gap:8px; padding:0 8px}
+#side .count{display:flex; justify-content:space-between; align-items:baseline; margin:18px 8px 8px; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray)}
+#side .count b{font-family:var(--display); font-size:20px; letter-spacing:0; color:var(--ink)}
+#prog{height:6px; background:var(--paper); border-radius:3px; overflow:hidden; margin:0 8px 12px}
+#prog i{display:block; height:100%; width:0; background:var(--orange); border-radius:3px; transition:width .25s}
+#nav{flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:2px}
+#nav a{display:grid; grid-template-columns:30px 1fr auto; gap:6px; align-items:center; padding:7px 8px; border-radius:10px; text-decoration:none; color:var(--gray); font-size:13px; line-height:1.2}
+#nav a:hover{background:var(--paper); color:var(--ink)}
+#nav a .n{font-family:var(--display); font-weight:800; font-size:14px; color:var(--stone)}
+#nav a .t{font-family:var(--mono); font-size:11px; color:var(--gray)}
+#nav a .doc{font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--stone); border-radius:999px; padding:1px 6px; color:var(--gray)}
+#nav a.done{color:var(--ink)} #nav a.done .n{color:var(--orange)}
+#nav a.on{background:var(--orange); color:var(--ink); font-weight:600}
+#nav a.on .n, #nav a.on .t{color:var(--ink)} #nav a.on .doc{border-color:var(--ink); color:var(--ink)}
+#nav a.hide{display:none}
+#mode{font-size:12px; color:var(--gray); line-height:2; margin:10px 8px 0; padding-top:10px; border-top:1px solid var(--stone)}
+main{margin-left:calc(var(--side) + 32px)}
+
+section{padding:28px 20px 40px 0}
+body.presenter section{min-height:100vh}
+body.presenter section.doc-only{display:none}
+.wrap{max-width:1120px}
+.kicker{display:flex; align-items:baseline; gap:10px; margin:0 0 10px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gray)}
+.kicker .n{font-family:var(--display); font-size:20px; font-weight:800; letter-spacing:0; color:var(--orange); line-height:1}
+h1{font-family:var(--display); font-weight:800; font-size:44px; line-height:.9; letter-spacing:-.01em; text-transform:uppercase; margin:4px 0 14px}
+h2{font-family:var(--display); font-weight:700; font-size:26px; line-height:1.05; letter-spacing:-.01em; margin:0 0 12px; max-width:980px}
+h3{font-family:var(--display); font-weight:700; font-size:18px; line-height:1.1; margin:22px 0 8px}
+.lead{font-weight:500; font-size:16px; line-height:1.4; max-width:820px; margin:0 0 8px}
+.intro{font-size:14px; margin:0 0 12px; max-width:900px}
+.req{display:inline-flex; align-items:center; gap:8px; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; background:var(--white); border-radius:999px; padding:5px 12px 5px 8px; margin:0 0 12px}
+.req::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--orange)}
+.src,.help{font-size:12px; color:var(--gray); margin-top:12px}
+
+.grid{display:grid; gap:10px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--white); border-radius:var(--r); padding:14px 16px; min-width:0; overflow-wrap:anywhere}
+.card h4{font-family:var(--display); font-weight:700; margin:0 0 6px; font-size:15px; line-height:1.15}
+.card.accent{background:var(--orange)} .card.accent small, .card.accent .lab2{color:var(--ink)}
+.card.inkc{background:var(--ink); color:var(--white)} .card.inkc small{color:var(--stone)}
+.big{font-family:var(--display); font-size:32px; font-weight:800; line-height:.95}
+.big small{display:block; font-family:var(--body); font-size:12.5px; font-weight:500; color:var(--gray); margin-top:6px; line-height:1.35}
+
+.statement{background:var(--ink); color:var(--white); border-radius:var(--r); padding:16px 20px; margin:10px 0}
+.statement .lab{font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin:0 0 8px}
+.statement p{font-family:var(--display); font-weight:700; font-size:20px; line-height:1.15; margin:0}
+
+table{border-collapse:collapse; width:100%; background:var(--white); font-size:13px}
+th,td{text-align:left; vertical-align:top; padding:8px 11px; border-bottom:1px solid var(--stone); overflow-wrap:anywhere}
+th{font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--gray)}
+thead th{border-bottom:1px solid var(--ink)}
+tr:last-child td, tr:last-child th{border-bottom:0}
+.tablewrap{overflow-x:auto; border-radius:var(--r); background:var(--white)}
+tr.ship td{background:var(--tint)} tr.ship td:first-child{box-shadow:inset 4px 0 0 var(--orange)}
+.tag{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap}
+.t-yes{background:var(--orange)} .t-no{background:var(--paper); border:1px solid var(--stone)} .t-q{background:var(--ink); color:var(--white)}
+.term{display:block; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gray); margin-top:2px}
+
+.ask{display:flex; flex-wrap:wrap; align-items:center; gap:10px; background:var(--ink); color:var(--white); border-radius:var(--r); padding:10px 16px; margin:0 0 12px; font-size:16px; font-weight:600}
+.ask .who{font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--orange)}
+.answer{background:var(--white); border-radius:var(--r); padding:14px 18px; font-size:17px; line-height:1.4}
+.answer p{margin:0 0 10px} .answer p:last-child{margin:0}
+.answer mark{background:var(--tint); padding:0 .15em; border-radius:3px} .answer mark.bad{background:var(--orange)}
+.lab2{font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin:0 0 8px}
+
+.slide-h{font-size:30px; line-height:1.05; max-width:1000px}
+.slide-sub{font-size:16px; line-height:1.4; max-width:900px; margin:0 0 16px}
+.story-h{font-family:var(--display); font-weight:800; font-size:42px; line-height:.92; letter-spacing:-.015em; margin:6px 0 12px}
+.story-h em{font-style:normal; color:var(--orange)}
+.moral{font-family:var(--display); font-weight:700; font-size:19px; line-height:1.15; margin:14px 0 6px; max-width:900px}
+.moral span{color:var(--orange)}
+
+.flow{display:grid; grid-template-columns:1fr 34px 1fr 34px 1fr; align-items:stretch; margin:6px 0 4px}
+.flow .bx{background:var(--white); border:1.5px solid var(--stone); border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.3; text-align:center}
+.flow .bx b{display:block; font-family:var(--display); font-size:15px}
+.flow .bx.hot{border:2px solid var(--orange); background:var(--tint)}
+.flow .ar{display:flex; align-items:center; justify-content:center; color:var(--gray); font-size:20px}
+
+.todo{background:var(--white); border:2px dashed var(--ink); border-radius:var(--r); padding:12px 16px; margin:10px 0; font-size:14px}
+.todo .lab{display:block; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); margin-bottom:6px}
+.todo p{margin:0 0 6px} .todo p:last-child{margin:0} .todo ul{margin:4px 0 0; padding-left:20px}
+.diary{border:1px dashed var(--gray); border-radius:var(--r); padding:10px 14px; margin:12px 0; font-size:14px}
+.diary .lab{display:block; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin-bottom:6px}
+.diary p{margin:0 0 8px} .diary p:last-child{margin:0}
+
+.btn{display:inline-block; text-decoration:none; font-weight:600; background:var(--orange); color:var(--ink); padding:9px 18px; border-radius:999px; margin:6px 8px 0 0; font-size:14px}
+.btn.ghost{background:var(--white)}
+kbd{font-family:var(--mono); font-size:12px; border:1px solid var(--stone); border-bottom-width:2px; border-radius:5px; padding:0 5px; background:var(--white)}
+details{background:var(--white); border-radius:var(--r); padding:10px 14px; margin-top:12px}
+details summary{cursor:pointer; font-weight:600}
+
+@media (max-width:900px){ #side{position:static; width:auto; margin:16px 16px 0} #nav{overflow:visible} main{margin-left:0} section{padding:28px 16px 40px} }
+@media (max-width:760px){ .flow{grid-template-columns:1fr} .flow .ar{transform:rotate(90deg); height:28px} .story-h{font-size:32px} .slide-h{font-size:24px} }
+@media print{ #side{display:none!important} main{margin-left:0} section{page-break-inside:avoid; padding:20px 0} section.doc-only{display:block!important} }
+
+blockquote.hers{margin:0 0 10px; background:var(--white); border-left:4px solid var(--orange); border-radius:0 var(--r) var(--r) 0; padding:10px 14px; font-size:14px}
+.schema{display:grid; grid-template-columns:1.2fr 60px 1fr 1fr; gap:10px; align-items:start}
+.tbl{background:var(--white); border:1.5px solid var(--stone); border-radius:12px; overflow:hidden; font-size:13px}
+.tbl.hot{border:2px solid var(--orange)}
+.tname{background:var(--ink); color:var(--white); font-family:var(--mono); font-weight:700; padding:7px 10px}
+.tname span{font-family:var(--body); font-weight:500; color:var(--stone); font-size:11.5px; margin-left:6px}
+.col{font-family:var(--mono); font-size:12px; padding:4px 10px; border-bottom:1px solid var(--paper)}
+.col.key{color:var(--gray)} .col.fact{background:var(--tint); font-weight:700} .col.meta{color:var(--gray); font-family:var(--body)}
+.eg{font-size:12px; padding:6px 10px; color:var(--gray)}
+.link{align-self:center; text-align:center; font-size:12px; font-weight:700; color:var(--orange)}
+pre.out{font-family:var(--mono); font-size:12px; background:var(--paper); border-radius:10px; padding:10px 12px; margin:6px 0 0; white-space:pre-wrap; overflow-wrap:anywhere}
+.mem p{margin:0 0 6px} .mem .tag{margin-bottom:8px}
+.steps{display:grid; grid-template-columns:110px 1fr 110px 1fr 130px; gap:8px; align-items:stretch; margin:4px 0}
+.steps .st{background:var(--white); border-radius:12px; padding:10px; text-align:center}
+.steps .st.hot{background:var(--orange)} .steps .st small{font-size:11.5px; color:var(--gray)} .steps .st.hot small{color:var(--ink)}
+.steps .fx{border:1.5px dashed var(--gray); border-radius:12px; padding:8px 12px; font-size:13px; line-height:1.35}
+.story4{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+.s4{background:var(--white); border-radius:12px; padding:10px 12px; font-size:14px; line-height:1.35}
+.s4.hot{background:var(--orange)} .s4 small{color:var(--gray)}
+.flow4{display:grid; grid-template-columns:1fr 34px 1fr 34px 1fr; align-items:stretch}
+.flow4 .bx{background:var(--white); border:1.5px solid var(--stone); border-radius:12px; padding:10px 12px; font-size:13.5px; line-height:1.4; text-align:center}
+.flow4 .bx b{display:block; font-family:var(--display); font-size:15px; margin-bottom:4px}
+.flow4 .bx.hot{border:2px solid var(--orange); background:var(--tint)}
+.flow4 .ar{display:flex; align-items:center; justify-content:center; color:var(--gray); font-size:20px}
+.blank{border-bottom:1.5px solid var(--stone); min-height:26px; margin:6px 0 0}
+@media (max-width:900px){ .schema,.steps,.story4{grid-template-columns:1fr} .link{display:none} .flow4{grid-template-columns:1fr} .flow4 .ar{transform:rotate(90deg); height:28px} }
+</style>
+</head>
+<body>
+
+<aside id="side">
+  <span class="brand"><svg width="16" height="16" viewBox="0 0 4 4" aria-hidden="true"><rect x="3" y="0" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="1" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="2" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="0" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="1" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="2" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/><rect x="3" y="3" width="1" height="1" rx=".2" fill="#F04B2A"/></svg>Contract Agent</span>
+  <div class="count"><span id="modeLabel">Document</span><span><b id="pos">1</b> / <span id="tot">1</span></span></div>
+  <div id="prog"><i></i></div>
+  <nav id="nav"></nav>
+  <div id="mode"><kbd>P</kbd> presenter mode (5 min)<br><kbd>←</kbd> <kbd>→</kbd> previous / next</div>
+</aside>
+
+<main>
+
+<section id="story" data-label="The story" data-time="0:00" data-n="→">
+<div class="wrap">
+  <p class="kicker">Contract Agent · Week 7 · memory</p>
+  <h1 class="story-h">My agent read the whole contract <em>every time</em> someone asked when it ends.</h1>
+  <p class="slide-sub">The contract agent helps contract owners renew or end contracts on time. My sponsor, the Head of IT infrastructure, owns about 80 to 100 contracts. Until this week, every question started from zero: the agent searched the documents again, 2 to 5 times, even for a date it had read yesterday.</p>
+  <div class="grid g3">
+    <div class="card"><h4>What it costs</h4>Every search is a tool call, and every call resends the whole conversation to the AI model. Simple questions paid the most for the least.</div>
+    <div class="card"><h4>What memory can break</h4>A stored fact can be old (the contract was renewed), from the wrong contract, or shown to the wrong person. A wrong fact said with confidence is worse than no fact.</div>
+    <div class="card accent"><h4>This week's question</h4>Can the agent remember each contract's key facts, answer from them, and prove the memory is current, cheaper, honest and private?</div>
+  </div>
+</div>
+</section>
+
+<section id="overview" data-label="Overview and words" class="doc-only">
+<div class="wrap">
+  <p class="kicker"><span class="n">00</span> AI Forward-Deployed Engineer · Technical Challenge 7</p>
+  <h1>Memory</h1>
+  <p class="lead">I gave the contract agent one kind of memory: a record of each contract's key facts, each with the document section it came from. A newer document replaces the old record. I tested it four ways: it stays current, it is cheaper, its account of what it did matches the log, and no one sees another owner's contracts. Then I checked it on my Week 4 questions: quality held after one fix the tests found. All contracts, vendors and prices are invented. Roles, not names.</p>
+  <p>
+    <a class="btn" href="https://github.com/bestdash/FDE1/tree/main">Repository</a>
+    <a class="btn ghost" href="https://github.com/bestdash/FDE1/blob/main/07_Memory/challenge/README.md">Challenge README</a>
+    <a class="btn ghost" id="loomLink" href="#">Video</a>
+  </p>
+  <h3>Where each required item is answered</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Required item</th><th>On this page</th><th>Source in the repo</th></tr></thead>
+    <tbody>
+      <tr><td>One kind of memory, implemented: semantic, with the choice and rejects</td><td><a href="#built">What I built</a>, <a href="#choice">Why this kind</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Memory), <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/memory.py">memory.py</a></td></tr>
+      <tr><td>Staleness handled explicitly: supersede on write</td><td><a href="#stale">Staying current</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Staleness), <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/memory.py">memory.py</a> (<code>save_record</code>)</td></tr>
+      <tr><td>Test 1, staleness: a newer document replaces the old fact</td><td><a href="#stale">Staying current</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/test_staleness.py">test_staleness.py</a></td></tr>
+      <tr><td>Test 2, cost saving: the same questions, memory off then on</td><td><a href="#cost">Cheaper</a>, <a href="#costdoc">How I measured the saving</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/cost_saving.py">cost_saving.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Cost-saving test), <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc7-final.txt">runs/tc7-final.txt</a></td></tr>
+      <tr><td>Three memory tests in <code>use_case/evals/</code>, running with everything else</td><td><a href="#next">What stays</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/run.py">run.py</a> (end of <code>main</code>; <code>--memory</code> adds the two that call the model), <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc7-final.txt">runs/tc7-final.txt</a></td></tr>
+      <tr><td>Test 3, truthfulness: the explanation matches my log</td><td><a href="#honest">Honest</a>, <a href="#honestdoc">How the check works</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/truthfulness.py">truthfulness.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/test_truthfulness.py">test_truthfulness.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Truthfulness)</td></tr>
+      <tr><td>The leakage test (my app has users: contract owners)</td><td><a href="#private">Private</a>, <a href="#privatedoc">How the filter works</a></td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/test_leakage.py">test_leakage.py</a>, <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Leakage)</td></tr>
+      <tr><td>Before/after on my Week 4 numbers</td><td><a href="#quality">Quality</a>, <a href="#qualitydoc">All the numbers</a></td><td><a href="https://github.com/bestdash/FDE1/tree/main/use_case/evals/runs">runs/tc7-memory-off.txt, tc7-memory-on.txt, tc7-memory-on-before-unit-fix.txt</a></td></tr>
+      <tr><td>Shown to the sponsor, his answers</td><td><a href="#yourturn">Your view</a> (Nov 24)</td><td><a href="https://github.com/bestdash/FDE1/blob/main/use_case/stakeholders.md">stakeholders.md</a> (Week 7 row, after the meeting)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">Press <kbd>P</kbd> for presenter mode: the 5-minute story, detail sections hidden.</p>
+  <details>
+  <summary>Words on this page</summary>
+  <div class="tablewrap" style="margin-top:10px">
+  <table>
+    <thead><tr><th>Term</th><th>Plain meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Memory</td><td>What the agent keeps between questions, so it does not start from zero each time</td></tr>
+      <tr><td>Semantic memory</td><td>Stored facts, here the key facts of each contract. The course's other kinds: episodic (a log of past events) and procedural (a learned way of doing a task)</td></tr>
+      <tr><td>Contract record</td><td>One row per contract: start and end date, auto-renewal, notice period, total and annual value, each with the document section it came from</td></tr>
+      <tr><td>Staleness, supersede on write</td><td>A stored fact going out of date. My rule: when a newer document arrives, its record replaces the old one, and the old one is kept as history</td></tr>
+      <tr><td>Live record</td><td>The one current record of a contract; the database allows only one</td></tr>
+      <tr><td>Tool call</td><td>One action the agent takes, such as one search of the documents or one read of the record</td></tr>
+      <tr><td>Tokens in</td><td>The amount of text sent to the AI model; the main driver of cost</td></tr>
+      <tr><td>Trace (log)</td><td>What the code records while the agent works: each tool, its arguments, the sections it returned</td></tr>
+      <tr><td>Viewer, see-all group</td><td>Who is asking. An owner sees their own contracts; groups such as procurement or the CIO see all</td></tr>
+      <tr><td>Break check</td><td>Breaking the rule on purpose to prove the test then fails</td></tr>
+      <tr><td>Judge, headline</td><td>An AI that grades each answer for false "it is missing" claims; its score is my headline (1.0 = all 13 questions pass)</td></tr>
+      <tr><td>Noise</td><td>The change a rerun gives with nothing changed; with 13 questions, one question is 0.077</td></tr>
+      <tr><td>SYN-04 / Vendor04</td><td>Synthetic (invented) contract 4, and its invented vendor</td></tr>
+      <tr><td>Retrieval, section</td><td>Finding the parts of the documents that answer a question; one titled part of a document, such as "Renewal Term"</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </details>
+</div>
+</section>
+
+<section id="built" data-label="What I built" data-time="0:25" data-n="→">
+<div class="wrap">
+  <p class="kicker">What I built: semantic memory, three tables in one database file</p>
+  <h2 class="slide-h">One record per contract: 6 facts, each tied to the document section it came from</h2>
+  <div class="schema">
+    <div class="tbl hot">
+      <div class="tname">records <span>one row per contract version</span></div>
+      <div class="col key">contract_id · vendor · owner</div>
+      <div class="col fact">start_date</div>
+      <div class="col fact">end_date</div>
+      <div class="col fact">auto_renewal</div>
+      <div class="col fact">notice_days</div>
+      <div class="col fact">total_contract_value</div>
+      <div class="col fact">annual_contract_value</div>
+      <div class="col meta">live: 1 = current, 0 = history</div>
+      <div class="col meta">validated_by: empty until the owner confirms</div>
+    </div>
+    <div class="link">each fact →</div>
+    <div class="tbl">
+      <div class="tname">sources <span>one row per fact</span></div>
+      <div class="col key">record_id · field</div>
+      <div class="col">source: the file and section</div>
+      <div class="eg">end_date → <code>SYN-04-order.md#Subscription Term</code></div>
+      <div class="eg">total_contract_value → <code>computed from SYN-04-order.md#Products and Fees + SYN-04-order.md#Subscription Term</code></div>
+    </div>
+    <div class="tbl">
+      <div class="tname">notes <span>what people say</span></div>
+      <div class="col key">contract_id</div>
+      <div class="col">text · author role · date</div>
+      <div class="eg">A note never changes a fact. Only a contract document does.</div>
+    </div>
+  </div>
+  <div class="grid g2" style="margin-top:10px">
+    <div class="card"><h4>What the agent reads: Vendor04</h4>
+<pre class="out">Contract record SYN-04: current version, not yet confirmed by the owner.
+end date (term end, expiry date): 2027-03-31
+[SYN-04-order.md#Subscription Term]
+notice period in days (cancellation period, ...): 90
+[SYN-04-order.md#Terms]</pre></div>
+    <div class="card accent"><h4>Two rules the database enforces</h4>Only one live record per contract: a renewal turns the old record into history, it is never deleted. Every fact has a source line, so every answer can cite where it comes from.</div>
+  </div>
+</div>
+</section>
+
+<section id="choice" data-label="Why this kind" data-time="1:00" data-n="→">
+<div class="wrap">
+  <p class="kicker">Part 1: three kinds of memory, one chosen</p>
+  <h2 class="slide-h">Three kinds of memory. Only one moves my sponsor's first goal.</h2>
+  <div class="grid g3">
+    <div class="card accent mem"><span class="tag t-q">Chosen</span><h4>Semantic: what is true now</h4>
+      <p><b>For us:</b> each contract's end date, notice period, renewal type and value.</p>
+      <p><b>It would control:</b> the renewal alert, and quick answers ("when does it end?").</p></div>
+    <div class="card mem"><span class="tag t-no">Later</span><h4>Episodic: what happened</h4>
+      <p><b>For us:</b> past negotiations, what was decided at the last renewal, the discount we got.</p>
+      <p><b>It would control:</b> negotiation prep and the "saved money" measure.</p>
+      <p class="help">Needs real history. The synthetic contracts have none.</p></div>
+    <div class="card mem"><span class="tag t-no">Later</span><h4>Procedural: how we do things</h4>
+      <p><b>For us:</b> how each owner prepares a purchase order (which account to charge, a prepaid licence split by month), the email style each owner likes.</p>
+      <p><b>It would control:</b> correct purchase orders, even after an owner hands a contract over.</p>
+      <p class="help">Approvals stay in the company's finance and purchasing system (sponsor, Nov 24). Needs real renewals to learn from.</p></div>
+  </div>
+  <div class="statement"><p class="lab">Why semantic</p><p>The charter's first measure is alerts 100% on time. An alert needs a saved, correct end date and notice period. This record is the stepping stone: record, then alert, then better answers.</p></div>
+</div>
+</section>
+
+<section id="choicedoc" data-label="The decision, word for word" class="doc-only">
+<div class="wrap">
+  <span class="req">Part 1: one kind of memory, and why</span>
+  <p class="intro">My choice and what I rejected, word for word from my decision log:</p>
+  <blockquote class="hers">Memory (Nov 20): semantic memory = the contract record (end date, notice period, renewal type, owner, vendor, product), in the same SQLite store the alert needs (Week 5 next-build row). One store, not two. Record fields are written only when a contract document arrives, with that document as their source. Conversation notes go in a separate table, with date and source, and never replace a record field. Vendor and product names, security products included, are stored (synthetic here)</blockquote>
+  <p class="help">SQLite: a database in one file. The alert: the reminder sent to an owner before a decision deadline (planned).</p>
+  <h3>Rejected</h3>
+  <blockquote class="hers">Episodic memory (decision history, negotiation history, relationship with the vendor). Procedural memory (internal policies, email style per owner). A separate memory store next to the contract database</blockquote>
+  <h3>Why</h3>
+  <blockquote class="hers">The record is what the alert and most questions need, so most answers come from the record, and document search stays for specific terms. Documents are the ground truth: a fact taken from a chat can be wrong and still sound right. One store: the alert and the agent read the same live value, so they cannot disagree. Episodic: the synthetic data has no real history yet. Procedural: the policies are rules people write, not something the agent learns, and there is no repeated work to learn from yet. Names: the alert needs vendor and product anyway, so leaving them out of memory protects nothing; protection comes from the vendor and owner filters and from access to the store</blockquote>
+  <div class="diary"><span class="lab">The sponsor's view, Nov 24</span><p>Approvals stay in the company's finance and purchasing system, so the agent should not rebuild them. Procedural memory still has a real use: each owner's rules for preparing a purchase order, which are lost today when an owner leaves. That keeps it for later, with a clearer target.</p></div>
+  <div class="diary"><span class="lab">Built as</span><p>The 10 records are filled from my checked answer file (<code>truth.jsonl</code>), the same facts my Week 4 tests use. The agent reads them through one new tool, <code>get_contract_record</code>; <code>MEMORY=off</code> removes the tool and restores the Week 6 prompt, so the comparison is fair. A view, <code>live_records</code>, shows only current records.</p></div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Memory) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/CHARTER.md">CHARTER.md</a> (measures: alerts 100% in time) · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/memory.py">memory.py</a> (<code>SCHEMA</code>) · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/seed_memory.py">seed_memory.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/retrieval.py">retrieval.py</a> (<code>get_contract_record</code>)</p>
+</div>
+</section>
+
+<section id="stale" data-label="Staying current" class="doc-only">
+<div class="wrap">
+  <span class="req">Part 2 and test 1: staleness, supersede on write</span>
+  <h2>A renewal replaces the old record; the old one stays as history</h2>
+  <p class="intro">Contracts get renewed, so a stored end date goes out of date. Of the three ways the course names (recency, supersede, validity windows), I use <b>supersede on write</b> (a new document replaces the old record when it is saved): the save function marks the old record as history and writes the new one as the only live record, in one step.</p>
+  <div class="grid g3">
+    <div class="card"><h4>The test</h4>Save Vendor10's first order form (ends 30 November 2026), then its renewal (ends 30 November 2027). The live record must be the renewal, and the first order must still exist as history.</div>
+    <div class="card"><div class="big">1 passed<small>with the rule on</small></div></div>
+    <div class="card"><div class="big">1 failed<small>with the rule switched off: the database refuses a second live record</small></div></div>
+  </div>
+  <div class="diary"><span class="lab">Why supersede, at the record level</span><p>A new document starts a new term, so the old record's dates belong to a term that is over. An alert on them makes no sense, and an owner who never answers must not leave the alert on dead dates. The old record is kept, not deleted, so the history of the contract stays.</p></div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/memory.py">memory.py</a> (<code>save_record</code>, <code>RETIRE_OLD</code>) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/test_staleness.py">test_staleness.py</a></p>
+</div>
+</section>
+
+<section id="cost" data-label="Cheaper" data-time="1:25" data-n="→">
+<div class="wrap">
+  <p class="kicker">Test 2: the same 4 questions, memory off, then on, 3 runs each</p>
+  <h2 class="slide-h">Memory cut tool calls by about 45%. My bar was half. Three fixes got me close.</h2>
+  <div class="steps">
+    <div class="st"><span class="lab2">Run 1</span><div class="big">0.70</div><small>calls on/off</small></div>
+    <div class="fx"><b>Fix 1: a computed date had no source.</b> Vendor02's end date said only "computed", so the agent searched and redid the math. Now it cites the sections it was computed from.<br><b>Fix 2: the record's words were not the user's.</b> Each label now carries the words people use: "end date (term end, expiry date)".</div>
+    <div class="st"><span class="lab2">Run 2</span><div class="big">0.54</div><small>calls on/off</small></div>
+    <div class="fx"><b>Fix 3: "cancellation period".</b> The question said "cancellation", the record said "notice". Added to the label: "notice period (cancellation period, ...)".</div>
+    <div class="st hot"><span class="lab2">Run 3</span><div class="big">0.54</div><small>calls · tokens 0.65</small></div>
+  </div>
+  <div class="grid g3" style="margin-top:10px">
+    <div class="card accent"><p class="lab2">Tool calls, 4 questions</p><div class="big">13.7 → 7.3<small>average of 3 runs (on/off = 0.54; 0.5 = half)</small></div></div>
+    <div class="card"><p class="lab2">Text sent to the AI</p><div class="big">−35%<small>tokens in (on/off = 0.65)</small></div></div>
+    <div class="card"><p class="lab2">When does Vendor05 end?</p><div class="big">3 → 1<small>tool calls: one read of the record, no search</small></div></div>
+  </div>
+  <div class="card" style="margin-top:10px"><p class="lab2">Extra observation: time to answer, same 4 questions, 3 runs each</p><div class="big">6.9 s → 3.0 s<small>median, seconds to the final answer (mean 7.5 → 4.6 s). Simple date questions more than twice as fast; the renewal-terms question still searches (11.1 → 9.5 s); the control question unchanged (3.0 → 2.9 s). Memory on was also steadier from run to run. No bar was set before this run, so it is an observation, not a test.</small></div></div>
+  <p class="moral">I wrote the bar before the first run and kept it.<br><span>FAIL, reported as FAIL. Every turn resends the instructions, so tokens cannot halve on short questions.</span></p>
+</div>
+</section>
+
+<section id="costdoc" data-label="How I measured the saving" class="doc-only">
+<div class="wrap">
+  <span class="req">Part 3, test 2: cost saving</span>
+  <p class="intro">Four of my 13 Week 4 questions are answered by the record. One control question is not in the record (the Vendor07 price per user), so memory should not make it cheaper. Each question runs 3 times with memory off (the agent must search) and 3 times with memory on. Pass rule, written before the first run: memory on uses at most half the tool calls and at most half the tokens in (the text sent to the AI model).</p>
+  <h3>First, the three fixes: what the logs showed, and what changed</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Fix</th><th>What the agent did</th><th>Why</th><th>Record before → after</th></tr></thead>
+    <tbody>
+      <tr><td>1. Computed values cite their sources</td><td>Read the Vendor02 record, then searched and computed the end date itself</td><td>The end date's source said only "computed": nothing to cite</td><td>"computed" → <code>[SYN-02-order.md#...]</code> lines + "(computed by code from the cited section(s) above)"</td></tr>
+      <tr><td>2. Labels carry the user's words</td><td>Searched after reading the record when the question used another word</td><td>The labels were the column names</td><td>"end date" → "end date (term end, expiry date)"; "auto-renewal" → "auto-renewal (renews automatically, rollover clause)"</td></tr>
+      <tr class="ship"><td>3. The cancellation synonym</td><td>For "What's the cancellation period for Vendor04?", searched for every meaning of the word</td><td>The record said "notice period"</td><td>"notice period" → "notice period (cancellation period, notice of non-renewal, termination notice)"</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">After fix 3, Vendor04 still searched once: no longer for the word, but for context (two documents say 60 and 90 days). More synonyms would not remove that, so I stopped tuning.</p>
+  <h3>Then, the runs</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Run (Nov 21 to 23)</th><th>Tool calls off → on</th><th>Tokens in off → on</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Run 1: no fix</td><td>13.3 → 9.3 (0.70)</td><td>26,147 → 20,556 (0.79)</td><td>FAIL</td></tr>
+      <tr><td>Run 2: after fixes 1 and 2</td><td>13.0 → 7.0 (0.54)</td><td>24,814 → 17,552 (0.71)</td><td>FAIL, closer</td></tr>
+      <tr class="ship"><td>Run 3: after fix 3</td><td>13.7 → 7.3 (0.54)</td><td>27,604 → 17,941 (0.65)</td><td>FAIL, closer</td></tr>
+      <tr><td>Final run, with all other tests (Nov 23)</td><td>13.7 → 7.3 (0.54)</td><td>27,441 → 17,968 (0.65)</td><td>FAIL, same</td></tr>
+      <tr><td>Break check: empty memory</td><td>12.0 → 14.0 (1.17)</td><td>22,525 → 22,795 (1.01)</td><td>FAIL, as it must</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">On/off: the cost with memory on divided by the cost with memory off; 0.5 = half, lower is better. Totals over the 4 record questions, average of 3 runs (1 run for the break check).</p>
+  <div class="tablewrap" style="margin-top:10px">
+  <table>
+    <thead><tr><th>Final run, per question</th><th>Tool calls off → on</th><th>Tokens in off → on</th></tr></thead>
+    <tbody>
+      <tr><td>Cancellation period, Vendor04</td><td>3.0 → 2.0</td><td>6,250 → 5,587</td></tr>
+      <tr><td>Renewal terms, Vendor10</td><td>5.3 → 3.3</td><td>11,577 → 6,611</td></tr>
+      <tr><td>End date, Vendor05</td><td>3.0 → 1.0</td><td>5,725 → 2,864</td></tr>
+      <tr><td>End date, Vendor02</td><td>2.3 → 1.0</td><td>3,889 → 2,906</td></tr>
+      <tr><td>Control: price per user, Vendor07 (not in the record)</td><td>2.0 → 2.0</td><td>2,715 → 3,401</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="diary"><span class="lab">Why tokens fall less than calls</span><p>Every model turn resends the instructions and the tool list, and the memory tool's description adds about 650 tokens to every question, even one it cannot answer (the control went up). An answer from memory still takes 2 model turns: one to call the tool, one to answer.</p></div>
+  <div class="diary"><span class="lab">One more thing the logs showed</span><p>When the agent computed a notice deadline itself, it was one day off (it said about 1 January 2027; 31 March 2027 minus 90 days is 31 December 2026, checked in code). That is why code computes dates in my design, not the model.</p></div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/cost_saving.py">cost_saving.py</a> (break check: <code>MEMORY_DB=/tmp/empty_memory.sqlite RUNS=1</code>) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Cost-saving test) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc7-final.txt">runs/tc7-final.txt</a></p>
+</div>
+</section>
+
+
+<section id="honest" data-label="Honest" data-time="2:05" data-n="→">
+<div class="wrap">
+  <p class="kicker">Test 3: truthfulness · the sponsor's audit question: "why did it say this?"</p>
+  <h2 class="slide-h">The agent tells us where its answer came from. Code checks that story against what really happened.</h2>
+  <div class="story4">
+    <div class="s4"><span class="lab2">1 · We ask</span>"What's the cancellation period for the Vendor04 contract?"<br><small>+ "Name every tool you called and every section you used."</small></div>
+    <div class="s4"><span class="lab2">2 · The agent's story</span>90 days.<br><code>TOOLS USED: get_contract_record</code><br><code>SECTIONS READ: [SYN-04-order.md#Terms]</code></div>
+    <div class="s4"><span class="lab2">3 · What really happened</span>My code's log, not the model's words: it called <code>get_contract_record</code>, which returned <code>SYN-04-order.md#Terms</code> among its sections.</div>
+    <div class="s4 hot"><span class="lab2">4 · The test</span>Every tool named was called, every section cited was returned: <b>pass</b>.</div>
+  </div>
+  <div class="grid g3" style="margin-top:10px">
+    <div class="card"><h4>Why it matters</h4>If the story says "I read the pricing section" and it did not, the owner trusts a source no one read.</div>
+    <div class="card"><h4>Fails on</h4>A tool named but never called. A section cited but never returned. No story at all. A tool used but not named is only a warning.</div>
+    <div class="card accent"><div class="big">5 of 5<small>stories match the log, memory on. A made-up story (a search never run, a "Pricing" section never returned) fails.</small></div></div>
+  </div>
+  <p class="help">Steps 1 to 3 follow the Vendor04 case in my test file; the log line is from the final run.</p>
+</div>
+</section>
+
+<section id="honestdoc" data-label="How the check works" class="doc-only">
+<div class="wrap">
+  <span class="req">Part 3, test 3: truthfulness</span>
+  <p class="intro">This is the sponsor's audit question, "why did it say this?". The agent ends each answer with two fixed lines, TOOLS USED and SECTIONS READ. Code compares them with the trace (the log my code writes while the agent works), never with the model's own words. The same 5 questions as test 2, memory on, 1 run each.</p>
+  <blockquote class="hers">Truthfulness test (Nov 22): one turn. Each question carries the request to explain: the agent ends its answer with a TOOLS USED line and the sections it read, and truthfulness.py compares them with the trace run_agent logged. Fails on: a tool named but never called, a section cited but never returned, no TOOLS USED line. Warns, does not fail, on a tool called but not named</blockquote>
+  <p class="help">run_agent: the agent loop in my code. Trace: its log of each tool call and the sections returned.</p>
+  <div class="grid g2">
+    <div class="card"><h4>Break check, no model</h4><code>test_truthfulness.py</code>: a fake log and two fake answers. The true one passes; one that names a search never run and a section never returned fails. With the check switched off, the test fails: <code>1 failed, 1 passed</code>.</div>
+    <div class="card"><h4>Limits</h4>One turn: the agent explains while its tool results are still in view, so a pass proves less than a real audit days later. One run per question, so a rare false claim could slip through.</div>
+  </div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/truthfulness.py">truthfulness.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/test_truthfulness.py">test_truthfulness.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Truthfulness)</p>
+</div>
+</section>
+
+<section id="private" data-label="Private" data-time="2:40" data-n="→">
+<div class="wrap">
+  <p class="kicker">Leakage: memory is a new place where one owner's contract can appear in another's answer</p>
+  <h2 class="slide-h">Each owner sees only their contracts. Who is asking never passes through the AI.</h2>
+  <div class="flow4">
+    <div class="bx"><b>The app</b>knows who is asking<br><code>viewer = "owner 1"</code><br><small>(later: the company login)</small></div>
+    <div class="ar">→</div>
+    <div class="bx"><b>My code</b><code>tools_for(viewer)</code><br>builds tools that can reach only owner 1's contracts: 01, 02, 07, 10</div>
+    <div class="ar">→</div>
+    <div class="bx hot"><b>What the AI sees</b><code>get_contract_record(contract)</code><br><code>search_chunks(query, vendor)</code><br>no "viewer" argument: it cannot claim to be the CIO</div>
+  </div>
+  <div class="grid g2" style="margin-top:12px">
+    <div class="card"><h4>Who sees what</h4>An owner: their own contracts. Procurement, legal, admin, CIO, CFO, CEO: all (finance removed after the sponsor review, Nov 24). Unknown: nothing, and is told to contact procurement or the admin. <b>6 tests</b>, no AI call; each fails when I break the rule.</div>
+    <div class="card accent"><h4>The leak the test caught: a fake bug, a real risk</h4>"Contract 2 of Vendor04" returned <b>Vendor02's</b> record: the lookup took the first number. That exact bug comes from my numbered fake names. The real version: someone's words map to the wrong contract (one vendor, three contracts; names with numbers in them). Fixed and tested here; for real contracts it is why each contract needs an id we create.</div>
+  </div>
+</div>
+</section>
+
+<section id="privatedoc" data-label="How the filter works" class="doc-only">
+<div class="wrap">
+  <span class="req">Part 3: the leakage test, because my app has users</span>
+  <p class="intro">The scope comes from the sponsor (Nov 18): each owner sees only their contracts, the CIO sees all. The course app has no login yet, so the owners are invented roles ("owner 1" to "owner 3") assigned to the 10 synthetic contracts. The filter lives in the store and in the tools the agent gets, not in the prompt: whatever the AI does, it cannot reach a record or a document outside the viewer's contracts.</p>
+  <h3>Where the viewer travels</h3>
+<pre class="out">app.py      answer_contract_question(question, viewer)        # from the app, later the login
+              if numbers_for(viewer) == set(): "No contracts are assigned to you..."
+              run_agent(question, RAG_TOOLS, tools_for(viewer))
+retrieval.py  tools_for(viewer)
+              allowed = memory.numbers_for(conn, viewer)       # {"01","02","07","10"}, None = sees all
+              get_contract_record_for_viewer(contract):        # the model passes only "contract"
+                  if contract_key(contract)[4:6] not in allowed: "(no contract record you can see ...)"
+memory.py     records_for(conn, viewer): see-all group -> all live records, else WHERE owner = viewer</pre>
+  <p class="help">The tool list the model receives (<code>RAG_TOOLS</code>) is the same for everyone and has no viewer field. Only the functions behind it change per viewer.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Test</th><th>What it proves</th><th>Break check</th></tr></thead>
+    <tbody>
+      <tr><td>Each record shows only its contract</td><td>All 10 vendors, by name</td><td></td></tr>
+      <tr class="ship"><td>Other wordings do not cross</td><td>"contract 2 of Vendor04" leads to Vendor04, "Acme" to no record</td><td>Failed before the fix (got Vendor02)</td></tr>
+      <tr><td>Two owners do not see each other</td><td>Every owner sees exactly their contracts</td><td>Fails when everyone sees everything</td></tr>
+      <tr><td>See-all groups see everything</td><td>Procurement and leadership are not cut off</td><td></td></tr>
+      <tr><td>Unknown viewer sees nothing</td><td>A wrong or empty name gets nothing, not everything</td><td>Fails when everyone sees everything</td></tr>
+      <tr><td>Owner tools do not reach other contracts</td><td>Record, search and document list, called as the agent would</td><td>Fails when the tools are unfiltered</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">All six run with <code>pytest</code> and call no AI model. Break check: the rule switched off on purpose, then restored.</p>
+  <div class="diary"><span class="lab">Is the leak real?</span><p>The exact bug (taking the first number in "contract 2 of Vendor04") needs numbered vendor names, which only my synthetic data has. The kind of failure is real: the lookup turns a person's words into a contract key, and real names are messy (one vendor with several contracts, product names with numbers, near-identical names). Real contracts carry no id, so the next build creates one per contract and matches each document to it, asking a person when unsure.</p></div>
+  <div class="diary"><span class="lab">Limits, written down</span><p>Until login exists, my tests and the demo page run as the CIO, so they do not use the owner filter end to end. The MCP server (the tool server for Claude Desktop) stays unfiltered: a local developer tool. Owners come from a hand-written list, not the contract database.</p></div>
+  <div class="diary"><span class="lab">The leak I may want</span><p>When someone starts buying a product, should the system tell them the company already has a contract with that vendor under another owner? It would avoid a duplicate purchase, and it crosses the line this test protects. My leaning: show only "exists, owner role X", no dates or price. Open, for the sponsor.</p></div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/test_leakage.py">test_leakage.py</a> · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/app.py">app.py</a> (<code>answer_contract_question</code>) · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/memory.py">memory.py</a> (<code>records_for</code>, <code>numbers_for</code>) · <a href="https://github.com/bestdash/FDE1/blob/main/01_Product_Engineering/challenge/retrieval.py">retrieval.py</a> (<code>tools_for</code>, <code>contract_key</code>) · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/decisions.md">decisions.md</a> (Week 7, Leakage)</p>
+</div>
+</section>
+
+
+<section id="quality" data-label="Quality" data-time="3:20" data-n="→">
+<div class="wrap">
+  <p class="kicker">Before/after on my 13 Week 4 questions</p>
+  <h2 class="slide-h">Memory first made answers worse. The record said "30". The document said "30 days".</h2>
+  <div class="ask"><span class="who">Answer with memory on</span>The notice period gives no unit, presumably days.</div>
+  <div class="grid g3" style="margin-top:12px">
+    <div class="card"><p class="lab2">Memory off</p><div class="big">1.000<small>judge score, 13 questions (1.0 = all pass)</small></div></div>
+    <div class="card"><p class="lab2">Memory on, first</p><div class="big">0.923<small>one answer said the unit was missing: true of my record, false of the contract</small></div></div>
+    <div class="card accent"><p class="lab2">After one word: "in days"</p><div class="big">1.000<small>same as memory off, with about 45% fewer tool calls</small></div></div>
+  </div>
+  <p class="moral">A memory is only as good as what it keeps.<br><span>Store the fact the owner acts on, with its unit, not just the number.</span></p>
+</div>
+</section>
+
+<section id="qualitydoc" data-label="All the numbers" class="doc-only">
+<div class="wrap">
+  <span class="req">Submission: before/after on my Week 4 numbers</span>
+  <p class="intro">The same 13 questions, the same judge, run with memory off and on, Nov 23. My Week 6 version already scored near the top, so memory had little room to raise quality and some room to lower it. The point of this check: the saving did not cost quality.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Score</th><th>Week 4 baseline (Nov 2)</th><th>Week 6 final</th><th>Memory off</th><th>Memory on, first</th><th>Memory on, after the fix</th></tr></thead>
+    <tbody>
+      <tr class="ship"><td>Judge: no false "missing" claims (headline)</td><td>0.692</td><td>1.000</td><td>1.000</td><td>0.923</td><td>1.000</td></tr>
+      <tr><td>Dates right</td><td>0.846</td><td>1.000</td><td>0.923</td><td>0.923</td><td>1.000</td></tr>
+      <tr><td>No false "missing document"</td><td>0.846</td><td>0.923</td><td>1.000</td><td>0.923</td><td>1.000</td></tr>
+      <tr><td>No other vendors</td><td>0.846</td><td>1.000</td><td>1.000</td><td>1.000</td><td>0.923</td></tr>
+      <tr><td>An answer was given</td><td>1.000</td><td>1.000</td><td>1.000</td><td>1.000</td><td>1.000</td></tr>
+      <tr><td>Questions that failed</td><td></td><td>1</td><td>1 (Vendor02 end)</td><td>3</td><td>1 (a two-vendor question)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">Each score: share of the 13 questions that pass, 1.0 = all. One question = 0.077. One run per column.</p>
+  <div class="grid g3">
+    <div class="card"><h4>Bug: the missing unit</h4>Right record, current value, but "30" without "days". The agent doubted it and the judge flagged it. Fixed with one word in the field's label.</div>
+    <div class="card"><h4>Gap: the notice deadline</h4>The record holds the notice period, not the last day to give notice. A one-call answer sometimes leaves the deadline out. Next build: code computes the deadline and stores it.</div>
+    <div class="card"><h4>Noise</h4>Each run fails one different question. The last one asks about two vendors and nothing in the record, so it takes the same path with or without memory.</div>
+  </div>
+  <div class="diary"><span class="lab">Wrong entry or old entry?</span><p>The course asks which of the two a memory failure is: retrieval (the wrong entry) or staleness (the right entry, out of date). The missing unit was neither: the right, current entry, used badly because it was stored badly. The wrong-contract lookup was retrieval, caught by the leakage test, not by these scores.</p></div>
+  <p class="src">Source: <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc7-memory-off.txt">runs/tc7-memory-off.txt</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc7-memory-on-before-unit-fix.txt">runs/tc7-memory-on-before-unit-fix.txt</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc7-memory-on.txt">runs/tc7-memory-on.txt</a> · <a href="https://github.com/bestdash/FDE1/blob/main/use_case/evals/runs/tc6-final.txt">runs/tc6-final.txt</a></p>
+</div>
+</section>
+
+<section id="yourturn" data-label="Your view" data-time="3:55" data-n="→">
+<div class="wrap">
+  <p class="kicker">For the sponsor, Head of IT infrastructure · Nov 24</p>
+  <h2 class="slide-h">Three decisions that belong to the person who owns the contracts</h2>
+  <div class="grid g3">
+    <div class="card"><h4>1. Who should see every contract?</h4>Today: procurement, legal, finance, admin and leadership (CIO, CFO, CEO). Too many, too few?<br><span id="a1" class="help">Answer: procurement, legal, leadership and admin. Finance is out for now: it has several sub-teams, to settle later.</span></div>
+    <div class="card"><h4>2. Should an owner learn that a vendor already has a contract under another owner?</h4>It avoids a duplicate purchase. My leaning: only "exists, owner role X".<br><span id="a2" class="help">Answer: yes, later. It lets owners align end dates and negotiate one bigger contract. Everyone may see vendor, product, owner and end date. Valuable, but not the first priority.</span></div>
+    <div class="card"><h4>3. Who confirms a contract record before people rely on it?</h4>Today every record says "not yet confirmed by the owner". The owner, or procurement?<br><span id="a3" class="help">Answer: the owner, in one yes/no message. "Procurement will always say: I don't know."</span></div>
+  </div>
+  <div class="statement"><p class="lab">What his answers changed</p><p id="a4">Part 1, Nov 24: approvals stay in the company's finance and purchasing system, so procedural memory means each owner's purchase-order rules, not an approval workflow. A source shown to a user is a file name and section, never a storage link (already so in the record). Leadership worries about AI token cost: the cost test gives the measured saving. Part 2, same day: finance leaves the see-all list (one line in <code>SEE_ALL</code>, leakage tests rerun). A chat may change a record field, but only after the agent asks and the owner says yes, and every change keeps who, what and when. A status field joins the record. No local accounts without single sign-on. Next: the first test on real contracts, in the private company project, not this repo.</p></div>
+</div>
+</section>
+
+<section id="next" data-label="What stays" data-time="4:30" data-n="→">
+<div class="wrap">
+  <p class="kicker">What stays, and what is next</p>
+  <h2 class="slide-h">Four tests now guard the memory every time I change the agent</h2>
+  <div class="grid g3">
+    <div class="card accent"><h4>Stays</h4>Staleness, cost, honesty and leakage tests run with my Week 4 and Week 6 tests in one command. When I change the AI model in Week 8, they tell me at once if the memory broke.</div>
+    <div class="card"><h4>Next: the deadline in the record</h4>The last day to give notice, computed by code with its sources, so no answer has to compute it or leave it out.</div>
+    <div class="card"><h4>Next: real owners</h4>Owners from the contract database, the viewer from the company login, then the pilot with the sponsor first.</div>
+  </div>
+  <p class="moral">This week's lesson:<br><span>memory saves only what you let it skip; test what the shorter answer dropped.</span></p>
+</div>
+</section>
+
+</main>
+
+<script>
+const LOOM_URL = "https://drive.google.com/file/d/1By4crWEJdQ2bScyIA3Q66XVMbNmfEbLk/view?usp=sharing";
+
+(function(){
+  const loom = document.getElementById('loomLink');
+  if (loom && LOOM_URL) { loom.href = LOOM_URL; loom.target = '_blank'; loom.rel = 'noopener'; }
+  else if (loom) { loom.remove(); }
+
+  const sections = Array.from(document.querySelectorAll('main section'));
+  const nav = document.getElementById('nav');
+  let slideNo = 0;
+  const links = sections.map((s) => {
+    const a = document.createElement('a');
+    a.href = '#' + s.id;
+    const isDoc = s.classList.contains('doc-only');
+    if (!isDoc) slideNo++;
+    a.innerHTML = '<span class="n">' + (isDoc ? '·' : slideNo) + '</span><span>' + s.dataset.label + '</span>' +
+      (isDoc ? '<span class="doc">detail</span>' : '<span class="t">' + (s.dataset.time || '') + '</span>');
+    a.addEventListener('click', e => { e.preventDefault(); s.scrollIntoView({behavior:'smooth', block:'start'}); });
+    nav.appendChild(a);
+    return a;
+  });
+
+  const presenter = () => document.body.classList.contains('presenter');
+  const visibleIdx = () => sections.map((s, i) => i).filter(i => !(presenter() && sections[i].classList.contains('doc-only')));
+  function currentIndex(){
+    const line = window.innerHeight * 0.35; let cur = visibleIdx()[0];
+    visibleIdx().forEach(i => { if (sections[i].getBoundingClientRect().top <= line) cur = i; });
+    return cur;
+  }
+  function update(){
+    const vis = visibleIdx(); const cur = currentIndex(); const pos = vis.indexOf(cur);
+    links.forEach((a, i) => {
+      a.classList.toggle('hide', !vis.includes(i));
+      a.classList.toggle('on', i === cur);
+      a.classList.toggle('done', vis.includes(i) && vis.indexOf(i) < pos);
+    });
+    document.getElementById('pos').textContent = pos + 1;
+    document.getElementById('tot').textContent = vis.length;
+    document.querySelector('#prog i').style.width = ((pos + 1) / vis.length * 100) + '%';
+    document.getElementById('modeLabel').textContent = presenter() ? 'Presenter' : 'Document';
+  }
+  function go(step){
+    const vis = visibleIdx(); const pos = vis.indexOf(currentIndex());
+    sections[vis[Math.max(0, Math.min(vis.length - 1, pos + step))]].scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,textarea,select')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    else if (e.key === 'p' || e.key === 'P') {
+      const keep = sections[currentIndex()];
+      document.body.classList.toggle('presenter');
+      let i = sections.indexOf(keep);
+      while (presenter() && i > 0 && sections[i].classList.contains('doc-only')) i--;
+      sections[i].scrollIntoView({block:'start'});
+      update();
+    }
+  });
+  if (location.hash === '#present') document.body.classList.add('presenter');
+  let ticking = false;
+  window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { update(); ticking = false; }); } }, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
+</body>
+</html>

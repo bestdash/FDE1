@@ -65,7 +65,20 @@ def main():
     rules = {"blocks_injection": evals.blocks_injection}
     print(harness.run(attacks, evals.echo, rules, name="week6-rules-attacks"))          # coverage
     print(harness.run(evals.CASES, evals.echo, rules, name="week6-rules-real-questions"))  # false positives
-
+    # Week 7 memory tests. The model-free ones run every time: staleness, the truthfulness check, leakage.
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    tests = [os.path.join(here, name) for name in ("test_staleness.py", "test_truthfulness.py", "test_leakage.py")]
+    print("week7-memory-tests:", "PASS" if subprocess.run([sys.executable, "-m", "pytest", "-q", *tests]).returncode == 0 else "FAIL")
+    # The two that call the model (about 35 conversations): only with --memory.
+    if "--memory" in sys.argv:
+        import cost_saving, truthfulness
+        for name, test in (("week7-cost-saving", cost_saving.main), ("week7-truthfulness", truthfulness.main)):
+            try:
+                test()
+                print(f"{name}: PASS")
+            except SystemExit:
+                print(f"{name}: FAIL (see above)")
 
 if __name__ == "__main__":
     main()

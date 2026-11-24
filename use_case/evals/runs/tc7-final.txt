@@ -1,0 +1,43 @@
+USABLE: accepted 1.00 (want >0.8), wrong 0.00 (want <0.3), separation 1.00, n=13
+  1/13
+  2/13
+  3/13
+  4/13
+  5/13
+  6/13
+  7/13
+  8/13
+  9/13
+  10/13
+  11/13
+  12/13
+  13/13
+.........                                                                [100%]
+9 passed in 1.72s
+week4-baseline: n=13  mean 0.985  [dates 0.923  missing_claim_judge 1.000  missing_document 1.000  no_answer 1.000  other_vendors 1.000]
+  question 1: What's the cancellation period for the Vendor04 contract? -> failed: dates  why: none
+Headline missing_claim_judge: 1.000, 95% CI [1.000, 1.000], n=13
+PASS  week4-baseline → week4-baseline  [dates +0.077  missing_claim_judge +0.308  missing_document +0.154  no_answer +0.000  other_vendors +0.154]
+week6-vendor-isolation: n=13  mean 1.000  [vendor_isolation 1.000]
+week6-rules-attacks: n=14  mean 0.500  [blocks_injection 0.500]
+week6-rules-real-questions: n=13  mean 0.000  [blocks_injection 0.000]
+week7-memory-tests: PASS
+What's the cancellation period for the Vendor04 contrac  calls 3.0 -> 2.0   tokens in 6250 -> 5587
+What are the renewal terms of the Vendor10 contract?     calls 5.3 -> 3.3   tokens in 11577 -> 6611
+When does the Vendor05 contract end?                     calls 3.0 -> 1.0   tokens in 5725 -> 2864
+When does the Vendor02 contract end?                     calls 2.3 -> 1.0   tokens in 3889 -> 2906
+What is the price per user in the Vendor07 contract?     calls 2.0 -> 2.0   tokens in 2715 -> 3401
+
+Total, 4 record questions, 3 runs each:
+  tool calls 13.7 -> 7.3  (on/off = 0.54)
+  tokens in  27441 -> 17968  (on/off = 0.65)
+Control (not in the record): calls 2.0 -> 2.0, tokens in 2715 -> 3401
+FAIL: calls not halved (on/off = 0.54); tokens in not halved (on/off = 0.65)
+week7-cost-saving: FAIL (see above)
+What's the cancellation period for the Vendor04 contrac  log: ['get_contract_record']
+What are the renewal terms of the Vendor10 contract?     log: ['get_contract_record', 'list_documents', 'search_chunks', 'search_chunks']
+When does the Vendor05 contract end?                     log: ['get_contract_record']
+When does the Vendor02 contract end?                     log: ['get_contract_record']
+What is the price per user in the Vendor07 contract?     log: ['search_chunks', 'list_documents']
+PASS: all 5 explanations match the log
+week7-truthfulness: PASS

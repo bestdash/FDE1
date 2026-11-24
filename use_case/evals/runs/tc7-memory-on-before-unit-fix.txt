@@ -1,0 +1,23 @@
+USABLE: accepted 1.00 (want >0.8), wrong 0.00 (want <0.3), separation 1.00, n=13
+  1/13
+  2/13
+  3/13
+  4/13
+  5/13
+  6/13
+  7/13
+  8/13
+  9/13
+  10/13
+  11/13
+  12/13
+  13/13
+week4-baseline: n=13  mean 0.954  [dates 0.923  missing_claim_judge 0.923  missing_document 0.923  no_answer 1.000  other_vendors 1.000]
+  question 4: When does the Vendor05 contract end? -> failed: dates  why: none
+  question 5: When does the Vendor02 contract end? -> failed: missing_claim_judge  why: The answer says the notice period 'gives no unit' (only 'presumably days'), but our files state the terms give 30 days notice.
+  question 7: Did we include SSO in the Vendor02 contract? -> failed: missing_document  why: none
+Headline missing_claim_judge: 0.923, 95% CI [0.769, 1.000], n=13
+PASS  week4-baseline → week4-baseline  [dates +0.077  missing_claim_judge +0.231  missing_document +0.077  no_answer +0.000  other_vendors +0.154]
+week6-vendor-isolation: n=13  mean 1.000  [vendor_isolation 1.000]
+week6-rules-attacks: n=14  mean 0.500  [blocks_injection 0.500]
+week6-rules-real-questions: n=13  mean 0.000  [blocks_injection 0.000]
