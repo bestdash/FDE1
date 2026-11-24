@@ -1,3 +1,5 @@
+**My TC7 submission:** [submission page](https://raw.githack.com/bestdash/FDE1/main/07_Memory/challenge/TC7_submission.html) · [video](https://drive.google.com/file/d/1By4crWEJdQ2bScyIA3Q66XVMbNmfEbLk/view?usp=sharing)
+
 # Technical Challenge 7 — Memory, and evals that test it
 
 > **Read first:** [`use_case/CHARTER.md`](../../use_case/CHARTER.md).

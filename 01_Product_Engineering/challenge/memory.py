@@ -111,7 +111,7 @@ def get_live_record(conn, contract_id):
     return dict(row) if row else None
 
 # Groups that see every contract (the sponsor's scope, Nov 18): TC7 Chunk 8.
-SEE_ALL = {"procurement", "leadership", "legal", "finance", "admin", "CIO", "CFO", "CEO"}
+SEE_ALL = {"procurement", "leadership", "legal", "admin", "CIO", "CFO", "CEO"}
 
 def records_for(conn, viewer):
     """The live records one viewer may see: their own contracts, or all for a see-all group."""
